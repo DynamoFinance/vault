@@ -2,8 +2,28 @@
 
 ## Summary
 
+The Dynamo protocol crowd sources optimal wealth allocations across various liquidity/lending platforms. Such an
+allocation, proposed or active, is called a Strategy. The expectation that just about anyone is allowed to propose a Strategy introduces a likely significantly higher rate of submissions across the Ethereum ecosystem. The typical voting method of deciding which decision to make is both unweildy and would require far too much active participation by others who have investments in the Dynamo protocol. On the other hand, if the protocol has no restrictions on who and when Strategies can be proposed nor a process in which to edjudicate their acceptance, bad actors could use this openess as a vector to attempt denial of service attacks that would break down then entire value of the protocol. 
+
+Dynamo has decided to adopt a Governance policy that is optimistic in assuming most submitted Strategies are valid so, unless someone involved in Governance makes the effort to reject a Strategy, it will ultimately be accepted and activated in a reasonable period of time. To protect against bad actors, however, there is a "decision period" that starts when a new Strategy is proposed in which a select group of Governance Guards may choose to block an invalid Strategy. Optionally, the Guards may even short circuit the waiting time by having an absolute majority vote to endorse the Strategy so it may be activated right away. 
+
+This DAO-like governance model assumes Strategies proposed are valid and should be accepted by default. Guards need only intervene if a proposed Strategy appears to be something other than it claims to be or if there is an exceptional situation where either market forces or ecosystem issues introduce an urgency for the existing active Strategy to be replaced as quickly as possible. 
+
+To propose a new Strategy, four conditions must be met:
+1) The Proposer must meet the qualifications to make a proposal. (P<sub>E</sub> - see below.)
+2) The Proposer must not be subject to some explicit prohibition from submitting strategies. (P<sub>X</sub> - see below.)
+3) There must not be an existing proposed Strategy that is still in the "decision period" pending.
+4) The proposed Strategy must meet certain criteria in terms of minimum margin of improvement requirements.
+
+A proposed Strategy contains both the wealth allocation recommendations as well as the claims for what the current Strategy's yield, APY<sub>CURRENT</sub>, is and what the proposed Strategy's yield, APY<sub>PROPOSED</sub>, would be. The Governance DAO contract will confirm the first three conditions authoritatively. So long as APY<sub>PROPOSED</sub> - APY<sub>CURRENT</sub> > the minimum improvement, APY<sub>DELTA</sub>, then condition #4 is assumed to be met by the Governance DAO contract but it assumes that external Guards will check that the claims are within spec and take action to prevent its activation if not.
+
+Dynamo will operate bots that watch for StrategyProposal events and then also perform the calculations for XXXXXX
+
+
 These are sequence diagrams for each function of the Governance Contract. 
 The Governance Contract provides a way to submit strategies to rebalance investment pools while using a voting system to approve those said strategies.
+
+
 
 ## Given
 
@@ -145,7 +165,7 @@ sequenceDiagram
     C1-->>G: return True
 ```
 
-## ActivateStartegy
+## ActivateStrategy
 
 ```mermaid
 sequenceDiagram
