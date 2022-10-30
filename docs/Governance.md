@@ -21,30 +21,10 @@ A proposed Strategy contains both the wealth allocation recommendations as well 
 
 The "decision period" now starts and no other Strategy can be proposed until this one is properly adjudicated.
 
-### Evaluating and Interceding on a Proposed Strategy
 
-Dynamo will operate bots that watch for StrategyProposal events and then also perform the calculations for determining the APY<sub>PROPOSED</sub> - APY<sub>CURRENT</sub> values for current and proposed Strategies. If the values resulting from the proposed Strategy's inputs coincide with the claimed values in the proposed Strategy as submitted then the bots can do nothing. If the values are significantly out of bounds then the bots will alert that the proposed Strategy is likely invalid so that Guards can decide to re-evaluate the proposed Strategy and reject the proposal if desired. 
+#### submitStrategy
 
-A single rejection is enough to block a Proposed Strategy from being active if no other votes are made regarding the Proposed Strategy. If there is any rejection vote, the only way a Proposed Strategy can be enabled is for there to be a majority of Endorsement votes. Tied votes still result in a rejection. 
-
-An absolute majority vote can enable the Proposed Strategy to short circuit the "decision period" time. At the time a Proposed Strategy is submitted, the number of Guards eligible to vote is tracked by the Proposed Strategy so that the potential vote count is known. Guards may be added or removed from the Governance Contract but the vote count that matters is based on the potential votes at the time the Proposed Strategy is submitted. If more than half the total potential votes are cast for rejection then a new Proposed Strategy may be submitted without waiting for the "decision period" to expire. If more than half the total potential votes are cast for endorsement then the current Proposed Strategy may be activated right away.
-
-Guards may only vote once on a Proposed Strategy during the "activation period" and may not change their votes.
-
-### Activating a Proposed Strategy
-
-Assuming either no votes have occurred or a majority of votes for endorsement have been registered and either the "decision period" has passed or been short circuited, a new "activation period" starts which gives time for someone to make an activateStrategy call against the Governance Contract to make the Proposed Strategy the new Active Strategy. That time period is set to 25% of the "decision period" time. During this time no other Proposed Strategy can be submitted so long as the pending Proposed Strategy remains inactive. Note that ANYONE can call the `activateStrategy` function which credits the original proposer in terms of rewards but the actor making the function call pays the gas price for the function call and necessary rebalancing of the funds which could be expensive. 
-
-
-## Sequence Diagrams
-
-
-These are sequence diagrams for each function of the Governance Contract. 
-The Governance Contract provides a way to submit strategies to rebalance investment pools while using a voting system to approve those said strategies.
-
-
-
-## Given
+*Given:*
 
 P<sub>E</sub> = Predicate - Proposer must meet certain qualification for eligibility. (Must resolve to True)
 
@@ -60,7 +40,6 @@ L<sub>GOV</sub> = Variable - List of addresses of Governance Guards who vote on 
 
 Strategy = (Proposed) Struct = { Nonce, Proposer Addr, Weights[], T<sub>SUBMITTED</sub>, T<sub>ACTIVATED</sub>, len(L<sub>GOV</sub>), Votes<sub>ENDORSE</sub>, Votes<sub>REJECT</sub> }
 
-## SubmitStrategy
 
 ```mermaid
 sequenceDiagram
@@ -76,7 +55,7 @@ sequenceDiagram
 
     P->>C1:submitStrategy(Strategy)
     Note over C1: No Strategy proposals if no governance guards <br> len(self.LGOV) > 0
-    Note over C1: Confirm No Currently Pending Strategy<br>self.CurrentStrategy==self.PendingStrategy ||<br>self.PendingStrategy.Withdrawn==True ||<br>count(self.PendingVotesReject)>len(self.LGOV)/2 ||<br>(self.PendingStrategy.TSubmitted+self.TDelay < now() and<br>count(self.PendingStrategy.VotesReject)>count(self.PendingStrategy.VotesEndorsed)
+    Note over C1: Confirm No Currently Pending Strategy<br>(likely incomplete TBD)<br>self.CurrentStrategy==self.PendingStrategy ||<br>self.PendingStrategy.Withdrawn==True ||<br>count(self.PendingVotesReject)>len(self.LGOV)/2 ||<br>(self.PendingStrategy.TSubmitted+self.TDelay < now() and<br>count(self.PendingStrategy.VotesReject)>count(self.PendingStrategy.VotesEndorsed)
     C1 ->> C1: _noPendingStrategy() == True
 
         Note over C1: Confirm msg.sender Eligibility<br>(TBD)
@@ -89,15 +68,16 @@ sequenceDiagram
     Note over C1: Construct the New Strategy<br>TSubmitted=now()<br>TActive=0<br>Nonce=self.NextNonce<br>self.NextNonce+=1<br>VoterCount=len(self.LGOV)<br>Strategy={*Strategy,TSubmitted,TActive,Nonce,Withdrawn=False,VoterCount,VotesEndorse=[],VotesReject=[]}
     Note Over C1: self.PendingStrategy = Strategy
 
-    
-
-
     C1-->>N: Emit Event StrategyProposal(Strategy)
 
     C1->>P: return self.PendingStrategy.Nonce
 ```
 
-## WithdrawStrategy
+### Withdrawing a Strategy
+
+If there is a Pending Strategy, the **original proposer** may elect to withdraw it at any time so that a new Strategy proposal can replace it. 
+
+#### withdrawStrategy
 
 ```mermaid
 sequenceDiagram
@@ -109,7 +89,7 @@ sequenceDiagram
     Note over P:<br> Pre-Conditions:<br> Nonce = (Nonce of previously submitted strategy)
     Note over C1: Pre-Conditions:<br>self.CurrentStrategy = (Current active Strategy)<br> self.PendingStrategy = (Current Pending Strategy)
     P->>C1: withdrawStrategy(Nonce)
-    Note over C1: Confirm there is a Currently Pending Strategy <br>self.CurrentStrategy != self.PendingStrategy 
+    Note over C1: Confirm there is a Currently Pending Strategy<br>(likely incomplete TBD)<br>self.CurrentStrategy != self.PendingStrategy 
     C1 ->> C1: _noPendingStrategy() == False
     Note over C1: Confirm Pending Strategy is the Strategy we want to withdraw <br> self.PendingStrategy.Nonce == Nonce
     Note over C1: Confirm Sender is the Strategy Proposer 
@@ -119,7 +99,18 @@ sequenceDiagram
     C1-->>P: return True
 ```
 
-## EndorseStartegy
+### Evaluating and Interceding on a Proposed Strategy
+
+Dynamo will operate bots that watch for StrategyProposal events and then also perform the calculations for determining the APY<sub>PROPOSED</sub> - APY<sub>CURRENT</sub> values for current and proposed Strategies. If the values resulting from the proposed Strategy's inputs coincide with the claimed values in the proposed Strategy as submitted then the bots can do nothing. If the values are significantly out of bounds then the bots will alert that the proposed Strategy is likely invalid so that Guards can decide to re-evaluate the proposed Strategy and reject the proposal if desired. 
+
+A single rejection is enough to block a Proposed Strategy from being active if no other votes are made regarding the Proposed Strategy. If there is any rejection vote, the only way a Proposed Strategy can be enabled is for there to be a majority of Endorsement votes. Tied votes still result in a rejection. 
+
+An absolute majority vote can enable the Proposed Strategy to short circuit the "decision period" time. At the time a Proposed Strategy is submitted, the number of Guards eligible to vote is tracked by the Proposed Strategy so that the potential vote count is known. Guards may be added or removed from the Governance Contract but the vote count that matters is based on the potential votes at the time the Proposed Strategy is submitted. If more than half the total potential votes are cast for rejection then a new Proposed Strategy may be submitted without waiting for the "decision period" to expire. If more than half the total potential votes are cast for endorsement then the current Proposed Strategy may be activated right away.
+
+Guards may only vote once on a Proposed Strategy during the "activation period" and may not change their votes.
+
+
+#### endorseStartegy
 
 ```mermaid
 sequenceDiagram
@@ -151,7 +142,7 @@ sequenceDiagram
     C1-->>G: return True
 ```
 
-## RejectStartegy
+#### rejectStartegy
 
 ```mermaid
 sequenceDiagram
@@ -183,6 +174,10 @@ sequenceDiagram
 
     C1-->>G: return True
 ```
+
+### Activating a Proposed Strategy
+
+Assuming either no votes have occurred or a majority of votes for endorsement have been registered and either the "decision period" has passed or been short circuited, a new "activation period" starts which gives time for someone to make an activateStrategy call against the Governance Contract to make the Proposed Strategy the new Active Strategy. That time period is set to 25% of the "decision period" time. During this time no other Proposed Strategy can be submitted so long as the pending Proposed Strategy remains inactive. Note that ANYONE can call the `activateStrategy` function which credits the original proposer in terms of rewards but the actor making the function call pays the gas price for the function call and necessary rebalancing of the funds which could be expensive. 
 
 ## ActivateStrategy
 
