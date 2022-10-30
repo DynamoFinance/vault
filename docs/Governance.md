@@ -113,49 +113,8 @@ An absolute majority vote can enable the Proposed Strategy to short circuit the 
 
 Guards may only vote once on a Proposed Strategy during the "activation period" and may not change their votes.
 
+TODO?: In order to provide an absolute protection against on-going DOS race condition attacks by bad actors constantly proposing new Strategies, we could add an optional Strategy parameter to the `rejectStrategy` method which, if this reject vote results in an absolute rejection count, would immediately short circuit the waiting period and submit the new Strategy as a new Proposed Strategy. This may not be necessary if the predicates P<sub>E</sub> and P<sub>X</sub> are strong enough controls. It may also be the case, in the future, that Dynamo may want a more strict separation of concerns and disallow Governance Guards to submit Strategies or vote on Strategies they've submitted - but this may not be practical in a true decentralized environment.
 
-#### endorseStartegy
-
-*Given:*
-
-T<sub>DELAY</sub> = Variable - How long after a strategy is submitted until it can be activated so long as it is not rejected/overwhelmingly endorsed.
-
-MAX_GUARDS = Constant - Maximum number of Guards who may vote on Proposed Strategies.
-
-L<sub>GOV</sub>[MAX_GUARDS] = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
-
-Strategy = (Proposed) Struct = { Nonce, Proposer Addr, Weights[], T<sub>SUBMITTED</sub>, T<sub>ACTIVATED</sub>, Withdrawn, len(L<sub>GOV</sub>), Votes<sub>ENDORSE</sub>, Votes<sub>REJECT</sub> }
-
-
-```mermaid
-sequenceDiagram
-
-    participant G as Guard
-    participant C1 as Governance Contract
-    participant N as Ethereum Network
-    autonumber
-
-    Note over G:<br> Pre-Conditions:<br>Nonce = (Nonce of previously submitted <br> StrategyProposalEvent that the guard wishes to endorse)
-    Note over C1: Pre-Conditions:<br>self.CurrentStrategy = (Current active strategy)<br> self.LGOV = list of Guards <br> self.PendingStrategy = (Current Pending Strategy)
-    G->>C1: endorseStrategy(Nonce)
-    Note over C1: Confirm there is a Currently Pending Strategy  <br> self.CurrentStrategy != self.PendingStrategy 
-    C1 ->> C1: _noPendingStrategy() == False
-    Note over C1: Confirm Pending Strategy is the Strategy we want to Endorse <br> self.PendingStrategy.Nonce == Nonce
-
-
-    Note over C1: Confirm the Sender is a Guard Address in List of Guards
-    Note over C1: msg.sender is in self.LGOV
-    Note over C1: Confirm Sender has not yet voted 
-    Note over C1: msg.sender is not in self.PendingStrategy.VoteReject and <br> msg.sender is not in self.PendingStrategy.VoteEndorse
-
-    Note over C1:self.PendingStrategy.VoteEndorse.Append(msg.sender)
-
-
-
-    C1-->>N: Emit Event StrategyVote(Nonce, GuardAddress, Endorse=True)
-
-    C1-->>G: return True
-```
 
 #### rejectStartegy
 
@@ -201,9 +160,53 @@ sequenceDiagram
     C1-->>G: return True
 ```
 
+#### endorseStartegy
+
+*Given:*
+
+T<sub>DELAY</sub> = Variable - How long after a strategy is submitted until it can be activated so long as it is not rejected/overwhelmingly endorsed.
+
+MAX_GUARDS = Constant - Maximum number of Guards who may vote on Proposed Strategies.
+
+L<sub>GOV</sub>[MAX_GUARDS] = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
+
+Strategy = (Proposed) Struct = { Nonce, Proposer Addr, Weights[], T<sub>SUBMITTED</sub>, T<sub>ACTIVATED</sub>, Withdrawn, len(L<sub>GOV</sub>), Votes<sub>ENDORSE</sub>, Votes<sub>REJECT</sub> }
+
+
+```mermaid
+sequenceDiagram
+
+    participant G as Guard
+    participant C1 as Governance Contract
+    participant N as Ethereum Network
+    autonumber
+
+    Note over G:<br> Pre-Conditions:<br>Nonce = (Nonce of previously submitted <br> StrategyProposalEvent that the guard wishes to endorse)
+    Note over C1: Pre-Conditions:<br>self.CurrentStrategy = (Current active strategy)<br> self.LGOV = list of Guards <br> self.PendingStrategy = (Current Pending Strategy)
+    G->>C1: endorseStrategy(Nonce)
+    Note over C1: Confirm there is a Currently Pending Strategy  <br> self.CurrentStrategy != self.PendingStrategy 
+    C1 ->> C1: _noPendingStrategy() == False
+    Note over C1: Confirm Pending Strategy is the Strategy we want to Endorse <br> self.PendingStrategy.Nonce == Nonce
+
+
+    Note over C1: Confirm the Sender is a Guard Address in List of Guards
+    Note over C1: msg.sender is in self.LGOV
+    Note over C1: Confirm Sender has not yet voted 
+    Note over C1: msg.sender is not in self.PendingStrategy.VoteReject and <br> msg.sender is not in self.PendingStrategy.VoteEndorse
+
+    Note over C1:self.PendingStrategy.VoteEndorse.Append(msg.sender)
+
+
+
+    C1-->>N: Emit Event StrategyVote(Nonce, GuardAddress, Endorse=True)
+
+    C1-->>G: return True
+```
+
+
 ### Activating a Proposed Strategy
 
-Assuming either no votes have occurred or a majority of votes for endorsement have been registered and either the "decision period" has passed or been short circuited, a new "activation period" starts which gives time for someone to make an activateStrategy call against the Governance Contract to make the Proposed Strategy the new Active Strategy. That time period is set to 25% of the "decision period" time. During this time no other Proposed Strategy can be submitted so long as the pending Proposed Strategy remains inactive. Note that ANYONE can call the `activateStrategy` function which credits the original proposer in terms of rewards but the actor making the function call pays the gas price for the function call and necessary rebalancing of the funds which could be expensive. 
+Assuming either no reject votes have occurred or a majority of votes for endorsement have been registered and either the "decision period" has passed or been short circuited, a new "activation period" starts which gives time for someone to make an activateStrategy call against the Governance Contract to make the Proposed Strategy the new Active Strategy. That time period is set to 25% of the "decision period" time. During this time no other Proposed Strategy can be submitted so long as the pending Proposed Strategy remains inactive. Note that ANYONE can call the `activateStrategy` function which credits the original proposer in terms of rewards but the actor making the function call pays the gas price for the function call and necessary rebalancing of the funds which could be expensive. 
 
 Note that there is no expiration time for calling `activateStrategy` so long as the Proposed Strategy is still eligible. It does not matter if the "activation period" has passed. Until such time that a new Proposed Strategy is in place, the present one may be activated at will.
 
