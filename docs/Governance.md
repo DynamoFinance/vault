@@ -55,17 +55,19 @@ sequenceDiagram
 
     P->>C1:submitStrategy(Strategy)
     Note over C1: No Strategy proposals if no governance guards <br> len(self.LGOV) > 0
-    Note over C1: Confirm No Currently Pending Strategy<br>(likely incomplete TBD)<br>self.CurrentStrategy==self.PendingStrategy ||<br>self.PendingStrategy.Withdrawn==True ||<br>count(self.PendingVotesReject)>len(self.LGOV)/2 ||<br>(self.PendingStrategy.TSubmitted+self.TDelay < now() and<br>count(self.PendingStrategy.VotesReject)>count(self.PendingStrategy.VotesEndorsed)
+    Note over C1: Confirm No Currently Pending Strategy<br>(likely incomplete TBD)<br>self.CurrentStrategy==self.PendingStrategy ||<br>self.PendingStrategy.Withdrawn==True ||<br>count(self.PendingVotesReject)>len(self.LGOV)/2 ||<br>(self.PendingStrategy.TSubmitted+(self.TDelay * 1.25) < now() and<br>count(self.PendingStrategy.VotesReject)>count(self.PendingStrategy.VotesEndorsed)
     C1 ->> C1: _noPendingStrategy() == True
 
-        Note over C1: Confirm msg.sender Eligibility<br>(TBD)
+    Note over C1: Confirm msg.sender Eligibility<br>(TBD)
     C1->>C1:PE() == True
+
     Note over C1: Confirm msg.sender is not blacklisted<br>(TBD)
     C1->>C1:PX() == FALSE
 
     Note over C1: Confirm Strategy.APYPredicted - Strategy.APYNow >= self.MinimumAPYIncrease
 
     Note over C1: Construct the New Strategy<br>TSubmitted=now()<br>TActive=0<br>Nonce=self.NextNonce<br>self.NextNonce+=1<br>VoterCount=len(self.LGOV)<br>Strategy={*Strategy,TSubmitted,TActive,Nonce,Withdrawn=False,VoterCount,VotesEndorse=[],VotesReject=[]}
+    
     Note Over C1: self.PendingStrategy = Strategy
 
     C1-->>N: Emit Event StrategyProposal(Strategy)
