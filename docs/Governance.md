@@ -36,9 +36,11 @@ P<sub>X</sub> = Predicate - Proposer must not be subject to some form of exclusi
 
 T<sub>DELAY</sub> = Variable - How long after a strategy is submitted until it can be activated so long as it is not rejected/overwhelmingly endorsed.
 
-L<sub>GOV</sub> = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
+MAX_GUARDS = Constant - Maximum number of Guards who may vote on Proposed Strategies.
 
-Strategy = (Proposed) Struct = { Nonce, Proposer Addr, Weights[], T<sub>SUBMITTED</sub>, T<sub>ACTIVATED</sub>, len(L<sub>GOV</sub>), Votes<sub>ENDORSE</sub>, Votes<sub>REJECT</sub> }
+L<sub>GOV</sub>[MAX_GUARDS] = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
+
+Strategy = (Proposed) Struct = { Nonce, Proposer Addr, Weights[], T<sub>SUBMITTED</sub>, T<sub>ACTIVATED</sub>, Withdrawn, len(L<sub>GOV</sub>), Votes<sub>ENDORSE</sub>, Votes<sub>REJECT</sub> }
 
 
 ```mermaid
@@ -118,9 +120,11 @@ Guards may only vote once on a Proposed Strategy during the "activation period" 
 
 T<sub>DELAY</sub> = Variable - How long after a strategy is submitted until it can be activated so long as it is not rejected/overwhelmingly endorsed.
 
-L<sub>GOV</sub> = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
+MAX_GUARDS = Constant - Maximum number of Guards who may vote on Proposed Strategies.
 
-Strategy = (Proposed) Struct = { Nonce, Proposer Addr, Weights[], T<sub>SUBMITTED</sub>, T<sub>ACTIVATED</sub>, len(L<sub>GOV</sub>), Votes<sub>ENDORSE</sub>, Votes<sub>REJECT</sub> }
+L<sub>GOV</sub>[MAX_GUARDS] = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
+
+Strategy = (Proposed) Struct = { Nonce, Proposer Addr, Weights[], T<sub>SUBMITTED</sub>, T<sub>ACTIVATED</sub>, Withdrawn, len(L<sub>GOV</sub>), Votes<sub>ENDORSE</sub>, Votes<sub>REJECT</sub> }
 
 
 ```mermaid
@@ -159,9 +163,11 @@ sequenceDiagram
 
 T<sub>DELAY</sub> = Variable - How long after a strategy is submitted until it can be activated so long as it is not rejected/overwhelmingly endorsed.
 
-L<sub>GOV</sub> = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
+MAX_GUARDS = Constant - Maximum number of Guards who may vote on Proposed Strategies.
 
-Strategy = (Proposed) Struct = { Nonce, Proposer Addr, Weights[], T<sub>SUBMITTED</sub>, T<sub>ACTIVATED</sub>, len(L<sub>GOV</sub>), Votes<sub>ENDORSE</sub>, Votes<sub>REJECT</sub> }
+L<sub>GOV</sub>[MAX_GUARDS] = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
+
+Strategy = (Proposed) Struct = { Nonce, Proposer Addr, Weights[], T<sub>SUBMITTED</sub>, T<sub>ACTIVATED</sub>, Withdrawn, len(L<sub>GOV</sub>), Votes<sub>ENDORSE</sub>, Votes<sub>REJECT</sub> }
 
 
 ```mermaid
@@ -199,15 +205,19 @@ sequenceDiagram
 
 Assuming either no votes have occurred or a majority of votes for endorsement have been registered and either the "decision period" has passed or been short circuited, a new "activation period" starts which gives time for someone to make an activateStrategy call against the Governance Contract to make the Proposed Strategy the new Active Strategy. That time period is set to 25% of the "decision period" time. During this time no other Proposed Strategy can be submitted so long as the pending Proposed Strategy remains inactive. Note that ANYONE can call the `activateStrategy` function which credits the original proposer in terms of rewards but the actor making the function call pays the gas price for the function call and necessary rebalancing of the funds which could be expensive. 
 
+Note that there is no expiration time for calling `activateStrategy` so long as the Proposed Strategy is still eligible. It does not matter if the "activation period" has passed. Until such time that a new Proposed Strategy is in place, the present one may be activated at will.
+
 #### activateStrategy
 
 *Given:*
 
 T<sub>DELAY</sub> = Variable - How long after a strategy is submitted until it can be activated so long as it is not rejected/overwhelmingly endorsed.
 
-L<sub>GOV</sub> = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
+MAX_GUARDS = Constant - Maximum number of Guards who may vote on Proposed Strategies.
 
-Strategy = (Proposed) Struct = { Nonce, Proposer Addr, Weights[], T<sub>SUBMITTED</sub>, T<sub>ACTIVATED</sub>, len(L<sub>GOV</sub>), Votes<sub>ENDORSE</sub>, Votes<sub>REJECT</sub> }
+L<sub>GOV</sub>[MAX_GUARDS] = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
+
+Strategy = (Proposed) Struct = { Nonce, Proposer Addr, Weights[], T<sub>SUBMITTED</sub>, T<sub>ACTIVATED</sub>, Withdrawn, len(L<sub>GOV</sub>), Votes<sub>ENDORSE</sub>, Votes<sub>REJECT</sub> }
 
 
 ```mermaid
@@ -240,13 +250,19 @@ sequenceDiagram
     C1-->>A: return True
 ```
 
+### Governance of Governance
+
+The Governance Contract Owner may add or remove Guards at will up to the limit of MAX_GUARDS.
+
 #### addGuard
 
 *Given:*
 
 Owner = Variable - Address of Governance Contract Owner
 
-L<sub>GOV</sub> = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
+MAX_GUARDS = Constant - Maximum number of Guards who may vote on Proposed Strategies.
+
+L<sub>GOV</sub>[MAX_GUARDS] = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
 
 
 ```mermaid
@@ -283,7 +299,9 @@ sequenceDiagram
 
 Owner = Variable - Address of Governance Contract Owner
 
-L<sub>GOV</sub> = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
+MAX_GUARDS = Constant - Maximum number of Guards who may vote on Proposed Strategies.
+
+L<sub>GOV</sub>[MAX_GUARDS] = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
 
 
 ```mermaid
@@ -303,7 +321,7 @@ sequenceDiagram
     Note over C1: Confirm the Guard being removed is in List of Guards
     Note over C1: GuardAddress is in self.LGOV
 
-    Note over C1: Replace Deleted Guard with Last Guard in List: <br> Index = position of GuardAddress in self.LGOV <br> Last_Pos = len(self.LGOV)<br> self.LGOV(Index) = self.LGOV(Last_Pos) <br> self.LGOV(Last_Pos) = ZERO_ADDRESS
+    Note over C1: Replace Deleted Guard with Last Guard in List: <br> Index = position of GuardAddress in self.LGOV <br> Last_Pos = len(self.LGOV)<br> self.LGOV[Index] = self.LGOV[Last_Pos] <br> self.LGOV[Last_Pos] = ZERO_ADDRESS
     
 
     C1-->>N: Emit Event GuardRemoved(GuardAddress)
@@ -317,7 +335,9 @@ sequenceDiagram
 
 Owner = Variable - Address of Governance Contract Owner
 
-L<sub>GOV</sub> = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
+MAX_GUARDS = Constant - Maximum number of Guards who may vote on Proposed Strategies.
+
+L<sub>GOV</sub>[MAX_GUARDS] = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
 
 
 ```mermaid
@@ -344,7 +364,7 @@ sequenceDiagram
     Note over C1: Confirm the New Guard is a real address
     Note over C1: NewGuardAddress != ZERO_ADDRESS
     
-    Note over C1: Replace Old Guard with New Guard: <br> Index = position of OldGuardAddress in self.LGOV <br>  self.LGOV(Index) = self.LGOV(NewGuardAddress) 
+    Note over C1: Replace Old Guard with New Guard: <br> Index = position of OldGuardAddress in self.LGOV <br>  self.LGOV[Index] = NewGuardAddress
 
 
     C1-->>N: Emit Event GuardSwap(OldGuardAddress, NewGuardAddress)
