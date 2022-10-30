@@ -14,7 +14,7 @@ This DAO-like governance model assumes Strategies proposed are valid and should 
 To propose a new Strategy, four conditions must be met:
 1) The Proposer must meet the qualifications to make a proposal. (P<sub>E</sub> - see below.)
 2) The Proposer must not be subject to some explicit prohibition from submitting strategies. (P<sub>X</sub> - see below.)
-3) There must not be a proposed Strategy that is still pending during the "decision period".
+3) There must not be a proposed Strategy that is still pending during the "decision period" or "activation period".
 4) The proposed Strategy must meet certain criteria in terms of minimum margin of improvement requirements.
 
 A proposed Strategy contains both the wealth allocation recommendations as well as the claims for what the current Strategy's yield, APY<sub>CURRENT</sub>, is and what the proposed Strategy's yield, APY<sub>PROPOSED</sub>, would be. The Governance DAO contract will confirm the first three conditions authoritatively. So long as APY<sub>PROPOSED</sub> - APY<sub>CURRENT</sub> > the minimum improvement, APY<sub>DELTA</sub>, then condition #4 is assumed to be met by the Governance DAO contract but it assumes that external Guards will check that the claims are within spec and take action to prevent its activation if not.
@@ -67,7 +67,7 @@ sequenceDiagram
     Note over C1: Confirm Strategy.APYPredicted - Strategy.APYNow >= self.MinimumAPYIncrease
 
     Note over C1: Construct the New Strategy<br>TSubmitted=now()<br>TActive=0<br>Nonce=self.NextNonce<br>self.NextNonce+=1<br>VoterCount=len(self.LGOV)<br>Strategy={*Strategy,TSubmitted,TActive,Nonce,Withdrawn=False,VoterCount,VotesEndorse=[],VotesReject=[]}
-    
+
     Note Over C1: self.PendingStrategy = Strategy
 
     C1-->>N: Emit Event StrategyProposal(Strategy)
@@ -114,6 +114,15 @@ Guards may only vote once on a Proposed Strategy during the "activation period" 
 
 #### endorseStartegy
 
+*Given:*
+
+T<sub>DELAY</sub> = Variable - How long after a strategy is submitted until it can be activated so long as it is not rejected/overwhelmingly endorsed.
+
+L<sub>GOV</sub> = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
+
+Strategy = (Proposed) Struct = { Nonce, Proposer Addr, Weights[], T<sub>SUBMITTED</sub>, T<sub>ACTIVATED</sub>, len(L<sub>GOV</sub>), Votes<sub>ENDORSE</sub>, Votes<sub>REJECT</sub> }
+
+
 ```mermaid
 sequenceDiagram
 
@@ -145,6 +154,15 @@ sequenceDiagram
 ```
 
 #### rejectStartegy
+
+*Given:*
+
+T<sub>DELAY</sub> = Variable - How long after a strategy is submitted until it can be activated so long as it is not rejected/overwhelmingly endorsed.
+
+L<sub>GOV</sub> = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
+
+Strategy = (Proposed) Struct = { Nonce, Proposer Addr, Weights[], T<sub>SUBMITTED</sub>, T<sub>ACTIVATED</sub>, len(L<sub>GOV</sub>), Votes<sub>ENDORSE</sub>, Votes<sub>REJECT</sub> }
+
 
 ```mermaid
 sequenceDiagram
@@ -181,7 +199,16 @@ sequenceDiagram
 
 Assuming either no votes have occurred or a majority of votes for endorsement have been registered and either the "decision period" has passed or been short circuited, a new "activation period" starts which gives time for someone to make an activateStrategy call against the Governance Contract to make the Proposed Strategy the new Active Strategy. That time period is set to 25% of the "decision period" time. During this time no other Proposed Strategy can be submitted so long as the pending Proposed Strategy remains inactive. Note that ANYONE can call the `activateStrategy` function which credits the original proposer in terms of rewards but the actor making the function call pays the gas price for the function call and necessary rebalancing of the funds which could be expensive. 
 
-## ActivateStrategy
+#### activateStrategy
+
+*Given:*
+
+T<sub>DELAY</sub> = Variable - How long after a strategy is submitted until it can be activated so long as it is not rejected/overwhelmingly endorsed.
+
+L<sub>GOV</sub> = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
+
+Strategy = (Proposed) Struct = { Nonce, Proposer Addr, Weights[], T<sub>SUBMITTED</sub>, T<sub>ACTIVATED</sub>, len(L<sub>GOV</sub>), Votes<sub>ENDORSE</sub>, Votes<sub>REJECT</sub> }
+
 
 ```mermaid
 sequenceDiagram
@@ -213,7 +240,14 @@ sequenceDiagram
     C1-->>A: return True
 ```
 
-## AddGuard
+#### addGuard
+
+*Given:*
+
+Owner = Variable - Address of Governance Contract Owner
+
+L<sub>GOV</sub> = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
+
 
 ```mermaid
 sequenceDiagram
@@ -243,7 +277,14 @@ sequenceDiagram
     C1-->>OG: return True
 ```
 
-## RemoveGuard
+#### removeGuard
+
+*Given:*
+
+Owner = Variable - Address of Governance Contract Owner
+
+L<sub>GOV</sub> = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
+
 
 ```mermaid
 sequenceDiagram
@@ -270,7 +311,14 @@ sequenceDiagram
     C1-->>OG: return True
 ```
 
-## SwapGuard
+#### swapGuard
+
+*Given:*
+
+Owner = Variable - Address of Governance Contract Owner
+
+L<sub>GOV</sub> = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
+
 
 ```mermaid
 sequenceDiagram
