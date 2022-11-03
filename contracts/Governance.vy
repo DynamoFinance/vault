@@ -24,16 +24,17 @@ event GuardSwap:
     OldGuardAddress: indexed(address)
     NewGuardAddress: indexed(address)
 
+
 struct Guard:
     GuardAddress: address
-    Index: uint256
-
-
+    
 #Contract assigned storage 
 contractOwner: public(address)
 MAX_GUARDS: constant(uint256) = 10
 MAX_POOLS: constant(uint256) = 10
-LGov: public(HashMap[address, uint256]
+LGov: public(DynArray[Guard, MAX_GUARDS])
+# LGovByAddress: public(HashMap[address, uint256])
+# LGovByIndex: public(HashMap[uint256, address])
 TDelay: public(uint256)
 
 struct Strategy:
@@ -75,7 +76,6 @@ def __init__(contractOwner: address):
 #     assert self.PendingStrategy.ProposerAddress == msg.sender
 #     self.PendingStrategy.Withdrawn = True
 #     log StrategyWithdrawal(Nonce)
-#     return True
 
 # @external
 # def endorseStrategy(Nonce: uint256):
@@ -86,7 +86,7 @@ def __init__(contractOwner: address):
 #     assert msg.sender is not in self.PendingStrategy.VoteEndorse
 #     self.PendingStrategy.VoteEndorse.append(msg.sender)
 #     log StrategyVote(Nonce, msg.sender, False)
-#     return True
+
 
 
 # @external
@@ -98,7 +98,7 @@ def __init__(contractOwner: address):
 #     assert msg.sender is not in self.PendingStrategy.VoteEndorse
 #     self.PendingStrategy.VoteReject.append(msg.sender)
 #     log StrategyVote(Nonce, msg.sender, True)
-#     return True
+
 
 
 # @external
@@ -112,7 +112,6 @@ def __init__(contractOwner: address):
 #     self.CurrentStrategy = self.PendingStrategy
 #     #PoolRebalancer(self.CurrentStrategy)
 #     log StrategyActivation(self.CurrentStrategy)
-#     return True
 
 
 
@@ -120,7 +119,8 @@ def __init__(contractOwner: address):
 def addGuard(GuardAddress: address):
     assert msg.sender == self.contractOwner
     #GuardAddress is not in self.LGov
-    assert len(self.LGov) <= self.MAX_GUARDS
+    no_guards: uint256 = len(self.LGov)
+    assert no_guards <= MAX_GUARDS
     assert GuardAddress != ZERO_ADDRESS
     self.LGov.append(GuardAddress)
     log NewGuard(GuardAddress)
@@ -131,11 +131,12 @@ def addGuard(GuardAddress: address):
 def removeGuard(GuardAddress: address):
     assert msg.sender == self.contractOwner
     #GuardAddress is in self.LGov
-    current_index: uint256 = self.LGov[GuardAddress]
-    last_index = len(self.LGov) 
-    self.LGov[current_index] = self.LGov[last_index] 
-    self.LGov[last_index] = ZERO_ADDRESS
-    log GuardRemoval(GuardAddress)
+    # current_index: uint256 = self.LGovByAddress[GuardAddress]
+    # last_index: uint256 = len(self.LGov)
+    # self.LGovByIndex[current_index] = self.LGovByIndex[last_index] 
+    # self.LGovByIndex[last_index] = ZERO_ADDRESS
+    self.LGov.pop(GuardAddress)
+    log GuardRemoved(GuardAddress)
 
 
 
@@ -146,7 +147,9 @@ def swapGuard(OldGuardAddress: address, NewGuardAddress: address):
     #OldGuardAddress is in self.LGov
     #NewGuardAddress is not in self.LGov
     assert NewGuardAddress != ZERO_ADDRESS
-    current_index: uint256 = self.LGov[OldGuardAddress]
-    self.LGov[current_index] = NewGuardAddress
+    # current_index: uint256 = self.LGovByAddress[OldGuardAddress]
+    # self.LGovByIndex[current_index] = NewGuardAddress 
+    self.LGov.pop(OldGuardAddress)
+    self.LGov.append(NewGuardAddress)
     log GuardSwap(OldGuardAddress, NewGuardAddress)
 
