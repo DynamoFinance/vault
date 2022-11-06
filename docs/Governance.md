@@ -327,7 +327,7 @@ sequenceDiagram
     Note over C1: Confirm the Guard being removed is in List of Guards
     Note over C1: GuardAddress is in self.LGOV
 
-    Note over C1: Erase old Guard's vote<br>self.Votes[OldGuardAddress] = ZERO_ADDRESS    
+    Note over C1: Erase old Guard's vote<br>self.Votes[GuardAddress] = ZERO_ADDRESS    
 
     Note over C1: Replace Deleted Guard with Last Guard in List: <br> Index = position of GuardAddress in self.LGOV <br> Last_Pos = len(self.LGOV)<br> self.LGOV[Index] = self.LGOV[Last_Pos] <br> self.LGOV[Last_Pos] = ZERO_ADDRESS
     
