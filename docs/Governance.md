@@ -319,7 +319,7 @@ sequenceDiagram
     autonumber
 
 
-    Note over C1: Pre-Conditions: <br> self.LGOV is the List of Current Guards <br> self.Owner is Governance Contract Owner Address <br>self.GuardVotes = (map of Guards -> Addr)
+    Note over C1: Pre-Conditions: <br> self.LGOV is the List of Current Guards <br> self.Owner is Governance Contract Owner Address <br>self.Votes = (map of Guards -> Addr)
     OG->>C1: removeGuard(GuardAddress)
 
     Note over C1: Confirm Sender is the Governance Contract Owner
@@ -327,7 +327,7 @@ sequenceDiagram
     Note over C1: Confirm the Guard being removed is in List of Guards
     Note over C1: GuardAddress is in self.LGOV
 
-    Note over C1: Erase old Guard's vote<br>Votes[OldGuardAddress] = ZERO_ADDRESS    
+    Note over C1: Erase old Guard's vote<br>self.Votes[OldGuardAddress] = ZERO_ADDRESS    
 
     Note over C1: Replace Deleted Guard with Last Guard in List: <br> Index = position of GuardAddress in self.LGOV <br> Last_Pos = len(self.LGOV)<br> self.LGOV[Index] = self.LGOV[Last_Pos] <br> self.LGOV[Last_Pos] = ZERO_ADDRESS
     
@@ -359,7 +359,7 @@ sequenceDiagram
     autonumber
 
    
-    Note over C1: Pre-Conditions: <br> self.LGOV is the List of Current Guards <br> self.Owner is Governance Contract Owner Address <br>self.GuardVotes = (map of Guards -> Addr)
+    Note over C1: Pre-Conditions: <br> self.LGOV is the List of Current Guards <br> self.Owner is Governance Contract Owner Address <br>self.Votes = (map of Guards -> Addr)
     OG->>C1: swapGuard(OldGuardAddress, NewGuardAddress)
 
 
@@ -374,7 +374,7 @@ sequenceDiagram
     Note over C1: Confirm the New Guard is a real address
     Note over C1: NewGuardAddress != ZERO_ADDRESS
     
-    Note over C1: Erase old Guard's vote<br>Votes[OldGuardAddress] = ZERO_ADDRESS
+    Note over C1: Erase old Guard's vote<br>self.Votes[OldGuardAddress] = ZERO_ADDRESS
 
     Note over C1: Replace Old Guard with New Guard: <br> Index = position of OldGuardAddress in self.LGOV <br>  self.LGOV[Index] = NewGuardAddress
 
@@ -408,21 +408,22 @@ sequenceDiagram
 
     Note over G: NewGovernance = (address of new<br>Governance Contract)
     Note over V: Pre-Conditions:<br>GovernanceAddr = (addr of Governance Contract)    
-    Note over C1: Pre-Conditions: <br>self.LGOV = (List of Current Guards)<br>MIN_GUARDS = (minimum number<br>of guards to change Governance)<br>self.Vault = (address of Vault Contract)<br>self.GuardVotes = (map of Guards -> Addr)
+    Note over C1: Pre-Conditions: <br>self.LGOV = (List of Current Guards)<br>MIN_GUARDS = (minimum number<br>of guards to change Governance)<br>self.Vault = (address of Vault Contract)<br>self.Votes = (map of Guards -> Addr)
 
 
     G->>C1: replaceGovernance(NewGovernance)
 
-    Note over C1: Confirm self.sender is a Guard<br>msg.sender in self.LGOV
-    Note over C1: Confirm NewGovernance is Different<br>NewConvernance != self<br>NewGovernance != ZERO_ADDRESS
     Note over C1: Confirm there are enough Guards<br>to change Governance<br>len(self.LGOV >= MIN_GUARDS)
+    Note over C1: Confirm self.sender is a Guard<br>msg.sender in self.LGOV
+    Note over C1: Confirm NewGovernance is Different<br>NewConvernance != self<br>NewGovernance != ZERO_ADDRESS<br>self.Votes[msg.sender] != NewGovernance
 
-    Note over C1: Record Guard's Vote<br>self.GuardVotes[msg.sender] = NewGovernance
+
+    Note over C1: Record Guard's Vote<br>self.Votes[msg.sender] = NewGovernance
 
     
     Note over C1: See if we are unanimous<br>VoteCount = 0
     loop for each Governor in self.LGOV
-        Note over C1: if self.GuardVotes[Goveror] == NewGovernance: VoteCount += 1
+        Note over C1: if self.Votes[Goveror] == NewGovernance: VoteCount += 1
     end
 
     C1-->>N: emit NewGovernanceVote(self.Vault, msg.Sender, NewGovernance, VoteCount, len(self.LGOV))
