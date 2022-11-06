@@ -256,6 +256,7 @@ sequenceDiagram
 ### Governance of Governance
 
 The Governance Contract Owner may add or remove Guards at will up to the limit of MAX_GUARDS.
+The Governance Contract may be replaced with another one if 100% of all Guards vote to change to the same new Governance Contract. 
 
 #### addGuard
 
@@ -307,6 +308,8 @@ MAX_GUARDS = Constant - Maximum number of Guards who may vote on Proposed Strate
 L<sub>GOV</sub>[MAX_GUARDS] = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
 
 
+Votes = map of Guard addr -> Contract Addr for votes on Governance Contract for Vault
+
 ```mermaid
 sequenceDiagram
 
@@ -316,13 +319,15 @@ sequenceDiagram
     autonumber
 
 
-    Note over C1: Pre-Conditions: <br> self.LGOV is the List of Current Guards <br> self.Owner is Governance Contract Owner Address 
+    Note over C1: Pre-Conditions: <br> self.LGOV is the List of Current Guards <br> self.Owner is Governance Contract Owner Address <br>self.GuardVotes = (map of Guards -> Addr)
     OG->>C1: removeGuard(GuardAddress)
 
     Note over C1: Confirm Sender is the Governance Contract Owner
     Note over C1: msg.sender == self.Owner
     Note over C1: Confirm the Guard being removed is in List of Guards
     Note over C1: GuardAddress is in self.LGOV
+
+    Note over C1: Erase old Guard's vote<br>Votes[OldGuardAddress] = ZERO_ADDRESS    
 
     Note over C1: Replace Deleted Guard with Last Guard in List: <br> Index = position of GuardAddress in self.LGOV <br> Last_Pos = len(self.LGOV)<br> self.LGOV[Index] = self.LGOV[Last_Pos] <br> self.LGOV[Last_Pos] = ZERO_ADDRESS
     
@@ -342,6 +347,8 @@ MAX_GUARDS = Constant - Maximum number of Guards who may vote on Proposed Strate
 
 L<sub>GOV</sub>[MAX_GUARDS] = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
 
+Votes = map of Guard addr -> Contract Addr for votes on Governance Contract for Vault
+
 
 ```mermaid
 sequenceDiagram
@@ -352,7 +359,7 @@ sequenceDiagram
     autonumber
 
    
-    Note over C1: Pre-Conditions: <br> self.LGOV is the List of Current Guards <br> self.Owner is Governance Contract Owner Address 
+    Note over C1: Pre-Conditions: <br> self.LGOV is the List of Current Guards <br> self.Owner is Governance Contract Owner Address <br>self.GuardVotes = (map of Guards -> Addr)
     OG->>C1: swapGuard(OldGuardAddress, NewGuardAddress)
 
 
@@ -367,6 +374,8 @@ sequenceDiagram
     Note over C1: Confirm the New Guard is a real address
     Note over C1: NewGuardAddress != ZERO_ADDRESS
     
+    Note over C1: Erase old Guard's vote<br>Votes[OldGuardAddress] = ZERO_ADDRESS
+
     Note over C1: Replace Old Guard with New Guard: <br> Index = position of OldGuardAddress in self.LGOV <br>  self.LGOV[Index] = NewGuardAddress
 
 
@@ -374,3 +383,63 @@ sequenceDiagram
 
     C1-->>OG: return True
 ```
+
+#### replaceGovernance
+
+*Given:*
+
+MAX_GUARDS = Constant - Maximum number of Guards who may vote on Proposed Strategies.
+MIN_GUARDS = Contact - Minimum number of Guards which must exist for a Governance Contract change to even occur.
+
+L<sub>GOV</sub>[MAX_GUARDS] = Variable - List of addresses of Governance Guards who vote on Strategy Submissions.
+
+Vault = address of Vault Contract which this contract provides governance over.
+
+Votes = map of Guard addr -> Contract Addr for votes on Governance Contract for Vault
+
+```mermaid
+sequenceDiagram
+
+    participant G as Governor
+    participant C1 as Governance Contract
+    participant V as Vault Contract
+    participant N as Ethereum Network
+    autonumber
+
+    Note over G: NewGovernance = (address of new<br>Governance Contract)
+    Note over V: Pre-Conditions:<br>GovernanceAddr = (addr of Governance Contract)    
+    Note over C1: Pre-Conditions: <br>self.LGOV = (List of Current Guards)<br>MIN_GUARDS = (minimum number<br>of guards to change Governance)<br>self.Vault = (address of Vault Contract)<br>self.GuardVotes = (map of Guards -> Addr)
+
+
+    G->>C1: replaceGovernance(NewGovernance)
+
+    Note over C1: Confirm self.sender is a Guard<br>msg.sender in self.LGOV
+    Note over C1: Confirm NewGovernance is Different<br>NewConvernance != self<br>NewGovernance != ZERO_ADDRESS
+    Note over C1: Confirm there are enough Guards<br>to change Governance<br>len(self.LGOV >= MIN_GUARDS)
+
+    Note over C1: Record Guard's Vote<br>self.GuardVotes[msg.sender] = NewGovernance
+
+    
+    Note over C1: See if we are unanimous<br>VoteCount = 0
+    loop for each Governor in self.LGOV
+        Note over C1: if self.GuardVotes[Goveror] == NewGovernance: VoteCount += 1
+    end
+
+    C1-->>N: emit NewGovernanceVote(self.Vault, msg.Sender, NewGovernance, VoteCount, len(self.LGOV))
+
+    alt if VoteCount == len(self.LGOV)
+        C1->>V: replaceGovernance(NewGovernance)
+    end
+
+
+    Note over V: Confirm request is from current<br>Govenance Contract<br>confirm msg.sender = self.GovernanceAddr
+    Note over V: Confirm NewGovernance is different<br>confirm NewGovernance != self.GovernanceAddr<br>confirm NewGovernance != ZERO_ADDRESS
+
+        V-->>N: emit NewGovernanceContract(msg.Sender, self.GovernanceAddr, NewGovernance)
+
+    Note over V: Update Governance Contract<br>self.GovernanceAddr = NewGovernance
+
+
+
+    
+```    
