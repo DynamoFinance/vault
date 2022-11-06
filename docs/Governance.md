@@ -366,13 +366,10 @@ sequenceDiagram
     Note over C1: Confirm Sender is the Governance Contract Owner
     Note over C1: msg.sender == self.Owner 
 
-    Note over C1: Confirm the New Guard being added is not in List of Guards
-    Note over C1: NewGuardAddress is not in self.LGOV
-    Note over C1: Confirm the Old Guard being removed is in List of Guards
-    Note over C1: OldGuardAddress is in self.LGOV
+    Note over C1: Confirm the New Guard being added is not in List of Guards<br>Note over C1: NewGuardAddress not in self.LGOV
+    Note over C1: Confirm the Old Guard being removed is in List of Guards<br>OldGuardAddress in self.LGOV
 
-    Note over C1: Confirm the New Guard is a real address
-    Note over C1: NewGuardAddress != ZERO_ADDRESS
+    Note over C1: Confirm the New Guard is a real address<br>NewGuardAddress != ZERO_ADDRESS
     
     Note over C1: Erase old Guard's vote<br>self.Votes[OldGuardAddress] = ZERO_ADDRESS
 
