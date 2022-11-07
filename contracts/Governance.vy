@@ -1,8 +1,7 @@
 # @version 0.3.6
 
 
-event StrategyProposal:
-    Strategy: address
+
 
 event StrategyWithdrawal:
     Nonce: uint256
@@ -25,9 +24,28 @@ event GuardSwap:
     OldGuardAddress: indexed(address)
     NewGuardAddress: indexed(address)
 
+struct ProposedStrategy:
+    Weights: DynArray[uint256, MAX_POOLS]
+    APYNow: uint256
+    APYPredicted: uint256
 
+struct Strategy:
+    Nonce: uint256
+    ProposerAddress: address
+    Weights: DynArray[uint256, MAX_POOLS]
+    APYNow: uint256
+    APYPredicted: uint256
+    TSubmitted: uint256
+    TActivated: uint256
+    Withdrawn: bool
+    no_guards: uint256
+    VotesEndorse: DynArray[address, MAX_GUARDS]
+    VotesReject: DynArray[address, MAX_GUARDS]
+
+event StrategyProposal:
+    strategy: Strategy
     
-#Contract assigned storage 
+# Contract assigned storage 
 contractOwner: public(address)
 MAX_GUARDS: constant(uint256) = 10
 MAX_POOLS: constant(uint256) = 10
@@ -35,49 +53,68 @@ LGov: public(DynArray[address, MAX_GUARDS])
 TDelay: public(uint256)
 no_guards: public(uint256)
 guard_index: public(HashMap[address, uint256])
-CurrentStrategy: public(uint256)
-PendingStrategy: public(uint256)
+CurrentStrategy: public(Strategy)
+PendingStrategy: public(Strategy)
 PendingVotesEndorse: public(uint256)
 PendingStrategy_TSubmitted: public(uint256)
 PendingStrategy_Nonce: public(uint256)
 PendingStrategy_Withdrawn: bool
+MinimumAPYIncrease: public(uint256)
 
-struct Strategy:
-    Nonce: uint256
-    ProposerAddress: address
-    Weights: uint256
-    TSubmitted: uint256
-    TActivated: uint256
-    Withdrawn: String[256]
-    no_guards: uint256
-    VotesEndorse: uint256
-    VotesReject: uint256
+NextNonce: uint256
+
+
 
 @external
 def __init__(contractOwner: address):
     self.contractOwner = contractOwner
+    self.NextNonce = 1
 
 
-# @external
-# def submitStrategy(Strategy: struct):
-#     assert len(self.LGov) >= 0
-#     assert self.CurrentStrategy == self.PendingStrategy
-#     assert self.PendingStrategy.Withdrawn == True
-#     assert count(self.PendingVotesReject) >= len(self.LGov)/2
-#     assert (self.PendingStrategy.TSubmitted+(self.TDelay * 1.25)) <= now()
-#     assert count(self.PendingStrategy.VotesReject) >= count(self.PendingStrategy.VotesEndorsed)
-#     #Confirm msg.sender Eligibility
-#     #Confirm msg.sender is not blacklisted
-#     assert Strategy.APYPredicted - Strategy.APYNow >= self.MinimumAPYIncrease
-#     #Strategy={*Strategy,TSubmitted,TActive,Nonce,Withdrawn=False,VoterCount,VotesEndorse=[],VotesReject=[]}
-#     self.PendingStrategy = Strategy
-#     log StrategyProposal(Strategy)
-#     return self.PendingStrategy.Nonce
+@external
+def submitStrategy(strategy: ProposedStrategy) -> uint256:
+    # No Strategy proposals if no governance guards
+    assert len(self.LGov) >= 0
+
+    # Confirm there's no currently pending strategy so we can replace the old one.
+
+            # First is it the same as the current one?
+            # Otherwise has it been withdrawn? 
+            # Otherwise, has it been short circuited down voted? 
+            # Has the period of protection from being replaced expired already?         
+    assert  (self.CurrentStrategy.Nonce == self.PendingStrategy.Nonce) or \
+            (self.PendingStrategy_Withdrawn == True) or \
+            (len(self.PendingStrategy.VotesReject) >= self.PendingStrategy.no_guards/2) or \
+            ((convert(self.PendingStrategy.TSubmitted, decimal)+(convert(self.TDelay, decimal) * 1.25)) > convert(block.timestamp, decimal))
+
+    # Confirm msg.sender Eligibility
+    # Confirm msg.sender is not blacklisted
+
+    # Confirm strategy meets financial goal improvements.
+    assert strategy.APYPredicted - strategy.APYNow >= self.MinimumAPYIncrease
+
+    
+    self.PendingStrategy.Nonce = self.NextNonce
+    self.NextNonce += 1
+    self.PendingStrategy.ProposerAddress = msg.sender
+    self.PendingStrategy.Weights = strategy.Weights
+    self.PendingStrategy.APYNow = strategy.APYNow
+    self.PendingStrategy.APYPredicted = strategy.APYPredicted
+    self.PendingStrategy.TSubmitted = block.timestamp
+    self.PendingStrategy.TActivated = 0    
+    self.PendingStrategy.Withdrawn = False
+    self.PendingStrategy.no_guards = len(self.LGov)
+    self.PendingStrategy.VotesEndorse = empty(DynArray[address, MAX_GUARDS])
+    self.PendingStrategy.VotesReject = empty(DynArray[address, MAX_GUARDS])
+
+
+    log StrategyProposal(self.PendingStrategy)
+    return self.PendingStrategy.Nonce
 
 
 @external
 def withdrawStrategy(Nonce: uint256):
-    assert self.CurrentStrategy != self.PendingStrategy
+    assert self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce
     assert self.PendingStrategy_Nonce == Nonce
     # assert self.PendingStrategy.ProposerAddress == msg.sender
     self.PendingStrategy_Withdrawn = True
@@ -86,7 +123,7 @@ def withdrawStrategy(Nonce: uint256):
 
 @external
 def endorseStrategy(Nonce: uint256):
-    assert self.CurrentStrategy != self.PendingStrategy
+    assert self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce
     assert self.PendingStrategy_Nonce == Nonce
     # assert msg.sender is in self.LGov
     # assert msg.sender is not in self.PendingStrategy.VoteReject
@@ -98,7 +135,7 @@ def endorseStrategy(Nonce: uint256):
 
 @external
 def rejectStrategy(Nonce: uint256):
-    assert self.CurrentStrategy != self.PendingStrategy
+    assert self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce
     assert self.PendingStrategy_Nonce == Nonce
     # assert msg.sender is in self.LGov
     # assert msg.sender is not in self.PendingStrategy.VoteReject
@@ -110,7 +147,7 @@ def rejectStrategy(Nonce: uint256):
 
 @external
 def activateStrategy(Nonce: uint256):
-    assert self.CurrentStrategy != self.PendingStrategy
+    assert self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce
     assert self.PendingStrategy_Withdrawn == False
     assert self.PendingVotesEndorse >= len(self.LGov)/2 
     # assert (self.PendingStrategy_TSubmitted + self.TDelay) <= now() 
