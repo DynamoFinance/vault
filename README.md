@@ -5,3 +5,5 @@ pip install -r requirements.txt
 ape plugins install .
 
 ape compile
+
+ape test

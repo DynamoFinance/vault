@@ -1,13 +1,8 @@
-from ast import operator
-from lib2to3.pgen2 import token
-from eth_utils import get_logger
+import ape
+
 import pytest
-import brownie
-from brownie import web3, chain, accounts
-from brownie import compile_source, web3, chain
-from eth_account.messages import encode_structured_data
-from eth_account import Account
-from brownie import Contract 
+from  pytest import raises
+
 
 SOMEONE_TOKEN_IDS = [1, 2, 3, 4, 5, 6, 7, 8 ,9, 10]
 OPERATOR_TOKEN_ID = 11
@@ -44,19 +39,16 @@ def chain_id():
     return 1 if web3.clientVersion.startswith("EthereumJS") else chain.id
 
 
-
 @pytest.fixture
-def governance_contract(Governance, accounts):
-    brownie.network.gas_price(GAS_PRICE_GWEI)
+#def governance_contract(Governance, accounts):
+def governance_contract(owner, project, accounts):
+    #brownie.network.gas_price(GAS_PRICE_GWEI)
 
     someone, operator, someoneelse, owner = accounts[:4]
 
     # deploy the contract with the initial value as a constructor argument
-    #contract = accounts[0].deploy(
-    contract = operator.deploy(
-        Governance,
-        operator
-    )
+
+    contract = owner.deploy(project.Governance)
 
     contract.addGuard(someone, {"from": operator})
 
@@ -64,7 +56,7 @@ def governance_contract(Governance, accounts):
 
     # contract.releaseForTransfer({"from": operator})
 
-    return contract
+    return contract  
 
 
 def test_addGuard(governance_contract):
@@ -72,19 +64,25 @@ def test_addGuard(governance_contract):
 
 
 def test_removeGuard(governance_contract):
+    pass
 
 
 def test_swapGuard(governance_contract):
+    pass
 
 def test_activateStrategy(governance_contract):
+    pass
 
 def test_endorseStrategy(governance_contract):
+    pass
 
 def test_rejectStrategy(governance_contract):
+    pass
 
 def test_submitStrategy(governance_contract):
+    pass
 
 def test_withdrawStrategy(governance_contract):
-
+    pass
 
 
