@@ -3,7 +3,9 @@ import ape
 import pytest
 from  pytest import raises
 
-
+WEIGHTS = [100, 1000]
+APYNOW = 5
+APYPREDICTED = 10
 
 @pytest.fixture
 #def governance_contract(Governance, accounts):
@@ -19,8 +21,12 @@ def governance_contract(owner, project, accounts):
 
     return contract  
 
+# @pytest.fixture
+# def ProposedStrategy(owner, project, accounts):
+
 
 def test_submitStrategy(governance_contract, ProposedStrategy, accounts):
+    ProposedStrategy = (WEIGHTS, APYNOW, APYPREDICTED)
     someone, operator, someoneelse, owner = accounts[:4]
     governance_contract.addGuard(someone, sender=owner)
     governance_contract.CurrentStrategy.Nonce = governance_contract.PendingStrategy.Nonce

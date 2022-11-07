@@ -1,6 +1,7 @@
 import pytest
 
 
+
 @pytest.fixture(scope="session")
 def owner(accounts):
     return accounts[0]
@@ -9,6 +10,10 @@ def owner(accounts):
 @pytest.fixture(scope="session")
 def receiver(accounts):
     return accounts[1]
+
+
+# @pytest.fixture(scope="session")
+# def ProposedStrategy()
 
 
 @pytest.fixture(scope="session")
