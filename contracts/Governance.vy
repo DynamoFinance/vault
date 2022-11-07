@@ -58,6 +58,7 @@ PendingStrategy: public(Strategy)
 PendingVotesEndorse: public(uint256)
 PendingStrategy_TSubmitted: public(uint256)
 PendingStrategy_Nonce: public(uint256)
+CurrentStrategy_Nonce: public(uint256)
 PendingStrategy_Withdrawn: bool
 MinimumAPYIncrease: public(uint256)
 
@@ -94,7 +95,7 @@ def submitStrategy(strategy: ProposedStrategy) -> uint256:
     assert strategy.APYPredicted - strategy.APYNow >= self.MinimumAPYIncrease, "Cannot Submit Strategy without APY Increase"
 
     
-    self.PendingStrategy.Nonce = self.NextNonce
+    self.PendingStrategy_Nonce = self.NextNonce
     self.NextNonce += 1
     self.PendingStrategy.ProposerAddress = msg.sender
     self.PendingStrategy.Weights = strategy.Weights
@@ -109,7 +110,7 @@ def submitStrategy(strategy: ProposedStrategy) -> uint256:
 
 
     log StrategyProposal(self.PendingStrategy)
-    return self.PendingStrategy.Nonce
+    return self.PendingStrategy_Nonce
 
 
 @external
@@ -162,14 +163,14 @@ def activateStrategy(Nonce: uint256):
 
 @external
 def addGuard(GuardAddress: address):
-    assert msg.sender == self.contractOwner
+    assert msg.sender == self.contractOwner, "Cannot add guard unless you are contract owner"
     #GuardAddress is not in self.LGov
     no_guards: uint256 = len(self.LGov)
-    next_pos: uint256 = no_guards - 1
-    assert no_guards <= MAX_GUARDS
-    assert GuardAddress != ZERO_ADDRESS
+    # next_pos: uint256 = no_guards - 1
+    assert no_guards <= MAX_GUARDS, "Cannot add anymore guards"
+    assert GuardAddress != ZERO_ADDRESS, "Cannot add ZERO_ADDRESS"
     self.LGov.append(GuardAddress)
-    self.guard_index[GuardAddress] = next_pos
+    # self.guard_index[GuardAddress] = next_pos
     log NewGuard(GuardAddress)
 
 

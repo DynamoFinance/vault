@@ -12,7 +12,7 @@ APYPREDICTED = 10
 def governance_contract(owner, project, accounts):
     #brownie.network.gas_price(GAS_PRICE_GWEI)
 
-    someone, operator, someoneelse, Xowner = accounts[:4]
+    owner, operator, someoneelse, someone = accounts[:4]
 
     # deploy the contract with the initial value as a constructor argument
 
@@ -26,19 +26,26 @@ def governance_contract(owner, project, accounts):
 
 
 def test_submitStrategy(governance_contract, accounts, owner):
-    # ProposedStrategy = (WEIGHTS, APYNOW, APYPREDICTED)
-    # someone, operator, someoneelse, Xowner = accounts[:4]
-    # governance_contract.addGuard(someone, sender=owner)
+    ProposedStrategy = (WEIGHTS, APYNOW, APYPREDICTED)
+    owner, operator, someoneelse, someone = accounts[:4]
+    governance_contract.addGuard(someone, sender=owner)
     # governance_contract.CurrentStrategy.Nonce = governance_contract.PendingStrategy.Nonce
     # ProposedStrategy.APYPredicted - ProposedStrategy.APYNow > governance_contract.MinimumAPYIncrease
-    # sp = governance_contract.submitStrategy(ProposedStrategy, sender=owner)
-    # logs = list(sp.decode_logs(governance_contract.StrategyProposal))
+    sp = governance_contract.submitStrategy(ProposedStrategy, sender=owner)
+    logs = list(sp.decode_logs(governance_contract.StrategyProposal))
+    assert len(logs) == 1
+    # assert governance_contract.PendingStrategy_Nonce == 1
     # assert governance_contract.CurrentStrategy.Nonce != governance_contract.PendingStrategy.Nonce
-    pass
 
 
-def test_addGuard(governance_contract):
-    pass
+
+def test_addGuard(governance_contract, accounts):
+    owner, operator, someoneelse, someone = accounts[:4]
+    ag = governance_contract.addGuard(someone, sender=owner)
+    logs = list(ag.decode_logs(governance_contract.NewGuard))
+    assert len(logs) == 1
+    # assert governance_contract.LGov == 0
+
 
 # def test_removeGuard(governance_contract):
 #     pass
