@@ -55,12 +55,8 @@ no_guards: public(uint256)
 guard_index: public(HashMap[address, uint256])
 CurrentStrategy: public(Strategy)
 PendingStrategy: public(Strategy)
-PendingVotesEndorse: public(uint256)
-PendingStrategy_TSubmitted: public(uint256)
-PendingStrategy_Nonce: public(uint256)
-CurrentStrategy_Nonce: public(uint256)
-PendingStrategy_Withdrawn: bool
 MinimumAPYIncrease: public(uint256)
+
 
 NextNonce: uint256
 
@@ -70,6 +66,7 @@ NextNonce: uint256
 def __init__(contractOwner: address):
     self.contractOwner = contractOwner
     self.NextNonce = 1
+
 
 
 @external
@@ -84,7 +81,7 @@ def submitStrategy(strategy: ProposedStrategy) -> uint256:
             # Otherwise, has it been short circuited down voted? 
             # Has the period of protection from being replaced expired already?         
     assert  (self.CurrentStrategy.Nonce == self.PendingStrategy.Nonce) or \
-            (self.PendingStrategy_Withdrawn == True) or \
+            (self.PendingStrategy.Withdrawn == True) or \
             (len(self.PendingStrategy.VotesReject) >= self.PendingStrategy.no_guards/2) or \
             ((convert(self.PendingStrategy.TSubmitted, decimal)+(convert(self.TDelay, decimal) * 1.25)) > convert(block.timestamp, decimal)), "Cannot Submit Strategy"
 
@@ -95,7 +92,7 @@ def submitStrategy(strategy: ProposedStrategy) -> uint256:
     assert strategy.APYPredicted - strategy.APYNow >= self.MinimumAPYIncrease, "Cannot Submit Strategy without APY Increase"
 
     
-    self.PendingStrategy_Nonce = self.NextNonce
+    self.PendingStrategy.Nonce = self.NextNonce
     self.NextNonce += 1
     self.PendingStrategy.ProposerAddress = msg.sender
     self.PendingStrategy.Weights = strategy.Weights
@@ -110,38 +107,40 @@ def submitStrategy(strategy: ProposedStrategy) -> uint256:
 
 
     log StrategyProposal(self.PendingStrategy)
-    return self.PendingStrategy_Nonce
+    return self.PendingStrategy.Nonce
+
 
 
 @external
 def withdrawStrategy(Nonce: uint256):
-    assert self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce
-    assert self.PendingStrategy_Nonce == Nonce
+    assert self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce, "Cannot withdraw Current Strategy"
+    assert self.PendingStrategy.Nonce == Nonce, "Cannot Withdraw Strategy if its not Pending Strategy"
     # assert self.PendingStrategy.ProposerAddress == msg.sender
-    self.PendingStrategy_Withdrawn = True
+    self.PendingStrategy.Withdrawn = True
     log StrategyWithdrawal(Nonce)
+
 
 
 @external
 def endorseStrategy(Nonce: uint256):
-    assert self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce
-    assert self.PendingStrategy_Nonce == Nonce
+    assert self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce, "Cannot Endorse Strategy thats already  Strategy"
+    assert self.PendingStrategy.Nonce == Nonce, "Cannot Endorse Strategy if its not Pending Strategy"
     # assert msg.sender is in self.LGov
     # assert msg.sender is not in self.PendingStrategy.VoteReject
     # assert msg.sender is not in self.PendingStrategy.VoteEndorse
-    # self.PendingStrategy.VoteEndorse.append(msg.sender)
+    self.PendingStrategy.VotesEndorse.append(msg.sender)
     log StrategyVote(Nonce, msg.sender, False)
 
 
 
 @external
 def rejectStrategy(Nonce: uint256):
-    assert self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce
-    assert self.PendingStrategy_Nonce == Nonce
+    assert self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce, "Cannot Reject Strategy thats already Current Strategy"
+    assert self.PendingStrategy.Nonce == Nonce, "Cannot Reject Strategy if its not Pending Strategy"
     # assert msg.sender is in self.LGov
     # assert msg.sender is not in self.PendingStrategy.VoteReject
     # assert msg.sender is not in self.PendingStrategy.VoteEndorse
-    # self.PendingStrategy.VoteReject.append(msg.sender)
+    self.PendingStrategy.VotesReject.append(msg.sender)
     log StrategyVote(Nonce, msg.sender, True)
 
 
@@ -149,17 +148,16 @@ def rejectStrategy(Nonce: uint256):
 @external
 def activateStrategy(Nonce: uint256):
     assert self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce
-    assert self.PendingStrategy_Withdrawn == False
-    assert self.PendingVotesEndorse >= len(self.LGov)/2 
+    assert self.PendingStrategy.Withdrawn == False
+    assert len(self.PendingStrategy.VotesEndorse) >= len(self.LGov)/2 
     # assert (self.PendingStrategy_TSubmitted + self.TDelay) <= now() 
     # assert count(self.PendingStrategy.VotesReject) <= count(self.PendingStrategy.VotesEndorsed)
-    assert self.PendingStrategy_Nonce == Nonce
+    assert self.PendingStrategy.Nonce == Nonce
     self.CurrentStrategy = self.PendingStrategy
     #PoolRebalancer(self.CurrentStrategy)
     log StrategyActivation(Nonce)
 
  
-
 
 @external
 def addGuard(GuardAddress: address):
@@ -177,29 +175,28 @@ def addGuard(GuardAddress: address):
 
 @external
 def removeGuard(GuardAddress: address):
-    assert msg.sender == self.contractOwner
+    assert msg.sender == self.contractOwner, "Cannot remove guard unless you are contract owner"
     #GuardAddress is in self.LGov
     current_index: uint256 = self.guard_index[GuardAddress]
     no_guards: uint256 = len(self.LGov)
     #What i want to do is delete the current_index and then replace in with the last in the guard_index.
     #Then swap the GuardAddress i want to remove with the last address in LGov.
     #Reason being that pop will only remove the last address
-    self.LGov.pop()
+    # self.LGov.pop()
     log GuardRemoved(GuardAddress)
-
 
 
 
 @external
 def swapGuard(OldGuardAddress: address, NewGuardAddress: address):
-    assert msg.sender == self.contractOwner
+    assert msg.sender == self.contractOwner, "Cannot swap guard unless you are contract owner"
     #OldGuardAddress is in self.LGov
     #NewGuardAddress is not in self.LGov
     assert NewGuardAddress != ZERO_ADDRESS
     current_index: uint256 = self.guard_index[OldGuardAddress]
     #What i want to do is replace OldGuardAddress_Index with NewGuardAddress_Index in guard_index.
     #Then i want to replace OldGuardAddress with NewGuardAddress in LGov.
-    self.LGov.pop()
+    # self.LGov.pop()
     self.LGov.append(NewGuardAddress)
     log GuardSwap(OldGuardAddress, NewGuardAddress)
 
