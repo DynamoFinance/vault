@@ -20,28 +20,35 @@ def governance_contract(owner, project, accounts):
     return contract  
 
 
-def test_submitStrategy(governance_contract, ):
-    pass
+def test_submitStrategy(governance_contract, ProposedStrategy, accounts):
+    someone, operator, someoneelse, owner = accounts[:4]
+    governance_contract.addGuard(someone, sender=owner)
+    governance_contract.CurrentStrategy.Nonce = governance_contract.PendingStrategy.Nonce
+    ProposedStrategy.APYPredicted - ProposedStrategy.APYNow > governance_contract.MinimumAPYIncrease
+    sp = governance_contract.submitStrategy(ProposedStrategy, sender=owner)
+    logs = list(sp.decode_logs(governance_contract.StrategyProposal))
+    assert governance_contract.CurrentStrategy.Nonce != governance_contract.PendingStrategy.Nonce
 
-def test_addGuard(governance_contract):
-    pass
 
-def test_removeGuard(governance_contract):
-    pass
+# def test_addGuard(governance_contract):
+#     pass
 
-def test_swapGuard(governance_contract):
-    pass
+# def test_removeGuard(governance_contract):
+#     pass
 
-def test_activateStrategy(governance_contract):
-    pass
+# def test_swapGuard(governance_contract):
+#     pass
 
-def test_endorseStrategy(governance_contract):
-    pass
+# def test_activateStrategy(governance_contract):
+#     pass
 
-def test_rejectStrategy(governance_contract):
-    pass
+# def test_endorseStrategy(governance_contract):
+#     pass
 
-def test_withdrawStrategy(governance_contract):
-    pass
+# def test_rejectStrategy(governance_contract):
+#     pass
+
+# def test_withdrawStrategy(governance_contract):
+#     pass
 
 

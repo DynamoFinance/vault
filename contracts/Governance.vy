@@ -74,7 +74,7 @@ def __init__(contractOwner: address):
 @external
 def submitStrategy(strategy: ProposedStrategy) -> uint256:
     # No Strategy proposals if no governance guards
-    assert len(self.LGov) >= 0
+    assert len(self.LGov) >= 0, "Cannot Submit Strategy without Guards"
 
     # Confirm there's no currently pending strategy so we can replace the old one.
 
@@ -85,13 +85,13 @@ def submitStrategy(strategy: ProposedStrategy) -> uint256:
     assert  (self.CurrentStrategy.Nonce == self.PendingStrategy.Nonce) or \
             (self.PendingStrategy_Withdrawn == True) or \
             (len(self.PendingStrategy.VotesReject) >= self.PendingStrategy.no_guards/2) or \
-            ((convert(self.PendingStrategy.TSubmitted, decimal)+(convert(self.TDelay, decimal) * 1.25)) > convert(block.timestamp, decimal))
+            ((convert(self.PendingStrategy.TSubmitted, decimal)+(convert(self.TDelay, decimal) * 1.25)) > convert(block.timestamp, decimal)), "Cannot Submit Strategy"
 
     # Confirm msg.sender Eligibility
     # Confirm msg.sender is not blacklisted
 
     # Confirm strategy meets financial goal improvements.
-    assert strategy.APYPredicted - strategy.APYNow >= self.MinimumAPYIncrease
+    assert strategy.APYPredicted - strategy.APYNow >= self.MinimumAPYIncrease, "Cannot Submit Strategy without APY Increase"
 
     
     self.PendingStrategy.Nonce = self.NextNonce
