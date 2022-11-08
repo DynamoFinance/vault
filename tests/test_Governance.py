@@ -112,7 +112,12 @@ def test_addGuard(governance_contract, accounts):
 
 def test_removeGuard(governance_contract, accounts):
     owner, operator, someoneelse, someone = accounts[:4]
-    rg = governance_contract.removeGuard(someone, sender=owner)
+    with ape.reverts():
+        rg = governance_contract.removeGuard(someone, sender=owner)
+
+    # Now add a guard or two then remove.        
+    governance_contract.addGuard(someone, sender=owner)
+    rg = governance_contract.removeGuard(someone, sender=owner)    
     logs = list(rg.decode_logs(governance_contract.GuardRemoved))
     assert len(logs) == 1
 

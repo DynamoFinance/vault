@@ -165,6 +165,7 @@ def addGuard(GuardAddress: address):
     #GuardAddress is not in self.LGov
     assert len(self.LGov) <= MAX_GUARDS, "Cannot add anymore guards"
     assert GuardAddress != ZERO_ADDRESS, "Cannot add ZERO_ADDRESS"
+    assert GuardAddress not in self.LGov, "Guard already exists"
     self.LGov.append(GuardAddress)
     log NewGuard(GuardAddress)
 
@@ -174,12 +175,26 @@ def addGuard(GuardAddress: address):
 def removeGuard(GuardAddress: address):
     assert msg.sender == self.contractOwner, "Cannot remove guard unless you are contract owner"
     #GuardAddress is in self.LGov
-    current_index: uint256 = self.guard_index[GuardAddress]
-    no_guards: uint256 = len(self.LGov)
-    #What i want to do is delete the current_index and then replace in with the last in the guard_index.
-    #Then swap the GuardAddress i want to remove with the last address in LGov.
-    #Reason being that pop will only remove the last address
-    # self.LGov.pop()
+
+    last_index: uint256 = len(self.LGov) 
+    assert last_index != 0, "No guards to remove."
+
+    # Correct size to zero offset position.
+    last_index -= 1
+    
+    current_index: uint256 = 0
+    for guard_addr in self.LGov:
+        if guard_addr == GuardAddress: break
+        current_index += 1
+
+    assert GuardAddress == self.LGov[current_index], "GuardAddress not a current Guard."    
+
+    # Replace Current Guard with last
+    self.LGov[current_index] = self.LGov[last_index]
+
+    # Eliminate the redundant one at the end.
+    self.LGov.pop()
+
     log GuardRemoved(GuardAddress)
 
 
@@ -187,13 +202,18 @@ def removeGuard(GuardAddress: address):
 @external
 def swapGuard(OldGuardAddress: address, NewGuardAddress: address):
     assert msg.sender == self.contractOwner, "Cannot swap guard unless you are contract owner"
-    #OldGuardAddress is in self.LGov
-    #NewGuardAddress is not in self.LGov
-    assert NewGuardAddress != ZERO_ADDRESS
-    current_index: uint256 = self.guard_index[OldGuardAddress]
-    #What i want to do is replace OldGuardAddress_Index with NewGuardAddress_Index in guard_index.
-    #Then i want to replace OldGuardAddress with NewGuardAddress in LGov.
-    # self.LGov.pop()
-    self.LGov.append(NewGuardAddress)
+
+    assert NewGuardAddress != ZERO_ADDRESS    
+    assert NewGuardAddress not in self.LGov, "New Guard is already a Guard."
+
+    current_index: uint256 = 0 
+    for guard_addr in self.LGov:
+        if guard_addr == OldGuardAddress: break
+        current_index += 1
+
+    assert OldGuardAddress == self.LGov[current_index], "OldGuardAddress not a current Guard."
+
+    self.LGov[current_index] = NewGuardAddress
+
     log GuardSwap(OldGuardAddress, NewGuardAddress)
 
