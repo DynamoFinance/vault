@@ -161,12 +161,21 @@ def activateStrategy(Nonce: uint256):
 
 @external
 def addGuard(GuardAddress: address):
+    #Check to see that sender is the contract owner
     assert msg.sender == self.contractOwner, "Cannot add guard unless you are contract owner"
-    #GuardAddress is not in self.LGov
+
+    #Check to see if there is the max amount of Guards
     assert len(self.LGov) <= MAX_GUARDS, "Cannot add anymore guards"
+
+    #Check to see that the Guard being added is a valid address
     assert GuardAddress != ZERO_ADDRESS, "Cannot add ZERO_ADDRESS"
+
+    #Check to see that GuardAddress is not already in self.LGov
     assert GuardAddress not in self.LGov, "Guard already exists"
+
+    #Add new guard address as the last in the list of guards
     self.LGov.append(GuardAddress)
+
     log NewGuard(GuardAddress)
 
 
@@ -174,7 +183,6 @@ def addGuard(GuardAddress: address):
 @external
 def removeGuard(GuardAddress: address):
     assert msg.sender == self.contractOwner, "Cannot remove guard unless you are contract owner"
-    #GuardAddress is in self.LGov
 
     last_index: uint256 = len(self.LGov) 
     assert last_index != 0, "No guards to remove."

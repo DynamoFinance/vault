@@ -98,7 +98,7 @@ def test_activateStrategy(governance_contract, accounts):
     logs = list(acs.decode_logs(governance_contract.StrategyActivation))
     assert len(logs) == 1
 
-
+ 
 
 def test_addGuard(governance_contract, accounts):
     owner, operator, someoneelse, someone = accounts[:4]
@@ -106,8 +106,7 @@ def test_addGuard(governance_contract, accounts):
     logs = list(ag.decode_logs(governance_contract.NewGuard))
     assert len(logs) == 1
     assert logs[0].GuardAddress == someone
-    #assert governance_contract.no_guards() == 1
-    # assert governance_contract.LGov == owner
+
 
 
 def test_removeGuard(governance_contract, accounts):
@@ -120,10 +119,17 @@ def test_removeGuard(governance_contract, accounts):
     rg = governance_contract.removeGuard(someone, sender=owner)    
     logs = list(rg.decode_logs(governance_contract.GuardRemoved))
     assert len(logs) == 1
+    assert logs[0].GuardAddress == someone
 
 
 def test_swapGuard(governance_contract, accounts):
     owner, operator, someoneelse, someone = accounts[:4]
+    with ape.reverts():
+        sg = governance_contract.swapGuard(someone, someoneelse, sender=owner)
+
+    governance_contract.addGuard(someone, sender=owner)
     sg = governance_contract.swapGuard(someone, someoneelse, sender=owner)
     logs = list(sg.decode_logs(governance_contract.GuardSwap))
     assert len(logs) == 1
+    assert logs[0].OldGuardAddress == someone
+    assert logs[0].NewGuardAddress == someoneelse
