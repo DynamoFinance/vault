@@ -62,6 +62,10 @@ def test_endorseStrategy(governance_contract, accounts):
     assert len(logs) == 1
 
     governance_contract.PendingStrategy.Nonce = NONCE
+    with ape.reverts():
+        es = governance_contract.endorseStrategy(NONCE, sender=owner)
+
+    governance_contract.addGuard(owner, sender=owner)
     es = governance_contract.endorseStrategy(NONCE, sender=owner)
     logs = list(es.decode_logs(governance_contract.StrategyVote))
     assert len(logs) == 1
@@ -77,6 +81,10 @@ def test_rejectStrategy(governance_contract, accounts):
     assert len(logs) == 1
 
     governance_contract.PendingStrategy.Nonce = NONCE
+    with ape.reverts():
+        rs = governance_contract.rejectStrategy(NONCE, sender=owner)
+    
+    governance_contract.addGuard(owner, sender=owner)
     rs = governance_contract.rejectStrategy(NONCE, sender=owner)
     logs = list(rs.decode_logs(governance_contract.StrategyVote))
     assert len(logs) == 1
