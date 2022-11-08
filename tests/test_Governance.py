@@ -105,7 +105,8 @@ def test_addGuard(governance_contract, accounts):
     ag = governance_contract.addGuard(someone, sender=owner)
     logs = list(ag.decode_logs(governance_contract.NewGuard))
     assert len(logs) == 1
-    assert governance_contract.no_guards == 1
+    assert logs[0].GuardAddress == someone
+    #assert governance_contract.no_guards() == 1
     # assert governance_contract.LGov == owner
 
 

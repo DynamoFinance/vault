@@ -163,12 +163,9 @@ def activateStrategy(Nonce: uint256):
 def addGuard(GuardAddress: address):
     assert msg.sender == self.contractOwner, "Cannot add guard unless you are contract owner"
     #GuardAddress is not in self.LGov
-    no_guards: uint256 = len(self.LGov)
-    # next_pos: uint256 = no_guards - 1
-    assert no_guards <= MAX_GUARDS, "Cannot add anymore guards"
+    assert len(self.LGov) <= MAX_GUARDS, "Cannot add anymore guards"
     assert GuardAddress != ZERO_ADDRESS, "Cannot add ZERO_ADDRESS"
     self.LGov.append(GuardAddress)
-    # self.guard_index[GuardAddress] = next_pos
     log NewGuard(GuardAddress)
 
 
