@@ -182,19 +182,23 @@ def addGuard(GuardAddress: address):
 
 @external
 def removeGuard(GuardAddress: address):
+    #Check to see that sender is the contract owner
     assert msg.sender == self.contractOwner, "Cannot remove guard unless you are contract owner"
 
     last_index: uint256 = len(self.LGov) 
+    #Check to see if there are any guards on the list of guards
     assert last_index != 0, "No guards to remove."
 
     # Correct size to zero offset position.
     last_index -= 1
     
+    #Run through list of guards to find the index of the one we want to remove
     current_index: uint256 = 0
     for guard_addr in self.LGov:
         if guard_addr == GuardAddress: break
         current_index += 1
 
+    #Make sure that GuardAddress is a guard on the list of guards
     assert GuardAddress == self.LGov[current_index], "GuardAddress not a current Guard."    
 
     # Replace Current Guard with last
@@ -209,18 +213,25 @@ def removeGuard(GuardAddress: address):
 
 @external
 def swapGuard(OldGuardAddress: address, NewGuardAddress: address):
+    #Check that the sender is authorized to swap a guard
     assert msg.sender == self.contractOwner, "Cannot swap guard unless you are contract owner"
 
+    #Check that the guard we are swapping in is a valid address
     assert NewGuardAddress != ZERO_ADDRESS, "Cannot add ZERO_ADDRESS"
+
+    #Check that the guard we are swapping in is not on the list of guards already
     assert NewGuardAddress not in self.LGov, "New Guard is already a Guard."
 
+    #Run through list of guards to find the index of the one we want to swap out
     current_index: uint256 = 0 
     for guard_addr in self.LGov:
         if guard_addr == OldGuardAddress: break
         current_index += 1
 
+    #Make sure that OldGuardAddress is a guard on the list of guards
     assert OldGuardAddress == self.LGov[current_index], "OldGuardAddress not a current Guard."
 
+    #Replace OldGuardAddress with NewGuardAddress
     self.LGov[current_index] = NewGuardAddress
 
     log GuardSwap(OldGuardAddress, NewGuardAddress)
