@@ -8,6 +8,7 @@ APYNOW = 5
 APYPREDICTED = 10
 NONCE = 1
 VOTE_COUNT = 6
+ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 @pytest.fixture
 #def governance_contract(Governance, accounts):
@@ -110,20 +111,52 @@ def test_activateStrategy(governance_contract, accounts):
 
 def test_addGuard(governance_contract, accounts):
     owner, operator, someoneelse, someone = accounts[:4]
+
+    #Test if i can add a guard as someone who is not the contract owner.
+    with ape.reverts():
+        ag = governance_contract.addGuard(someone, sender=someone)
+    
+    #Test if i can add guard.
     ag = governance_contract.addGuard(someone, sender=owner)
     logs = list(ag.decode_logs(governance_contract.NewGuard))
     assert len(logs) == 1
     assert logs[0].GuardAddress == someone
 
+    #Test if i can add the same guard again.
+    with ape.reverts():
+        ag = governance_contract.addGuard(someone, sender=owner)
+
+    #Test if i can add a ZERO_ADDRESS.
+    with ape.reverts():
+        ag = governance_contract.addGuard(ZERO_ADDRESS, sender=owner)
+
+    ag = governance_contract.addGuard(someoneelse, sender=owner)
+
+    #Test if i can add a guard when len(LGov) = MAX_GUARDS
+    with ape.reverts():
+        ag = governance_contract.addGuard(operator, sender=owner)
+
 
 
 def test_removeGuard(governance_contract, accounts):
     owner, operator, someoneelse, someone = accounts[:4]
+
+    #Test to see if i can remove a guard when there are no guards.
     with ape.reverts():
         rg = governance_contract.removeGuard(someone, sender=owner)
 
-    # Now add a guard or two then remove.        
+    # Now add a guard.        
     governance_contract.addGuard(someone, sender=owner)
+
+    #Test if i can remove a guard as someone who is not the contract owner.
+    with ape.reverts():
+        rg = governance_contract.removeGuard(someone, sender=someone)
+
+    #Test to see if i can remove a guard thats not in list of guards.
+    with ape.reverts():
+        rg = governance_contract.removeGuard(operator, sender=owner)
+
+    #Test if i can remove a guard.
     rg = governance_contract.removeGuard(someone, sender=owner)    
     logs = list(rg.decode_logs(governance_contract.GuardRemoved))
     assert len(logs) == 1
@@ -132,10 +165,28 @@ def test_removeGuard(governance_contract, accounts):
 
 def test_swapGuard(governance_contract, accounts):
     owner, operator, someoneelse, someone = accounts[:4]
+
+    #Test if i can swap out a guard that is not on the list of guards.
     with ape.reverts():
         sg = governance_contract.swapGuard(someone, someoneelse, sender=owner)
 
     governance_contract.addGuard(someone, sender=owner)
+
+    #Test if i can swap a guard as someone who is not the contract owner.
+    with ape.reverts():
+        sg = governance_contract.swapGuard(someone, someoneelse, sender=someoneelse)
+
+    #Test if i can add a ZERO_ADDRESS.
+    with ape.reverts():
+        sg = governance_contract.swapGuard(someone, ZERO_ADDRESS, sender=owner)
+
+    governance_contract.addGuard(operator, sender=owner)
+
+    #Test if i can swap in a guard thats already on the list of guards.
+    with ape.reverts():
+        sg = governance_contract.swapGuard(someone, operator, sender=owner)
+
+    #Test if i can swap guard.
     sg = governance_contract.swapGuard(someone, someoneelse, sender=owner)
     logs = list(sg.decode_logs(governance_contract.GuardSwap))
     assert len(logs) == 1

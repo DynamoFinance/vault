@@ -47,7 +47,7 @@ event StrategyProposal:
     
 # Contract assigned storage 
 contractOwner: public(address)
-MAX_GUARDS: constant(uint256) = 10
+MAX_GUARDS: constant(uint256) = 2
 MAX_POOLS: constant(uint256) = 10
 LGov: public(DynArray[address, MAX_GUARDS])
 TDelay: public(uint256)
@@ -211,7 +211,7 @@ def removeGuard(GuardAddress: address):
 def swapGuard(OldGuardAddress: address, NewGuardAddress: address):
     assert msg.sender == self.contractOwner, "Cannot swap guard unless you are contract owner"
 
-    assert NewGuardAddress != ZERO_ADDRESS    
+    assert NewGuardAddress != ZERO_ADDRESS, "Cannot add ZERO_ADDRESS"
     assert NewGuardAddress not in self.LGov, "New Guard is already a Guard."
 
     current_index: uint256 = 0 
