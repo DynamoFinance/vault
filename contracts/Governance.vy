@@ -132,6 +132,7 @@ def endorseStrategy(Nonce: uint256):
     #Check to see that sender is eligible to vote
     assert msg.sender in self.LGov, "Sender is not eligible to vote"
 
+    #Check to see that sender has not already voted
     assert msg.sender not in self.PendingStrategy.VotesReject
     assert msg.sender not in self.PendingStrategy.VotesEndorse
 
@@ -153,6 +154,7 @@ def rejectStrategy(Nonce: uint256):
     #Check to see that sender is eligible to vote
     assert msg.sender in self.LGov
 
+    #Check to see that sender has not already voted
     assert msg.sender not in self.PendingStrategy.VotesReject
     assert msg.sender not in self.PendingStrategy.VotesEndorse
 
