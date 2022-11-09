@@ -123,24 +123,42 @@ def withdrawStrategy(Nonce: uint256):
 
 @external
 def endorseStrategy(Nonce: uint256):
+    #Check to see that the pending strategy is not the current strategy
     assert self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce, "Cannot Endorse Strategy thats already  Strategy"
+
+    #Check to see that the pending strategy's nonce matches the nonce we want to endorse
     assert self.PendingStrategy.Nonce == Nonce, "Cannot Endorse Strategy if its not Pending Strategy"
-    assert msg.sender in self.LGov
+
+    #Check to see that sender is eligible to vote
+    assert msg.sender in self.LGov, "Sender is not eligible to vote"
+
     # assert msg.sender not in self.PendingStrategy.VoteReject
     # assert msg.sender not in self.PendingStrategy.VoteEndorse
+
+    #Vote to endorse strategy
     self.PendingStrategy.VotesEndorse.append(msg.sender)
+
     log StrategyVote(Nonce, msg.sender, False)
 
 
 
 @external
 def rejectStrategy(Nonce: uint256):
+    #Check to see that the pending strategy is not the current strategy
     assert self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce, "Cannot Reject Strategy thats already Current Strategy"
+
+    #Check to see that the pending strategy's nonce matches the nonce we want to reject
     assert self.PendingStrategy.Nonce == Nonce, "Cannot Reject Strategy if its not Pending Strategy"
+
+    #Check to see that sender is eligible to vote
     assert msg.sender in self.LGov
+
     # assert msg.sender not in self.PendingStrategy.VoteReject
     # assert msg.sender not in self.PendingStrategy.VoteEndorse
+
+    #Vote to reject strategy
     self.PendingStrategy.VotesReject.append(msg.sender)
+
     log StrategyVote(Nonce, msg.sender, True)
 
 

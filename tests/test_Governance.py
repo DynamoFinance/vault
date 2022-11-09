@@ -56,39 +56,55 @@ def test_withdrawStrategy(governance_contract, accounts):
 def test_endorseStrategy(governance_contract, accounts):
     ProposedStrategy = (WEIGHTS, APYNOW, APYPREDICTED)
     owner, operator, someoneelse, someone = accounts[:4]
+
+    #Add a guard
     governance_contract.addGuard(someone, sender=owner)
 
+    #Submit a Strategy
     sp = governance_contract.submitStrategy(ProposedStrategy, sender=owner)
     logs = list(sp.decode_logs(governance_contract.StrategyProposal))
     assert len(logs) == 1
 
     governance_contract.PendingStrategy.Nonce = NONCE
+
+    #Check to see if we can vote while not being a guard
     with ape.reverts():
         es = governance_contract.endorseStrategy(NONCE, sender=owner)
 
-    governance_contract.addGuard(owner, sender=owner)
-    es = governance_contract.endorseStrategy(NONCE, sender=owner)
+    #Vote to Endorse Strategy
+    es = governance_contract.endorseStrategy(NONCE, sender=someone)
     logs = list(es.decode_logs(governance_contract.StrategyVote))
     assert len(logs) == 1
+    assert logs[0].Nonce == NONCE
+    assert logs[0].GuardAddress == someone
+    assert logs[0].Endorse == False
 
 
 def test_rejectStrategy(governance_contract, accounts):
     ProposedStrategy = (WEIGHTS, APYNOW, APYPREDICTED)
     owner, operator, someoneelse, someone = accounts[:4]
+
+    #Add a guard
     governance_contract.addGuard(someone, sender=owner)
 
+    #Submit a Strategy
     sp = governance_contract.submitStrategy(ProposedStrategy, sender=owner)
     logs = list(sp.decode_logs(governance_contract.StrategyProposal))
     assert len(logs) == 1
 
     governance_contract.PendingStrategy.Nonce = NONCE
+
+    #Check to see if we can vote while not being a guard
     with ape.reverts():
         rs = governance_contract.rejectStrategy(NONCE, sender=owner)
     
-    governance_contract.addGuard(owner, sender=owner)
-    rs = governance_contract.rejectStrategy(NONCE, sender=owner)
+    #Vote to Reject Strategy
+    rs = governance_contract.rejectStrategy(NONCE, sender=someone)
     logs = list(rs.decode_logs(governance_contract.StrategyVote))
     assert len(logs) == 1
+    assert logs[0].Nonce == NONCE
+    assert logs[0].GuardAddress == someone
+    assert logs[0].Endorse == True
 
 
 def test_activateStrategy(governance_contract, accounts):
