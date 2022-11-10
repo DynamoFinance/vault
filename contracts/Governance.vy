@@ -176,7 +176,8 @@ def rejectStrategy(Nonce: uint256):
 @external
 def activateStrategy(Nonce: uint256):
     #Confirm there is a currently pending strategy
-    assert (self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce) or (self.PendingStrategy.Withdrawn == False)
+    assert (self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce)
+    assert (self.PendingStrategy.Withdrawn == False)
 
     #Confirm strategy is approved by guards
     assert (len(self.PendingStrategy.VotesEndorse) >= len(self.LGov)/2) or ((self.PendingStrategy.TSubmitted + self.TDelay) < block.timestamp)
