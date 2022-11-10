@@ -180,7 +180,8 @@ def activateStrategy(Nonce: uint256):
     assert (self.PendingStrategy.Withdrawn == False)
 
     #Confirm strategy is approved by guards
-    assert (len(self.PendingStrategy.VotesEndorse) >= len(self.LGov)/2) or ((self.PendingStrategy.TSubmitted + self.TDelay) < block.timestamp)
+    assert (len(self.PendingStrategy.VotesEndorse) >= len(self.LGov)/2) \
+        or ((self.PendingStrategy.TSubmitted + self.TDelay) < block.timestamp)
     assert len(self.PendingStrategy.VotesReject) < len(self.PendingStrategy.VotesEndorse)
 
     #Confirm Pending Strategy is the Strategy we want to activate
