@@ -65,9 +65,13 @@ def test_endorseStrategy(governance_contract, accounts):
     logs = list(sp.decode_logs(governance_contract.StrategyProposal))
     assert len(logs) == 1
 
+    #Test to see if we can endorse strategy when Nonce doesn't match
+    with ape.reverts():
+        es = governance_contract.endorseStrategy(2, sender=someone)
+
     governance_contract.PendingStrategy.Nonce = NONCE
 
-    #Check to see if we can vote while not being a guard
+    #Test to see if we can vote while not being a guard
     with ape.reverts():
         es = governance_contract.endorseStrategy(NONCE, sender=owner)
 
@@ -78,6 +82,26 @@ def test_endorseStrategy(governance_contract, accounts):
     assert logs[0].Nonce == NONCE
     assert logs[0].GuardAddress == someone
     assert logs[0].Endorse == False
+
+    #Test to see if i can vote again
+    with ape.reverts():
+        es = governance_contract.endorseStrategy(NONCE, sender=someone)
+
+    #Activate Strategy
+    acs = governance_contract.activateStrategy(NONCE, sender=owner)
+    logs = list(acs.decode_logs(governance_contract.StrategyActivation))
+    assert len(logs) == 1
+
+    #Add another guard
+    governance_contract.addGuard(someoneelse, sender=owner)
+
+    #Test to see if we can endorse strategy after its already activated
+    with ape.reverts():
+        es = governance_contract.endorseStrategy(NONCE, sender=someoneelse)
+
+    #Test to see if we can reject strategy after its already activated
+    with ape.reverts():
+        rs = governance_contract.rejectStrategy(NONCE, sender=someoneelse)
 
 
 def test_rejectStrategy(governance_contract, accounts):
@@ -92,6 +116,10 @@ def test_rejectStrategy(governance_contract, accounts):
     logs = list(sp.decode_logs(governance_contract.StrategyProposal))
     assert len(logs) == 1
 
+    #Test to see if we can reject strategy when Nonce doesn't match
+    with ape.reverts():
+        rs = governance_contract.rejectStrategy(2, sender=someone)
+
     governance_contract.PendingStrategy.Nonce = NONCE
 
     #Check to see if we can vote while not being a guard
@@ -105,6 +133,11 @@ def test_rejectStrategy(governance_contract, accounts):
     assert logs[0].Nonce == NONCE
     assert logs[0].GuardAddress == someone
     assert logs[0].Endorse == True
+
+    #Test to see if i can vote again
+    with ape.reverts():
+        rs = governance_contract.rejectStrategy(NONCE, sender=someone)
+
 
 
 def test_activateStrategy(governance_contract, accounts):
