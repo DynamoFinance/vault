@@ -129,7 +129,9 @@ def test_activateStrategy(governance_contract, accounts):
     acs = governance_contract.activateStrategy(NONCE, sender=owner)
     logs = list(acs.decode_logs(governance_contract.StrategyActivation))
     assert len(logs) == 1
-    assert logs[0].strategy == ()
+    assert logs[0].strategy[2] == tuple(WEIGHTS)
+    assert logs[0].strategy[3] == APYNOW
+    assert logs[0].strategy[4] == APYPREDICTED
 
  
 
