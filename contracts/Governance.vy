@@ -12,7 +12,7 @@ event StrategyVote:
     Endorse: bool
 
 event StrategyActivation:
-    Strategy: uint256
+    strategy: Strategy
 
 event NewGuard:
     GuardAddress: indexed(address)
@@ -167,16 +167,21 @@ def rejectStrategy(Nonce: uint256):
 
 @external
 def activateStrategy(Nonce: uint256):
-    assert self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce
-    assert self.PendingStrategy.Withdrawn == False
-    assert len(self.PendingStrategy.VotesEndorse) >= len(self.LGov)/2 
-    # assert (self.PendingStrategy_TSubmitted + self.TDelay) <= now() 
-    # assert count(self.PendingStrategy.VotesReject) <= count(self.PendingStrategy.VotesEndorsed)
+    #Confirm there is a currently pending strategy
+    assert (self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce) or (self.PendingStrategy.Withdrawn == False)
+
+    #Confirm strategy is approved by guards
+    assert (len(self.PendingStrategy.VotesEndorse) >= len(self.LGov)/2) or ((self.PendingStrategy.TSubmitted + self.TDelay) < block.timestamp)
+    assert len(self.PendingStrategy.VotesReject) < len(self.PendingStrategy.VotesEndorse)
+
+    #Confirm Pending Strategy is the Strategy we want to activate
     assert self.PendingStrategy.Nonce == Nonce
+
+    #Make Current Strategy and Activate Strategy
     self.CurrentStrategy = self.PendingStrategy
     #PoolRebalancer(self.CurrentStrategy)
-    log StrategyActivation(Nonce)
 
+    log StrategyActivation(self.CurrentStrategy)
  
 
 @external
