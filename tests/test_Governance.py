@@ -41,16 +41,31 @@ def test_submitStrategy(governance_contract, accounts, owner):
 def test_withdrawStrategy(governance_contract, accounts):
     ProposedStrategy = (WEIGHTS, APYNOW, APYPREDICTED)
     owner, operator, someoneelse, someone = accounts[:4]
+
+    #Add a guard
     governance_contract.addGuard(someone, sender=owner)
 
+    #Submit a strategy
     sp = governance_contract.submitStrategy(ProposedStrategy, sender=owner)
     logs = list(sp.decode_logs(governance_contract.StrategyProposal))
     assert len(logs) == 1
 
+    #Test if i can withdraw strategy when nonce doesn't match
+    with ape.reverts():
+        ws = governance_contract.withdrawStrategy(2, sender=owner)
+
     governance_contract.PendingStrategy.Nonce = NONCE
+
+    #Test if i can withdraw strategy when i am not eligible
+    with ape.reverts():
+        ws = governance_contract.withdrawStrategy(NONCE, sender=someone)
+
+    #Withdraw Strategy
     ws = governance_contract.withdrawStrategy(NONCE, sender=owner)
     logs = list(ws.decode_logs(governance_contract.StrategyWithdrawal))
     assert len(logs) == 1
+    assert logs[0].Nonce == NONCE
+
 
 
 def test_endorseStrategy(governance_contract, accounts):
@@ -166,6 +181,14 @@ def test_activateStrategy(governance_contract, accounts):
     assert logs[0].strategy[3] == APYNOW
     assert logs[0].strategy[4] == APYPREDICTED
 
+    #Submit another Strategy
+    governance_contract.submitStrategy(ProposedStrategy, sender=owner)
+
+    governance_contract.PendingStrategy.Nonce = 2
+
+    #Endorse the second strategy
+    es = governance_contract.endorseStrategy(2, sender=someone)
+    
  
 
 def test_addGuard(governance_contract, accounts):

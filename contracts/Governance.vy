@@ -113,10 +113,18 @@ def submitStrategy(strategy: ProposedStrategy) -> uint256:
 
 @external
 def withdrawStrategy(Nonce: uint256):
-    assert self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce, "Cannot withdraw Current Strategy"
+    #Check to see that the pending strategy is not the current strategy
+    assert (self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce), "Cannot withdraw Current Strategy"
+
+    #Check to see that the pending strategy's nonce matches the nonce we want to withdraw
     assert self.PendingStrategy.Nonce == Nonce, "Cannot Withdraw Strategy if its not Pending Strategy"
-    # assert self.PendingStrategy.ProposerAddress == msg.sender
+
+    #Check to see that sender is eligible to withdraw
+    assert self.PendingStrategy.ProposerAddress == msg.sender
+
+    #Withdraw Pending Strategy
     self.PendingStrategy.Withdrawn = True
+
     log StrategyWithdrawal(Nonce)
 
 
