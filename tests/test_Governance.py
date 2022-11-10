@@ -188,7 +188,16 @@ def test_activateStrategy(governance_contract, accounts):
 
     #Endorse the second strategy
     es = governance_contract.endorseStrategy(2, sender=someone)
-    
+
+    #Test if i can activate strategy with wrong nonce
+    with ape.reverts():
+        acs = governance_contract.activateStrategy(3, sender=owner)
+
+    ws = governance_contract.withdrawStrategy(2, sender=owner)
+
+    #Test if i can activate strategy when its withdrawn
+    with ape.reverts():
+        acs = governance_contract.activateStrategy(2, sender=owner)
  
 
 def test_addGuard(governance_contract, accounts):
