@@ -1,6 +1,5 @@
-eth-ape>=0.5.2
-eth-brownie==1.19.1
-pytest==6.2.5
-pytest-forked==1.4.0
-pytest-xdist==1.34.0
-vyper==0.3.3
+# pygit2 & PyGithub are specified specifically because of an ssl package error.
+pygit2==1.10.1 
+PyGithub==1.56
+
+eth-ape @ git+https://github.com/ApeWorX/ape.git#egg=eth-ape
