@@ -44,9 +44,17 @@ def test_submitStrategy(governance_contract, accounts, owner):
     assert logs[0].strategy[3] == APYNOW
     assert logs[0].strategy[4] == APYPREDICTED
 
+    governance_contract.PendingStrategy.Nonce = NONCE
+
     #Test if i can submit a strategy while there is pending strategy
     # with ape.reverts():
     #     governance_contract.submitStrategy(ProposedStrategy, sender=owner)
+
+    governance_contract.submitStrategy(ProposedStrategy, sender=owner)
+
+    governance_contract.submitStrategy(ProposedStrategy, sender=owner)
+
+
 
 
 
