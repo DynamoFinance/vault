@@ -69,7 +69,7 @@ def __init__(contractOwner: address):
 @external
 def submitStrategy(strategy: ProposedStrategy) -> uint256:
     # No Strategy proposals if no governance guards
-    assert len(self.LGov) >= 0, "Cannot Submit Strategy without Guards"
+    assert len(self.LGov) > 0, "Cannot Submit Strategy without Guards"
 
     # Confirm there's no currently pending strategy so we can replace the old one.
 

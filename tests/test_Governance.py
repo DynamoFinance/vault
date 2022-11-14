@@ -28,14 +28,27 @@ def governance_contract(owner, project, accounts):
 def test_submitStrategy(governance_contract, accounts, owner):
     ProposedStrategy = (WEIGHTS, APYNOW, APYPREDICTED)
     owner, operator, someoneelse, someone = accounts[:4]
+
+    #Test if i can submit strategy with zero guards
+    with ape.reverts():
+        governance_contract.submitStrategy(ProposedStrategy, sender=owner)
+
+    #Add a guard
     governance_contract.addGuard(someone, sender=owner)
-    # governance_contract.CurrentStrategy.Nonce = governance_contract.PendingStrategy.Nonce
-    # ProposedStrategy.APYPredicted - ProposedStrategy.APYNow > governance_contract.MinimumAPYIncrease
+
+    #Submit a strategy
     sp = governance_contract.submitStrategy(ProposedStrategy, sender=owner)
     logs = list(sp.decode_logs(governance_contract.StrategyProposal))
     assert len(logs) == 1
-    # assert governance_contract.PendingStrategy_Nonce == 1
-    # assert governance_contract.CurrentStrategy.Nonce != governance_contract.PendingStrategy.Nonce
+    assert logs[0].strategy[2] == tuple(WEIGHTS)
+    assert logs[0].strategy[3] == APYNOW
+    assert logs[0].strategy[4] == APYPREDICTED
+
+    #Test if i can submit a strategy while there is pending strategy
+    # with ape.reverts():
+    #     governance_contract.submitStrategy(ProposedStrategy, sender=owner)
+
+
 
 
 def test_withdrawStrategy(governance_contract, accounts):
