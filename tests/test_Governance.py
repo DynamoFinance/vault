@@ -87,6 +87,29 @@ def test_withdrawStrategy(governance_contract, accounts):
     assert len(logs) == 1
     assert logs[0].Nonce == NONCE
 
+    #Submit a second Strategy
+    sp = governance_contract.submitStrategy(ProposedStrategy, sender=owner)
+    logs = list(sp.decode_logs(governance_contract.StrategyProposal))
+    assert len(logs) == 1
+
+    governance_contract.PendingStrategy.Nonce = 2
+
+    #Endorse the strategy
+    es = governance_contract.endorseStrategy(2, sender=someone)
+    logs = list(es.decode_logs(governance_contract.StrategyVote))
+
+    #Activate the startegy
+    acs = governance_contract.activateStrategy(2, sender=owner)
+    logs = list(acs.decode_logs(governance_contract.StrategyActivation))
+    assert len(logs) == 1
+    assert logs[0].strategy[2] == tuple(WEIGHTS)
+    assert logs[0].strategy[3] == APYNOW
+    assert logs[0].strategy[4] == APYPREDICTED
+
+    #Test if i can withdraw strategy when its already activated
+    with ape.reverts():
+        governance_contract.withdrawStrategy(2, sender=owner)
+
 
 
 def test_endorseStrategy(governance_contract, accounts):
