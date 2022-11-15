@@ -3,6 +3,7 @@ name: dynamo_vault
 plugins:
   - name: vyper
   - name: polygon
+  - name: alchemy
 
 default_ecosystem: ethereum
 
@@ -28,3 +29,11 @@ geth:
       uri: https://rpc.ankr.com/polygon
     mumbai:
       uri: https://rpc.ankr.com/polygon_mumbai
+
+hardhat:
+  fork:
+    ethereum:
+      mainnet:
+        upstream_provider: alchemy
+        block_number: 15936703
+  fork_request_timeout: 1200

@@ -1,1 +1,12 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+tests/__pycache__/
+*.py[cod]
+*$py.class
+
+
 .build/
+.venv/
+cache/
+node_modules/
+hardhat.config.js

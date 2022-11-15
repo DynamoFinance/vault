@@ -5,15 +5,15 @@ Dynamo Protocol Implementation for Balancer v2 Boosted Vault.
 
 Create a python virtual environment to isolate your project and then execute the following:
 
+Signup for free [alchemy account](https://www.alchemy.com/), create a project with ETH mainnet and replace `REMOVED` with your api key.
+
 ```
-pip install -r requirements.txt
-
-ape plugins install .
-
-ape compile
-
-ape test
+make init
+export WEB3_ETHEREUM_MAINNET_ALCHEMY_API_KEY="REMOVED"
+ape test --network :mainnet-fork:hardhat
 ```
+
+^^ This will fail 50% of the time, I'm working on fixing it.
 
 ## Test & Execution Environment 
 
