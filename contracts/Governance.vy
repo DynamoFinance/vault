@@ -275,6 +275,7 @@ def swapGuard(OldGuardAddress: address, NewGuardAddress: address):
 
 @external
 def replaceGovernance(NewGovernance: address):
+    VoteCount: uint256 = 0
     #Check if there are enough guards to change governance
     assert len(self.LGov) >= MIN_GUARDS
 
@@ -292,6 +293,10 @@ def replaceGovernance(NewGovernance: address):
 
     #Record Vote
     self.VotesGC[msg.sender] = NewGovernance
+
+    for guard_addr in self.LGov:
+        if self.VotesGC[guard_addr] == NewGovernance: break
+        VoteCount += 1
 
 
     log GovernanceContractChanged(NewGovernance)
