@@ -287,7 +287,7 @@ def replaceGovernance(NewGovernance: address):
     #Check if new contract address is valid address
     assert NewGovernance != ZERO_ADDRESS
 
-    #Check if ?
+    #Check if sender has not yet voted
     assert self.VotesGC[msg.sender] != NewGovernance
 
     #Record Vote
