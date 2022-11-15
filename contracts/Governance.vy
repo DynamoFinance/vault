@@ -21,6 +21,10 @@ event GuardSwap:
     OldGuardAddress: indexed(address)
     NewGuardAddress: indexed(address)
 
+event GovernanceContractChanged:
+    NewGovernance: indexed(address)
+
+    
 struct ProposedStrategy:
     Weights: DynArray[uint256, MAX_POOLS]
     APYNow: uint256
@@ -268,3 +272,9 @@ def swapGuard(OldGuardAddress: address, NewGuardAddress: address):
 
     log GuardSwap(OldGuardAddress, NewGuardAddress)
 
+
+
+@external
+def replaceGovernance(NewGovernance: address):
+
+    log GovernanceContractChanged(NewGovernance)
