@@ -53,15 +53,14 @@ MAX_POOLS: constant(uint256) = 10
 LGov: public(DynArray[address, MAX_GUARDS])
 TDelay: public(uint256)
 no_guards: public(uint256)
-guard_index: public(HashMap[address, uint256])
 CurrentStrategy: public(Strategy)
 PendingStrategy: public(Strategy)
 MinimumAPYIncrease: public(uint256)
-
-
+VotesGC: public(HashMap[address, address])
+MIN_GUARDS: constant(uint256) = 1
 NextNonce: uint256
 
-
+Vault: public(address)
 
 @external
 def __init__(contractOwner: address):
@@ -276,5 +275,23 @@ def swapGuard(OldGuardAddress: address, NewGuardAddress: address):
 
 @external
 def replaceGovernance(NewGovernance: address):
+    #Check if there are enough guards to change governance
+    assert len(self.LGov) >= MIN_GUARDS
+
+    #Check if sender is a guard
+    assert msg.sender in self.LGov
+
+    #Check if new contract address is not the current
+    assert NewGovernance != self
+
+    #Check if new contract address is valid address
+    assert NewGovernance != ZERO_ADDRESS
+
+    #Check if ?
+    assert self.VotesGC[msg.sender] != NewGovernance
+
+    #Record Vote
+    self.VotesGC[msg.sender] = NewGovernance
+
 
     log GovernanceContractChanged(NewGovernance)
