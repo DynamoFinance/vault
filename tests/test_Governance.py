@@ -47,12 +47,10 @@ def test_submitStrategy(governance_contract, accounts, owner):
     governance_contract.PendingStrategy.Nonce = NONCE
 
     #Test if i can submit a strategy while there is pending strategy
-    # with ape.reverts():
-    #     governance_contract.submitStrategy(ProposedStrategy, sender=owner)
+    with ape.reverts():
+        governance_contract.submitStrategy(ProposedStrategy, sender=owner)
 
-    governance_contract.submitStrategy(ProposedStrategy, sender=owner)
 
-    governance_contract.submitStrategy(ProposedStrategy, sender=owner)
 
 
 
@@ -327,3 +325,42 @@ def test_swapGuard(governance_contract, accounts):
     assert len(logs) == 1
     assert logs[0].OldGuardAddress == someone
     assert logs[0].NewGuardAddress == someoneelse
+
+
+
+def test_replaceGovernance(governance_contract, accounts):
+    owner, operator, someoneelse, someone, newcontract = accounts[:5]
+
+    #Test if i can replace governance when there are no guards
+    with ape.reverts():
+        governance_contract.replaceGovernance(newcontract, sender=owner)
+
+    #Add a guard
+    governance_contract.addGuard(someone, sender=owner)
+
+    #Test if i can replace governance if sender is not in list of guards
+    with ape.reverts():
+        governance_contract.replaceGovernance(newcontract, sender=owner)
+
+    #Test if i can replace governance with self
+    with ape.reverts():
+        governance_contract.replaceGovernance(governance_contract, sender=someone)
+
+    #Test if i can replace governance with invalid address
+    with ape.reverts():
+        governance_contract.replaceGovernance(ZERO_ADDRESS, sender=someone)
+
+    #Test if replace governance logs new vote
+    rg = governance_contract.replaceGovernance(newcontract, sender=someone)
+    logs = list(rg.decode_logs(governance_contract.VoteForNewGovernance))
+    assert len(logs) == 1
+    assert logs[0].NewGovernance == newcontract
+
+    logs = list(rg.decode_logs(governance_contract.GovernanceContractChanged))
+    assert len(logs) == 1
+    assert logs[0].Voter == someone
+    assert logs[0].NewGovernance == newcontract
+
+    #Test if VoteCount increases correctly
+    assert logs[0].VoteCount == 1
+    assert logs[0].TotalGuards == 1

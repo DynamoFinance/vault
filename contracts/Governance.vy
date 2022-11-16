@@ -22,6 +22,14 @@ event GuardSwap:
     NewGuardAddress: indexed(address)
 
 event GovernanceContractChanged:
+    Vault: address
+    Voter: address
+    NewGovernance: indexed(address)
+    VoteCount: uint256
+    TotalGuards: uint256
+
+
+event VoteForNewGovernance:
     NewGovernance: indexed(address)
 
     
@@ -82,8 +90,9 @@ def submitStrategy(strategy: ProposedStrategy) -> uint256:
             # Has the period of protection from being replaced expired already?         
     assert  (self.CurrentStrategy.Nonce == self.PendingStrategy.Nonce) or \
             (self.PendingStrategy.Withdrawn == True) or \
-            (len(self.PendingStrategy.VotesReject) >= self.PendingStrategy.no_guards/2) or \
-            ((convert(self.PendingStrategy.TSubmitted, decimal)+(convert(self.TDelay, decimal) * 1.25)) > convert(block.timestamp, decimal)), "Cannot Submit Strategy"
+            len(self.PendingStrategy.VotesReject) > 0 and \
+            (len(self.PendingStrategy.VotesReject) >= self.PendingStrategy.no_guards/2)
+            # (convert(block.timestamp, decimal) > (convert(self.PendingStrategy.TSubmitted, decimal)+(convert(self.TDelay, decimal) * 1.25))), "Cannot Submit Strategy"
 
     # Confirm msg.sender Eligibility
     # Confirm msg.sender is not blacklisted
@@ -276,27 +285,33 @@ def swapGuard(OldGuardAddress: address, NewGuardAddress: address):
 @external
 def replaceGovernance(NewGovernance: address):
     VoteCount: uint256 = 0
+    Voter: address = msg.sender
+    TotalGuards: uint256 = len(self.LGov)
     #Check if there are enough guards to change governance
     assert len(self.LGov) >= MIN_GUARDS
 
     #Check if sender is a guard
     assert msg.sender in self.LGov
 
-    #Check if new contract address is not the current
+    #Check if new contract address is not the current)
     assert NewGovernance != self
 
     #Check if new contract address is valid address
     assert NewGovernance != ZERO_ADDRESS
 
-    #Check if sender has not yet voted
-    assert self.VotesGC[msg.sender] != NewGovernance
+    #Check if sender has voted, if not log new vote
+    if self.VotesGC[msg.sender] != NewGovernance: 
+        log VoteForNewGovernance(NewGovernance)
 
     #Record Vote
     self.VotesGC[msg.sender] = NewGovernance
 
+    #Add Vote to VoteCount
     for guard_addr in self.LGov:
-        if self.VotesGC[guard_addr] == NewGovernance: break
-        VoteCount += 1
+        if self.VotesGC[guard_addr] == NewGovernance:
+            VoteCount += 1
 
+    # if len(self.LGov) == VoteCount:
+    #     Vault.replaceGovernance(NewGovernance)
 
-    log GovernanceContractChanged(NewGovernance)
+    log GovernanceContractChanged(self.Vault, Voter, NewGovernance, VoteCount, TotalGuards)
