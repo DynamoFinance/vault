@@ -6,6 +6,7 @@ from  pytest import raises
 WEIGHTS = [100, 1000]
 APYNOW = 5
 APYPREDICTED = 10
+BADAPYPREDICTED = 3
 NONCE = 1
 VOTE_COUNT = 6
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
@@ -27,6 +28,7 @@ def governance_contract(owner, project, accounts):
 
 def test_submitStrategy(governance_contract, accounts, owner):
     ProposedStrategy = (WEIGHTS, APYNOW, APYPREDICTED)
+    BadStrategy = (WEIGHTS, APYNOW, BADAPYPREDICTED)
     owner, operator, someoneelse, someone = accounts[:4]
 
     #Test if i can submit strategy with zero guards
@@ -49,6 +51,10 @@ def test_submitStrategy(governance_contract, accounts, owner):
     #Test if i can submit a strategy while there is pending strategy
     with ape.reverts():
         governance_contract.submitStrategy(ProposedStrategy, sender=owner)
+
+    #Test if i can submit a strategy where the APY does not increase
+    with ape.reverts():
+        governance_contract.submitStrategy(BadStrategy, sender=owner)
 
 
 

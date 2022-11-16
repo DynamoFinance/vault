@@ -63,7 +63,6 @@ TDelay: public(uint256)
 no_guards: public(uint256)
 CurrentStrategy: public(Strategy)
 PendingStrategy: public(Strategy)
-MinimumAPYIncrease: public(uint256)
 VotesGC: public(HashMap[address, address])
 MIN_GUARDS: constant(uint256) = 1
 NextNonce: uint256
@@ -98,7 +97,7 @@ def submitStrategy(strategy: ProposedStrategy) -> uint256:
     # Confirm msg.sender is not blacklisted
 
     # Confirm strategy meets financial goal improvements.
-    assert strategy.APYPredicted - strategy.APYNow >= self.MinimumAPYIncrease, "Cannot Submit Strategy without APY Increase"
+    assert strategy.APYPredicted - strategy.APYNow > 0, "Cannot Submit Strategy without APY Increase"
 
     
     self.PendingStrategy.Nonce = self.NextNonce
