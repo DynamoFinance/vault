@@ -412,7 +412,7 @@ sequenceDiagram
 
     Note over C1: Confirm there are enough Guards<br>to change Governance<br>len(self.LGOV >= MIN_GUARDS)
     Note over C1: Confirm self.sender is a Guard<br>msg.sender in self.LGOV
-    Note over C1: Confirm NewGovernance is Different<br>NewConvernance != self<br>NewGovernance != ZERO_ADDRESS<br>self.Votes[msg.sender] != NewGovernance
+    Note over C1: Confirm NewGovernance is Different<br>NewConvernance != self<br>NewGovernance != ZERO_ADDRESS
 
 
     Note over C1: Record Guard's Vote<br>self.Votes[msg.sender] = NewGovernance
