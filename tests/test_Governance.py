@@ -12,18 +12,24 @@ VOTE_COUNT = 6
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 @pytest.fixture
-#def governance_contract(Governance, accounts):
+def vault_contract(owner, project, accounts):
+
+    owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
+
+    vcontract = owner.deploy(project.Vault_test, owner)
+
+    return vcontract
+
+@pytest.fixture
 def governance_contract(owner, project, accounts):
-    #brownie.network.gas_price(GAS_PRICE_GWEI)
 
     owner, operator, someoneelse, someone, newcontract, currentvault = accounts[:6]
 
     # deploy the contract with the initial value as a constructor argument
 
-    contract = owner.deploy(project.Governance, owner, currentvault)
+    gcontract = owner.deploy(project.Governance, owner, vault_contract)
 
-
-    return contract  
+    return gcontract  
 
 
 def test_submitStrategy(governance_contract, accounts, owner):

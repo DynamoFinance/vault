@@ -25,9 +25,8 @@ GovernanceAddress: public(address)
 contractOwner: public(address)
 
 @external
-def __init__(contractOwner: address, _governance: address):
+def __init__(contractOwner: address):
     self.contractOwner = contractOwner
-    self.GovernanceAddress = _governance
 
 @external
 def PoolRebalancer(newStrategy: Strategy):
