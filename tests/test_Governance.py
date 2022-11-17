@@ -1,3 +1,6 @@
+import time
+from datetime import datetime, timedelta
+
 import ape
 
 import pytest
@@ -91,16 +94,25 @@ def test_withdrawStrategy(governance_contract, accounts):
     with ape.reverts():
         ws = governance_contract.withdrawStrategy(NONCE, sender=someone)
 
+    print("Current timestamp %s" % datetime.fromtimestamp(ape.chain.pending_timestamp))
+
     #Withdraw Strategy
     ws = governance_contract.withdrawStrategy(NONCE, sender=owner)
     logs = list(ws.decode_logs(governance_contract.StrategyWithdrawal))
     assert len(logs) == 1
     assert logs[0].Nonce == NONCE
 
+    current_time = datetime.fromtimestamp(ape.chain.pending_timestamp)
+    print("Current timestamp %s" % current_time)
+    current_time += timedelta(days=1)
+    ape.chain.pending_timestamp = int(current_time.timestamp())
+
     #Submit a second Strategy
     sp = governance_contract.submitStrategy(ProposedStrategy, sender=owner)
     logs = list(sp.decode_logs(governance_contract.StrategyProposal))
     assert len(logs) == 1
+
+    print("Current timestamp %s" % datetime.fromtimestamp(ape.chain.pending_timestamp))
 
     governance_contract.PendingStrategy.Nonce = 2
 
