@@ -16,11 +16,11 @@ ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 def governance_contract(owner, project, accounts):
     #brownie.network.gas_price(GAS_PRICE_GWEI)
 
-    owner, operator, someoneelse, someone = accounts[:4]
+    owner, operator, someoneelse, someone, newcontract, currentvault = accounts[:6]
 
     # deploy the contract with the initial value as a constructor argument
 
-    contract = owner.deploy(project.Governance, owner)
+    contract = owner.deploy(project.Governance, owner, currentvault)
 
 
     return contract  

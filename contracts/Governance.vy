@@ -69,9 +69,14 @@ NextNonce: uint256
 
 Vault: public(address)
 
+interface Vault:
+    def PoolRebalancer(currentStrategy: Strategy) -> bool: nonpayable
+    def replaceGovernanceContract(NewGovernance: address) -> bool: nonpayable
+
 @external
-def __init__(contractOwner: address):
+def __init__(contractOwner: address, _vault: address):
     self.contractOwner = contractOwner
+    self.Vault = _vault
     self.NextNonce = 1
 
 
@@ -197,7 +202,7 @@ def activateStrategy(Nonce: uint256):
 
     #Make Current Strategy and Activate Strategy
     self.CurrentStrategy = self.PendingStrategy
-    #PoolRebalancer(self.CurrentStrategy)
+    # Vault(self.Vault).PoolRebalancer(self.CurrentStrategy)
 
     log StrategyActivation(self.CurrentStrategy)
  
@@ -311,6 +316,6 @@ def replaceGovernance(NewGovernance: address):
             VoteCount += 1
 
     # if len(self.LGov) == VoteCount:
-    #     Vault.replaceGovernance(NewGovernance)
+    #     Vault(self.Vault).replaceGovernanceContract(NewGovernance)
 
     log GovernanceContractChanged(self.Vault, Voter, NewGovernance, VoteCount, TotalGuards)
