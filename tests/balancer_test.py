@@ -44,13 +44,14 @@ fund_settings = {
 deadline = 999999999999999999
 
 # Pool IDs
-#pool_BAL_WETH = "0x61d5dc44849c9c87b0856a2a311536205c96c7fd000200000000000000000000"
-#                "0x59a19d8c652fa0284f44113d0ff9aba70bd46fb4"
-# https://app.balancer.fi/#/ethereum/pool/0x2d011adf89f0576c9b722c28269fcb5d50c2d17900020000000000000000024d
-pool_BAL_WETH = "0x2d011adf89f0576c9b722c28269fcb5d50c2d17900020000000000000000024d"
+# https://app.balancer.fi/#/ethereum/pool/0x5c6ee304399dbdb9c8ef030ab642b10820db8f56000200000000000000000014
+pool_BAL_WETH = "0x5c6ee304399dbdb9c8ef030ab642b10820db8f56000200000000000000000014"
 
 # Token addresses
+# https://etherscan.io/address/0xba100000625a3754423978a60c9317c58a424e3d
 token_BAL   = "0xba100000625a3754423978a60c9317c58a424e3d".lower()
+
+# https://etherscan.io/address/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
 token_WETH  = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2".lower()
 
 
