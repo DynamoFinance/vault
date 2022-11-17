@@ -21,7 +21,7 @@ def vault_contract(owner, project, accounts):
     return vcontract
 
 @pytest.fixture
-def governance_contract(owner, project, accounts):
+def governance_contract(owner, project, accounts, vault_contract):
 
     owner, operator, someoneelse, someone, newcontract, currentvault = accounts[:6]
 
