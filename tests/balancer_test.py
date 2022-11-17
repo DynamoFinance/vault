@@ -44,11 +44,14 @@ fund_settings = {
 deadline = 999999999999999999
 
 # Pool IDs
-pool_BAL_WETH = "0x61d5dc44849c9c87b0856a2a311536205c96c7fd000200000000000000000000"
+#pool_BAL_WETH = "0x61d5dc44849c9c87b0856a2a311536205c96c7fd000200000000000000000000"
+#                "0x59a19d8c652fa0284f44113d0ff9aba70bd46fb4"
+pool_BAL_WETH = "0x59a19d8c652fa0284f44113d0ff9aba70bd46fb4000200000000000000000000"
 
 # Token addresses
-token_BAL   = "0x41286Bb1D3E870f3F750eB7E1C25d7E48c8A1Ac7".lower()
-token_WETH  = "0xdFCeA9088c8A88A76FF74892C1457C17dfeef9C1".lower()
+token_BAL   = "0xba100000625a3754423978a60c9317c58a424e3d".lower()
+token_WETH  = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2".lower()
+
 
 # Token data
 token_data = {
@@ -108,11 +111,11 @@ except:
     gas_estimate = 100000
     print("Failed to estimate gas, attempting to send with", gas_estimate, "gas limit...")
 
-data = single_swap_function.buildTransaction(
+data = single_swap_function.build_transaction(
     {
         'chainId': chain_id,
         'gas': gas_estimate,
-        'gasPrice': web3.toWei(gas_price, 'gwei'),
+        'gasPrice': web3.to_wei(gas_price, 'gwei'),
         'nonce': web3.eth.get_transaction_count(address),
     }
 )
