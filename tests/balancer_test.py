@@ -26,9 +26,9 @@ token_WETH  = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2".lower()
 
 
 # Define network settings
-network = "kovan"
-block_explorer_url = "https://kovan.etherscan.io/"
-chain_id = 31337
+network = "hard hat"
+block_explorer_url = "https://not_gonna_work.org/"
+chain_id = 31337 # hardhat
 gas_price = 2
 
 # Load contract for Balancer Vault
@@ -81,9 +81,10 @@ swap = {
     }
 
 
+# Approve the Vault & Pool to spend these tokens.
 for contract_addr in ["0x5c6ee304399dbdb9c8ef030ab642b10820db8f56", "0xBA12222222228d8Ba445958a75a0704d566BF2C8" ]:
     for asset in ["assetIn", "assetOut"]:
-        # Approve the Vault to spend these tokens.
+
         with open('abis/ERC20.json') as erc20abifile:
             abi_erc20 = json.load(erc20abifile)
         contract_erc20 = web3.eth.contract(
@@ -167,5 +168,5 @@ data = single_swap_function.build_transaction(
 signed_tx = web3.eth.account.sign_transaction(data, private_key)
 tx_hash = web3.eth.send_raw_transaction(signed_tx.rawTransaction).hex()
 print("Sending transaction...")
-url = block_explorer_url + "tx/" + tx_hash
-webbrowser.open_new_tab(url)
+#url = block_explorer_url + "tx/" + tx_hash
+#webbrowser.open_new_tab(url)
