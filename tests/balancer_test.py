@@ -56,6 +56,7 @@ deadline = 999999999999999999
 # Pool IDs
 # https://app.balancer.fi/#/ethereum/pool/0x5c6ee304399dbdb9c8ef030ab642b10820db8f56000200000000000000000014
 pool_BAL_WETH = "0x5c6ee304399dbdb9c8ef030ab642b10820db8f56000200000000000000000014"
+                
 
 
 # Token data
@@ -80,37 +81,38 @@ swap = {
     }
 
 
-for asset in ["assetIn", "assetOut"]:
-    # Approve the Vault to spend these tokens.
-    with open('abis/ERC20.json') as erc20abifile:
-        abi_erc20 = json.load(erc20abifile)
-    contract_erc20 = web3.eth.contract(
-        address=web3.toChecksumAddress(swap[asset]),
-        abi=abi_erc20
+for contract_addr in ["0x5c6ee304399dbdb9c8ef030ab642b10820db8f56", "0xBA12222222228d8Ba445958a75a0704d566BF2C8" ]:
+    for asset in ["assetIn", "assetOut"]:
+        # Approve the Vault to spend these tokens.
+        with open('abis/ERC20.json') as erc20abifile:
+            abi_erc20 = json.load(erc20abifile)
+        contract_erc20 = web3.eth.contract(
+            address=web3.toChecksumAddress(swap[asset]),
+            abi=abi_erc20
+            )
+
+        erc20_approve_function = contract_erc20.functions.approve(
+            web3.toChecksumAddress(contract_addr),
+            int(Decimal(swap["amount"]) * 10 ** Decimal((token_data[swap[asset]]["decimals"])))
+            )
+
+        try:
+            gas_estimate = erc20_approve_function.estimateGas()
+        except:
+            gas_estimate = 100000
+            print("Failed to estimate gas, attempting to send with", gas_estimate, "gas limit...")
+
+        data = erc20_approve_function.build_transaction(
+            {
+                'chainId': chain_id,
+                'gas': gas_estimate,
+                'gasPrice': web3.to_wei(gas_price, 'gwei'),
+                'nonce': web3.eth.get_transaction_count(address),
+            }
         )
 
-    erc20_approve_function = contract_erc20.functions.approve(
-        web3.toChecksumAddress(address_vault),
-        int(Decimal(swap["amount"]) * 10 ** Decimal((token_data[swap[asset]]["decimals"])))
-        )
-
-    try:
-        gas_estimate = erc20_approve_function.estimateGas()
-    except:
-        gas_estimate = 100000
-        print("Failed to estimate gas, attempting to send with", gas_estimate, "gas limit...")
-
-    data = erc20_approve_function.build_transaction(
-        {
-            'chainId': chain_id,
-            'gas': gas_estimate,
-            'gasPrice': web3.to_wei(gas_price, 'gwei'),
-            'nonce': web3.eth.get_transaction_count(address),
-        }
-    )
-
-    signed_tx = web3.eth.account.sign_transaction(data, private_key)
-    tx_hash = web3.eth.send_raw_transaction(signed_tx.rawTransaction).hex()
+        signed_tx = web3.eth.account.sign_transaction(data, private_key)
+        tx_hash = web3.eth.send_raw_transaction(signed_tx.rawTransaction).hex()
 
 
 
