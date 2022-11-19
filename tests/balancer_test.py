@@ -16,6 +16,15 @@ web3 = Web3(Web3.HTTPProvider(rpc_endpoint))
 account = web3.eth.account.privateKeyToAccount(private_key)
 address = account.address
 
+
+# Token addresses
+# https://etherscan.io/address/0xba100000625a3754423978a60c9317c58a424e3d
+token_BAL   = "0xba100000625a3754423978a60c9317c58a424e3d".lower()
+
+# https://etherscan.io/address/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
+token_WETH  = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2".lower()
+
+
 # Define network settings
 network = "kovan"
 block_explorer_url = "https://kovan.etherscan.io/"
@@ -40,19 +49,13 @@ fund_settings = {
     "toInternalBalance":    False
 }
 
+
 # When should the transaction timeout?
 deadline = 999999999999999999
 
 # Pool IDs
 # https://app.balancer.fi/#/ethereum/pool/0x5c6ee304399dbdb9c8ef030ab642b10820db8f56000200000000000000000014
 pool_BAL_WETH = "0x5c6ee304399dbdb9c8ef030ab642b10820db8f56000200000000000000000014"
-
-# Token addresses
-# https://etherscan.io/address/0xba100000625a3754423978a60c9317c58a424e3d
-token_BAL   = "0xba100000625a3754423978a60c9317c58a424e3d".lower()
-
-# https://etherscan.io/address/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
-token_WETH  = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2".lower()
 
 
 # Token data
@@ -75,6 +78,42 @@ swap = {
         "assetOut":token_BAL,
         "amount":"1"
     }
+
+
+# Approve the Vault to spend these two tokens.
+with open('abis/ERC20.json') as erc20abifile:
+    abi_erc20 = json.load(erc20abifile)
+contract_weth = web3.eth.contract(
+    address=web3.toChecksumAddress(swap["assetIn"]),
+    abi=abi_erc20
+    )
+
+erc20_approve_function = contract_weth.functions.approve(
+    web3.toChecksumAddress(address_vault),
+    int(Decimal(swap["amount"]) * 10 ** Decimal((token_data[swap["assetIn"]]["decimals"])))
+    )
+
+try:
+    gas_estimate = erc20_approve_function.estimateGas()
+except:
+    gas_estimate = 100000
+    print("Failed to estimate gas, attempting to send with", gas_estimate, "gas limit...")
+
+data = erc20_approve_function.build_transaction(
+    {
+        'chainId': chain_id,
+        'gas': gas_estimate,
+        'gasPrice': web3.to_wei(gas_price, 'gwei'),
+        'nonce': web3.eth.get_transaction_count(address),
+    }
+)
+
+signed_tx = web3.eth.account.sign_transaction(data, private_key)
+tx_hash = web3.eth.send_raw_transaction(signed_tx.rawTransaction).hex()
+
+
+
+# Now do the swap!
 
 # SwapKind is an Enum. This example handles a GIVEN_IN swap.
 # https://github.com/balancer-labs/balancer-v2-monorepo/blob/0328ed575c1b36fb0ad61ab8ce848083543070b9/pkg/vault/contracts/interfaces/IVault.sol#L497
