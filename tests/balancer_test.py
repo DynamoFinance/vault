@@ -80,7 +80,7 @@ swap = {
     }
 
 
-# Approve the Vault to spend these two tokens.
+# Approve the Vault to spend this input token.
 with open('abis/ERC20.json') as erc20abifile:
     abi_erc20 = json.load(erc20abifile)
 contract_weth = web3.eth.contract(
