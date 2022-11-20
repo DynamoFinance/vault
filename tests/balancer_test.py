@@ -80,6 +80,12 @@ swap = {
         "amount":"1"
     }
 
+# Wrap some ETH
+web3.eth.send_transaction({
+  'to': "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+  'value': 100*10**18
+})
+
 
 # Approve the Vault & Pool to spend these tokens.
 for contract_addr in ["0x5c6ee304399dbdb9c8ef030ab642b10820db8f56", "0xBA12222222228d8Ba445958a75a0704d566BF2C8" ]:
@@ -153,7 +159,7 @@ single_swap_function = contract_vault.functions.swap(
 try:
     gas_estimate = single_swap_function.estimateGas()
 except:
-    gas_estimate = 100000
+    gas_estimate = 1000000
     print("Failed to estimate gas, attempting to send with", gas_estimate, "gas limit...")
 
 data = single_swap_function.build_transaction(
