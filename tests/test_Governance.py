@@ -30,7 +30,7 @@ def governance_contract(owner, project, accounts, vault_contract):
 
     # deploy the contract with the initial value as a constructor argument
 
-    gcontract = owner.deploy(project.Governance, owner, vault_contract)
+    gcontract = owner.deploy(project.Governance, owner, vault_contract, 21600)
 
     return gcontract  
 
@@ -49,6 +49,7 @@ def test_submitStrategy(governance_contract, accounts, owner):
 
     print("Current timestamp %s" % datetime.fromtimestamp(ape.chain.pending_timestamp))
 
+
     #Submit a strategy
     sp = governance_contract.submitStrategy(ProposedStrategy, sender=owner)
     logs = list(sp.decode_logs(governance_contract.StrategyProposal))
@@ -58,6 +59,12 @@ def test_submitStrategy(governance_contract, accounts, owner):
     assert logs[0].strategy[4] == APYPREDICTED
 
     print("Current timestamp %s" % datetime.fromtimestamp(ape.chain.pending_timestamp))
+    print("TDelay %s" % datetime.fromtimestamp(int(governance_contract.TDelay())) )
+
+    tdelay = int((int(governance_contract.TDelay()) * 1.25))
+
+    print("Expire time %s " % datetime.fromtimestamp(int(ape.chain.pending_timestamp) + tdelay) )
+
 
     governance_contract.PendingStrategy.Nonce = NONCE
 

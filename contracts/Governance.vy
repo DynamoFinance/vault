@@ -74,10 +74,13 @@ interface Vault:
     def replaceGovernanceContract(NewGovernance: address) -> bool: nonpayable
 
 @external
-def __init__(contractOwner: address, _vault: address):
+def __init__(contractOwner: address, _vault: address, _tdelay: uint256):
     self.contractOwner = contractOwner
     self.Vault = _vault
     self.NextNonce = 1
+    self.TDelay = _tdelay
+    if _tdelay == empty(uint256):
+        self.TDelay = 21600
 
 
 
