@@ -34,6 +34,17 @@ def governance_contract(owner, project, accounts, vault_contract):
 
     return gcontract  
 
+@pytest.fixture
+def new_governance_contract(owner, project, accounts, vault_contract):
+
+    owner, operator, someoneelse, someone, newcontract, currentvault = accounts[:6]
+
+    # deploy the contract with the initial value as a constructor argument
+
+    ngcontract = owner.deploy(project.Governance, owner, vault_contract, 21600)
+
+    return ngcontract  
+
 
 def test_submitStrategy(governance_contract, accounts, owner):
     ProposedStrategy = (WEIGHTS, APYNOW, APYPREDICTED)
@@ -77,11 +88,6 @@ def test_submitStrategy(governance_contract, accounts, owner):
         governance_contract.submitStrategy(BadStrategy, sender=owner)
 
     print("Current timestamp %s" % datetime.fromtimestamp(ape.chain.pending_timestamp))
-
-
-
-
-
 
 
 
@@ -198,6 +204,7 @@ def test_endorseStrategy(governance_contract, accounts):
         rs = governance_contract.rejectStrategy(NONCE, sender=someoneelse)
 
 
+
 def test_rejectStrategy(governance_contract, accounts):
     ProposedStrategy = (WEIGHTS, APYNOW, APYPREDICTED)
     owner, operator, someoneelse, someone = accounts[:4]
@@ -279,6 +286,7 @@ def test_activateStrategy(governance_contract, accounts):
         acs = governance_contract.activateStrategy(2, sender=owner)
  
 
+
 def test_addGuard(governance_contract, accounts):
     owner, operator, someoneelse, someone = accounts[:4]
 
@@ -333,6 +341,7 @@ def test_removeGuard(governance_contract, accounts):
     assert logs[0].GuardAddress == someone
 
 
+
 def test_swapGuard(governance_contract, accounts):
     owner, operator, someoneelse, someone = accounts[:4]
 
@@ -365,7 +374,7 @@ def test_swapGuard(governance_contract, accounts):
 
 
 
-def test_replaceGovernance(governance_contract, accounts):
+def test_replaceGovernance(governance_contract, accounts, new_governance_contract):
     owner, operator, someoneelse, someone, newcontract = accounts[:5]
 
     #Test if i can replace governance when there are no guards
@@ -388,15 +397,15 @@ def test_replaceGovernance(governance_contract, accounts):
         governance_contract.replaceGovernance(ZERO_ADDRESS, sender=someone)
 
     #Test if replace governance logs new vote
-    rg = governance_contract.replaceGovernance(newcontract, sender=someone)
+    rg = governance_contract.replaceGovernance(new_governance_contract, sender=someone)
     logs = list(rg.decode_logs(governance_contract.VoteForNewGovernance))
     assert len(logs) == 1
-    assert logs[0].NewGovernance == newcontract
+    assert logs[0].NewGovernance == new_governance_contract
 
     logs = list(rg.decode_logs(governance_contract.GovernanceContractChanged))
     assert len(logs) == 1
     assert logs[0].Voter == someone
-    assert logs[0].NewGovernance == newcontract
+    assert logs[0].NewGovernance == new_governance_contract
 
     #Test if VoteCount increases correctly
     assert logs[0].VoteCount == 1

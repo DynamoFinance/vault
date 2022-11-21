@@ -1,5 +1,26 @@
 # @version 0.3.7
 
+struct ProposedStrategy:
+    Weights: DynArray[uint256, MAX_POOLS]
+    APYNow: uint256
+    APYPredicted: uint256
+
+struct Strategy:
+    Nonce: uint256
+    ProposerAddress: address
+    Weights: DynArray[uint256, MAX_POOLS]
+    APYNow: uint256
+    APYPredicted: uint256
+    TSubmitted: uint256
+    TActivated: uint256
+    Withdrawn: bool
+    no_guards: uint256
+    VotesEndorse: DynArray[address, MAX_GUARDS]
+    VotesReject: DynArray[address, MAX_GUARDS]
+
+event StrategyProposal:
+    strategy: Strategy
+
 event StrategyWithdrawal:
     Nonce: uint256
 
@@ -28,50 +49,51 @@ event GovernanceContractChanged:
     VoteCount: uint256
     TotalGuards: uint256
 
-
 event VoteForNewGovernance:
     NewGovernance: indexed(address)
 
     
-struct ProposedStrategy:
-    Weights: DynArray[uint256, MAX_POOLS]
-    APYNow: uint256
-    APYPredicted: uint256
+### Contract assigned storage:
 
-struct Strategy:
-    Nonce: uint256
-    ProposerAddress: address
-    Weights: DynArray[uint256, MAX_POOLS]
-    APYNow: uint256
-    APYPredicted: uint256
-    TSubmitted: uint256
-    TActivated: uint256
-    Withdrawn: bool
-    no_guards: uint256
-    VotesEndorse: DynArray[address, MAX_GUARDS]
-    VotesReject: DynArray[address, MAX_GUARDS]
-
-event StrategyProposal:
-    strategy: Strategy
-    
-# Contract assigned storage 
+#Owner of contract
 contractOwner: public(address)
+
+#Max amount of guards
 MAX_GUARDS: constant(uint256) = 2
+
+#Max amount of pools
 MAX_POOLS: constant(uint256) = 10
+
+#List of Guards
 LGov: public(DynArray[address, MAX_GUARDS])
+
+#Time delay to vote
 TDelay: public(uint256)
-no_guards: public(uint256)
+
+#Current Strategy implemented
 CurrentStrategy: public(Strategy)
+
+#Pending Strategy storage
 PendingStrategy: public(Strategy)
+
+#List of votes to change governance contract
 VotesGC: public(HashMap[address, address])
+
+#Minimum amount of guards
 MIN_GUARDS: constant(uint256) = 1
+
+#Storage for next nonce
 NextNonce: uint256
 
+#Vault Contract Address
 Vault: public(address)
 
+#Interface used to communicate with vault
 interface Vault:
-    def PoolRebalancer(currentStrategy: Strategy) -> bool: nonpayable
-    def replaceGovernanceContract(NewGovernance: address) -> bool: nonpayable
+    def PoolRebalancer(currentStrategy: Strategy): nonpayable
+    def replaceGovernanceContract(NewGovernance: address): nonpayable
+
+
 
 @external
 def __init__(contractOwner: address, _vault: address, _tdelay: uint256):
@@ -205,10 +227,11 @@ def activateStrategy(Nonce: uint256):
 
     #Make Current Strategy and Activate Strategy
     self.CurrentStrategy = self.PendingStrategy
-    # Vault(self.Vault).PoolRebalancer(self.CurrentStrategy)
+    Vault(self.Vault).PoolRebalancer(self.CurrentStrategy)
 
     log StrategyActivation(self.CurrentStrategy)
  
+
 
 @external
 def addGuard(GuardAddress: address):
@@ -318,7 +341,8 @@ def replaceGovernance(NewGovernance: address):
         if self.VotesGC[guard_addr] == NewGovernance:
             VoteCount += 1
 
-    # if len(self.LGov) == VoteCount:
-    #     Vault(self.Vault).replaceGovernanceContract(NewGovernance)
+    #If everyone has voted, replace Governance Contract
+    if len(self.LGov) == VoteCount:
+        Vault(self.Vault).replaceGovernanceContract(NewGovernance)
 
     log GovernanceContractChanged(self.Vault, Voter, NewGovernance, VoteCount, TotalGuards)
