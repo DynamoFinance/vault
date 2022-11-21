@@ -60,7 +60,6 @@ def test_submitStrategy(governance_contract, accounts, owner):
 
     print("Current timestamp %s" % datetime.fromtimestamp(ape.chain.pending_timestamp))
 
-
     #Submit a strategy
     sp = governance_contract.submitStrategy(ProposedStrategy, sender=owner)
     logs = list(sp.decode_logs(governance_contract.StrategyProposal))
@@ -76,7 +75,6 @@ def test_submitStrategy(governance_contract, accounts, owner):
 
     print("Expire time %s " % datetime.fromtimestamp(int(ape.chain.pending_timestamp) + tdelay) )
 
-
     governance_contract.PendingStrategy.Nonce = NONCE
 
     #Test if i can submit a strategy while there is pending strategy
@@ -87,7 +85,13 @@ def test_submitStrategy(governance_contract, accounts, owner):
     with ape.reverts():
         governance_contract.submitStrategy(BadStrategy, sender=owner)
 
-    print("Current timestamp %s" % datetime.fromtimestamp(ape.chain.pending_timestamp))
+    current_time = datetime.fromtimestamp(ape.chain.pending_timestamp)
+    print("Current timestamp %s" % current_time)
+    current_time += timedelta(days=1)
+    ape.chain.pending_timestamp = int(current_time.timestamp())
+
+    #Test if i can submit strategy when time delay expires
+    governance_contract.submitStrategy(ProposedStrategy, sender=owner)
 
 
 
@@ -285,6 +289,19 @@ def test_activateStrategy(governance_contract, accounts):
     with ape.reverts():
         acs = governance_contract.activateStrategy(2, sender=owner)
  
+     #Submit another Strategy
+    governance_contract.submitStrategy(ProposedStrategy, sender=owner)
+
+    governance_contract.PendingStrategy.Nonce = 3
+
+    current_time = datetime.fromtimestamp(ape.chain.pending_timestamp)
+    print("Current timestamp %s" % current_time)
+    current_time += timedelta(days=1)
+    ape.chain.pending_timestamp = int(current_time.timestamp())
+
+    #Test if i can activate strategy after time delay
+    with ape.reverts():
+        acs = governance_contract.activateStrategy(3, sender=owner)
 
 
 def test_addGuard(governance_contract, accounts):
@@ -374,8 +391,11 @@ def test_swapGuard(governance_contract, accounts):
 
 
 
-def test_replaceGovernance(governance_contract, accounts, new_governance_contract):
+def test_replaceGovernance(governance_contract, accounts, new_governance_contract, vault_contract):
     owner, operator, someoneelse, someone, newcontract = accounts[:5]
+
+    #Add Governance Address to vault
+    vault_contract.addGovernanceAddress(governance_contract, sender=owner)
 
     #Test if i can replace governance when there are no guards
     with ape.reverts():

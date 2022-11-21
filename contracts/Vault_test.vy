@@ -29,6 +29,10 @@ def __init__(contractOwner: address):
     self.contractOwner = contractOwner
 
 @external
+def addGovernanceAddress(_governanceAddress: address):
+    self.GovernanceAddress = _governanceAddress
+
+@external
 def PoolRebalancer(newStrategy: Strategy):
     log PoolRebalance(newStrategy)
 
