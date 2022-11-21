@@ -13,7 +13,7 @@ def is_not_hard_hat():
         print("Alert: Not connected to a chain.")
         return True
 
-@pytest.mark.skipif(is_not_hard_hat(), reason="Only run when connected to hard hat.")
+#@pytest.mark.skipif(is_not_hard_hat(), reason="Only run when connected to hard hat.")
 def test_vitalik_balance():
     assert ape.api.address.Address("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045").balance == 739992029493125111147
 
