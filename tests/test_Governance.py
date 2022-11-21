@@ -47,6 +47,8 @@ def test_submitStrategy(governance_contract, accounts, owner):
     #Add a guard
     governance_contract.addGuard(someone, sender=owner)
 
+    print("Current timestamp %s" % datetime.fromtimestamp(ape.chain.pending_timestamp))
+
     #Submit a strategy
     sp = governance_contract.submitStrategy(ProposedStrategy, sender=owner)
     logs = list(sp.decode_logs(governance_contract.StrategyProposal))
@@ -54,6 +56,8 @@ def test_submitStrategy(governance_contract, accounts, owner):
     assert logs[0].strategy[2] == tuple(WEIGHTS)
     assert logs[0].strategy[3] == APYNOW
     assert logs[0].strategy[4] == APYPREDICTED
+
+    print("Current timestamp %s" % datetime.fromtimestamp(ape.chain.pending_timestamp))
 
     governance_contract.PendingStrategy.Nonce = NONCE
 
@@ -64,6 +68,8 @@ def test_submitStrategy(governance_contract, accounts, owner):
     #Test if i can submit a strategy where the APY does not increase
     with ape.reverts():
         governance_contract.submitStrategy(BadStrategy, sender=owner)
+
+    print("Current timestamp %s" % datetime.fromtimestamp(ape.chain.pending_timestamp))
 
 
 

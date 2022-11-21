@@ -95,8 +95,8 @@ def submitStrategy(strategy: ProposedStrategy) -> uint256:
     assert  (self.CurrentStrategy.Nonce == self.PendingStrategy.Nonce) or \
             (self.PendingStrategy.Withdrawn == True) or \
             len(self.PendingStrategy.VotesReject) > 0 and \
-            (len(self.PendingStrategy.VotesReject) >= self.PendingStrategy.no_guards/2)
-            # (convert(block.timestamp, decimal) > (convert(self.PendingStrategy.TSubmitted, decimal)+(convert(self.TDelay, decimal) * 1.25))), "Cannot Submit Strategy"
+            (len(self.PendingStrategy.VotesReject) >= self.PendingStrategy.no_guards/2) or \
+            (convert(block.timestamp, decimal) > (convert(self.PendingStrategy.TSubmitted, decimal)+(convert(self.TDelay, decimal) * 1.25)))
 
     # Confirm msg.sender Eligibility
     # Confirm msg.sender is not blacklisted
