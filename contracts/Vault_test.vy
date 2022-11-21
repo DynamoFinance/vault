@@ -38,4 +38,8 @@ def PoolRebalancer(newStrategy: Strategy):
 
 @external
 def replaceGovernanceContract(NewGovernance: address):
+    assert msg.sender == self.GovernanceAddress
+    assert NewGovernance != self.GovernanceAddress
+    assert NewGovernance != ZERO_ADDRESS
+    self.GovernanceAddress = NewGovernance
     log NewGovernanceContract(NewGovernance)
