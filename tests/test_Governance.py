@@ -294,14 +294,17 @@ def test_activateStrategy(governance_contract, accounts):
 
     governance_contract.PendingStrategy.Nonce = 3
 
+    #Endorse the third strategy
+    es = governance_contract.endorseStrategy(3, sender=someone)
+
     current_time = datetime.fromtimestamp(ape.chain.pending_timestamp)
     print("Current timestamp %s" % current_time)
     current_time += timedelta(days=1)
     ape.chain.pending_timestamp = int(current_time.timestamp())
 
     #Test if i can activate strategy after time delay
-    with ape.reverts():
-        acs = governance_contract.activateStrategy(3, sender=owner)
+    governance_contract.activateStrategy(3, sender=owner)
+
 
 
 def test_addGuard(governance_contract, accounts):
