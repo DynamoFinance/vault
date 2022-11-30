@@ -12,3 +12,4 @@ node_modules/
 hardhat.config.js
 
 rpc_output.txt
+source_me

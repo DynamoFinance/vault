@@ -1,0 +1,4 @@
+#!/usr/bin/bash
+
+ape test -s --network :mainnet-fork:hardhat
+
