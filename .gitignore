@@ -10,3 +10,5 @@ tests/__pycache__/
 cache/
 node_modules/
 hardhat.config.js
+
+rpc_output.txt
