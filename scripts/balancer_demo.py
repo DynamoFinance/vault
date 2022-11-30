@@ -29,8 +29,16 @@ token_BAL   = "0xba100000625a3754423978a60c9317c58a424e3d".lower()
 # https://etherscan.io/address/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
 token_WETH  = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2".lower()
 
+erc20_BAL = erc20_contract(token_BAL)
+BAL_decimals = int(erc20_BAL.functions.decimals().call())
+
 erc20_WETH = erc20_contract(token_WETH)
-print("Initial WETH balance: %s." % (erc20_WETH.functions.balanceOf(address).call()/(10**18)))
+WETH_decimals = int(erc20_WETH.functions.decimals().call())
+
+
+
+print("Initial WETH balance: %s." % (erc20_WETH.functions.balanceOf(address).call()/(10**WETH_decimals)))
+print("Initial BAL balance: %s." % (erc20_BAL.functions.balanceOf(address).call()/(10**BAL_decimals)))
 
 
 # Define network settings
@@ -94,7 +102,9 @@ web3.eth.send_transaction({
   'value': 100*10**18
 })
 
-print("After wrap WETH balance: %s." % (erc20_WETH.functions.balanceOf(address).call()/(10**18)))
+
+
+print("After wrap WETH balance: %s." % (erc20_WETH.functions.balanceOf(address).call()/(10**WETH_decimals)))
 
 
 # Approve the Vault & Pool to spend these tokens.
@@ -189,3 +199,5 @@ print("Sending transaction...")
 
 tx_receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
 
+print("Final BAL balance: %s." % (erc20_BAL.functions.balanceOf(address).call()/(10**BAL_decimals)))
+print("Final WETH balance: %s." % (erc20_WETH.functions.balanceOf(address).call()/(10**WETH_decimals)))
