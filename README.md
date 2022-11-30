@@ -32,6 +32,15 @@ Optionally pre-launch the RPC server (which will block this shell):
 ```
 npx hardhat   node   --fork https://eth-mainnet.alchemyapi.io/v2/$WEB3_ETHEREUM_MAINNET_ALCHEMY_API_KEY --fork-block-number 15936703
 ```
+ 
+    OR
+
+Edit the file source_me and enter your Alchemy API Key where it belongs then do:
+```
+git update-index --assume-unchanged source_me
+
+source source_me
+```
 
 If you don't pre-launch the RPC server yourself ape will spin one up but it has a race condition and sometimes fails.
 

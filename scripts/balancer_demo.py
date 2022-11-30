@@ -1,10 +1,15 @@
 from web3 import Web3
+from web3.contract import Contract
 import eth_abi
 
 import os
 import json
 from decimal import *
 import webbrowser
+
+
+def erc20_contract(_address: str) -> Contract:
+    return web3.eth.contract(address=web3.toChecksumAddress(_address.lower()),abi=json.load(open('abis/ERC20.json')))
 
 # Load private key and connect to RPC endpoint
 rpc_endpoint =  os.environ.get("RPC_ENDPOINT")
@@ -23,6 +28,9 @@ token_BAL   = "0xba100000625a3754423978a60c9317c58a424e3d".lower()
 
 # https://etherscan.io/address/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
 token_WETH  = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2".lower()
+
+erc20_WETH = erc20_contract(token_WETH)
+print("Initial WETH balance: %s." % (erc20_WETH.functions.balanceOf(address).call()/(10**18)))
 
 
 # Define network settings
@@ -85,6 +93,8 @@ web3.eth.send_transaction({
   'to': "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
   'value': 100*10**18
 })
+
+print("After wrap WETH balance: %s." % (erc20_WETH.functions.balanceOf(address).call()/(10**18)))
 
 
 # Approve the Vault & Pool to spend these tokens.
@@ -176,3 +186,6 @@ tx_hash = web3.eth.send_raw_transaction(signed_tx.rawTransaction).hex()
 print("Sending transaction...")
 #url = block_explorer_url + "tx/" + tx_hash
 #webbrowser.open_new_tab(url)
+
+tx_receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
+
