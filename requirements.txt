@@ -4,3 +4,4 @@ PyGithub==1.56
 
 eth-ape @ git+https://github.com/ApeWorX/ape.git#egg=eth-ape
 ape-hardhat
+pytest
