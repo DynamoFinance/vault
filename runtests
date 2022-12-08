@@ -1,4 +1,11 @@
 #!/usr/bin/bash
 
+if [[ -z "$WEB3_ETHEREUM_MAINNET_ALCHEMY_API_KEY" ]]; then
+   echo "Please enter your Alchemy API Key: "
+   read key_input 
+
+   export WEB3_ETHEREUM_MAINNET_ALCHEMY_API_KEY=$key_input
+fi
+
 ape test -s --network :mainnet-fork:hardhat
 
