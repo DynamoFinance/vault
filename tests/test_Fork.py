@@ -8,7 +8,7 @@ from ape import chain
 def is_not_hard_hat():
     try:
         print("Current chain id is: %s." % chain.chain_id)
-        return chain.chain_id!=31337
+        return chain.chain_id!=1
     except ape.exceptions.ProviderNotConnectedError:
         print("Alert: Not connected to a chain.")
         return True

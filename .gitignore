@@ -9,4 +9,3 @@ tests/__pycache__/
 .venv/
 cache/
 node_modules/
-hardhat.config.js
