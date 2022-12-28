@@ -1,17 +1,7 @@
 import pytest
-
 import ape
-from ape import chain
+from tests.conftest import is_not_hard_hat
 
-
-
-def is_not_hard_hat():
-    try:
-        print("Current chain id is: %s." % chain.chain_id)
-        return chain.chain_id!=1
-    except ape.exceptions.ProviderNotConnectedError:
-        print("Alert: Not connected to a chain.")
-        return True
 
 #@pytest.mark.skipif(is_not_hard_hat(), reason="Only run when connected to hard hat.")
 def test_vitalik_balance():
