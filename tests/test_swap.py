@@ -2,6 +2,7 @@ import pytest
 
 import ape
 from tests.conftest import is_not_hard_hat
+from web3 import Web3
 
 #ETH Mainnet addrs
 WETH  = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
@@ -71,6 +72,7 @@ def test_swap(vault, accounts, weth, bal):
 
     print("WETH", weth.balanceOf(trader))
     print("BAL", bal.balanceOf(trader))
-
-
-    
+    assert weth.balanceOf(trader) == Web3.to_wei(99, 'ether')
+    #copied this from output of prior run.
+    #should be consistent as we fork off a specific block each time
+    assert bal.balanceOf(trader) == 233863765411278079176
