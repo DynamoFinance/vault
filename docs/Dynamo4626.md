@@ -22,6 +22,10 @@ Legend for Architecture Diagram Below:
 The Dynamo4626 Contracts will act as AssetManagers for the Balancer LinearPools but can be treated as
 their own Vaults/Pools outside of the deployed Balancer Vault.
 
+*Given:*
+
+Governance = address variable - Governance contract responsible for this Vault.
+
 Being ERC-4626 Contracts, they expose the full [ERC-20 ABI](https://eips.ethereum.org/EIPS/eip-20).
 
 ### Dynamo4626 Transactional Use Cases
@@ -67,7 +71,13 @@ Definitions:
 
 ### Dynamo4626 Configuration/Deployment Use Cases
 
-####
+#### activateStrategy(strategy, max_gas = 0)
+
+
+
+
+#### rebalance(max_gas = 0)
+
 
 ## Use Cases for Dynamo4626 Lending Platform Adapters
 
