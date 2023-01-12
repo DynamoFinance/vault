@@ -9,3 +9,6 @@ tests/__pycache__/
 .venv/
 cache/
 node_modules/
+
+rpc_output.txt
+source_me
