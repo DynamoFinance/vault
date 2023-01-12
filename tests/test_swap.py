@@ -40,11 +40,8 @@ def test_swap(vault, accounts, weth, bal):
     trader.transfer(WETH, "100 Ether")
     print("WETH", weth.balanceOf(trader))
     print("BAL", bal.balanceOf(trader))
-    # Approve the Vault & Pool to spend these tokens
+    # Approve the Vault spend trader's WETH
     weth.approve(VAULT, "100000 Ether", sender=trader)
-    bal.approve(VAULT, "100000 Ether", sender=trader)
-    weth.approve(POOL_BAL_WETH, "100000 Ether", sender=trader)
-    bal.approve(POOL_BAL_WETH, "100000 Ether", sender=trader)
 
     struct_single_swap = (
         pool_BAL_WETH, #bytes32 poolId
