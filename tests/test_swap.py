@@ -34,6 +34,8 @@ def test_always_good():
     assert True
 
 def test_swap(vault, accounts, weth, bal):
+    if is_not_hard_hat():
+        pytest.skip("Not on hard hat Ethereum snapshot.")
     trader = accounts[0]
     print(trader)
     #let trader wrap 100 ETH
