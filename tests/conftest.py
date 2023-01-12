@@ -1,10 +1,18 @@
 import pytest
-
-
+from ape import chain
 
 @pytest.fixture(scope="session")
 def owner(accounts):
     return accounts[0]
+
+
+def is_not_hard_hat():
+    try:
+        print("Current chain id is: %s." % chain.chain_id)
+        return chain.chain_id!=1
+    except ape.exceptions.ProviderNotConnectedError:
+        print("Alert: Not connected to a chain.")
+        return True
 
 
 # @pytest.fixture(scope="session")

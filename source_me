@@ -5,6 +5,7 @@
 
 export WEB3_ETHEREUM_MAINNET_ALCHEMY_API_KEY=<PUT YOUR ALCHEMY API KEY HERE!!!>
 
+nvm install 16.16.0
 npx hardhat   node   --fork https://eth-mainnet.alchemyapi.io/v2/$WEB3_ETHEREUM_MAINNET_ALCHEMY_API_KEY --fork-block-number 15936703 | tee rpc_output.txt &
 
 
