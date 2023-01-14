@@ -62,11 +62,13 @@ sequenceDiagram
     autonumber
     u->>a4626:deposit(assets = 500, dest = Investor)
 
+        note over a4626, asset: We must first move the funds into the contract's balance so _getBalanceTxs will know how to best re-adjust.       
         a4626->>asset: transferFrom(from=Investor, to=a4626, amt=500)
         Note over asset: balanceOf[Investor]-=500<br>balanceOf[d<Token>4626]+=500
         asset->>a4626: amt=500
         
-        Note over a4626: Txs = _genBalanceTxs(maxTx=2)
+  
+        Note over a4626: Compute most efficient rebalancing limited to only 2 transactions.<br>Txs = _genBalanceTxs(maxTx=2)
         a4626-->>a4626: _genBalanceTxs(maxTxs=2) -> Transfer[]
         loop for Tx: Transfer in Txs<br>(limited to maxTxs iterations)
             alt if Tx.Qty==0
@@ -114,7 +116,7 @@ sequenceDiagram
     autonumber
     u->>a4626:redeem(shares = 500, dest = Investor)
     note over a4626: Assets, Txs = _genRedeemTxs(shares=500)<br>Redeemed: uint256 = 0
-    a4626-->>a4626: _genRedeemTxs(shares=500) -> Transfer[]
+    a4626-->>a4626: _genRedeemTxs(shares=500) -> (AssetValue, Transfer[])
     loop for Tx: Transfer in Txs
        alt if Tx.Qty==0
            note over a4626: break
