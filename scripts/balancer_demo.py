@@ -44,7 +44,7 @@ print("Initial BAL balance: %s." % (erc20_BAL.functions.balanceOf(address).call(
 # Define network settings
 network = "hard hat"
 block_explorer_url = "https://not_gonna_work.org/"
-chain_id = 31337 # hardhat
+chain_id = 1 # hardhat - pretending to be Ethereum MainNet (was 31337)
 gas_price = 2
 
 # Load contract for Balancer Vault
