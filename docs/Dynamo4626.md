@@ -71,12 +71,21 @@ Definitions:
 
 ### Dynamo4626 Configuration/Deployment Use Cases
 
-#### activateStrategy(strategy, max_gas = 0)
+#### activateStrategy()
 
-
+    Checks to see if the Governance contract has a new strategy ready to activate. 
+    If so, makes it the new current strategy then calls rebalance to put it into effect.
+    This function may be called by anyone.
 
 
 #### rebalance(max_gas = 0)
+
+    Compares the current cash & asset values across the lending platforms, computes an
+    optimum set of transactions necessary to best meet the current Strategy's desired 
+    balances, then proceeds to move assets across the lending platforms to best meet the
+    current strategy without exceeding the max_gas limits. If max_gas == 0 then will perform
+    required transactions up til the gas limits of the block.
+    This function may be called by anyone.
 
 
 ## Use Cases for Dynamo4626 Lending Platform Adapters
