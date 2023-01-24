@@ -104,6 +104,9 @@ def totalAssets() -> uint256:
 @internal
 @view
 def _convertToShares(_asset_amount: uint256) -> uint256:
+    #if no shares are minted, return 1:1 price
+    if self.totalSupply == 0:
+        return _asset_amount
     #potential runtime err, re: overflow
     share_amt: uint256 = (_asset_amount * self.totalSupply) / ERC20(asset).balanceOf(self)
     return share_amt
@@ -111,6 +114,9 @@ def _convertToShares(_asset_amount: uint256) -> uint256:
 @internal
 @view
 def _convertToAssets(_share_amount: uint256) -> uint256:
+    #if no shares are minted, return 1:1 price
+    if self.totalSupply == 0:
+        return _share_amount
     #potential runtime err, re: overflow
     asset_amt: uint256 = (_share_amount * ERC20(asset).balanceOf(self)) /  self.totalSupply
     return asset_amt
@@ -257,7 +263,7 @@ def _mint(_to: address, _value: uint256) -> bool:
     @param _to The account that will receive the created tokens.
     @param _value The amount that will be created.
     """
-    assert _to != empty(address)
+    assert _to != empty(address), "to cannot be empty"
     self.totalSupply += _value
     self.balanceOf[_to] += _value
     log Transfer(empty(address), _to, _value)
