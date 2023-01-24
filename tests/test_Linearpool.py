@@ -38,20 +38,22 @@ def vault(project):
 def dai(project, deployer, trader):
     ua = deployer.deploy(project.ERC20, "mock DAI", "DAI", 18, 0, deployer)
     #Transfer some to trader.
-    ua.mint(trader, '1000000000 Ether', sender=deployer)
+    ua.mint(trader, '5000000000 Ether', sender=deployer)
     print(ua.balanceOf(trader))
     #Aprove vault
     ua.approve(VAULT, '1000000000 Ether', sender=trader)
     return ua
 
 @pytest.fixture
-def ddai4626(project, deployer, trader):
+def ddai4626(project, deployer, trader, dai):
     #just a placeholder token. has no relation to dai.
-    #TODO: replace with actual 4626 once available
-    ua = deployer.deploy(project.ERC20, "mock share", "dDAI4626", 18, 0, deployer)
+    ua = deployer.deploy(project.Fake4626, "Wrapped DAI", "dDAI4626", 18, dai)
+    #Grant allowance for trader
+    dai.approve(ua, '2000000000 Ether', sender=trader)
     #Transfer some to trader.
-    ua.mint(trader, '1000000000 Ether', sender=deployer)
-    print(ua.balanceOf(trader))
+    ua.deposit('1000000000 Ether', trader, sender=trader)
+    # ua.mint(trader, '1000000000 Ether', sender=deployer)
+    # print(ua.balanceOf(trader))
     #Aprove vault
     ua.approve(VAULT, '1000000000 Ether', sender=trader)
     return ua
@@ -62,14 +64,13 @@ def linear_pool(project, deployer, dai, ddai4626):
     lp = deployer.deploy(
         #We are using mock here which hardcodes exchange rate of 1:1
         #TODO: once we have a somewhat working 4626, we should probably use ERC4626LinearPool
-        project.MockLinearPool,
+        project.ERC4626LinearPool,
         VAULT,
         "DAI 4626 linear pool",
         "dDAI",
         dai.address, #mainToken
         ddai4626.address, #wrappedToken
         2100000000000000000000000, #upperTarget = 2100000.0 DAI (by default lower target is 0, can be raised after enough liquidity is present)
-        ["0x0000000000000000000000000000000000000000","0x0000000000000000000000000000000000000000"], #TODO: assetManagers
         10000000000000, #swapFeePercentage = 0.001% (10000000000000 = 10^13 ; 10^18/10^13 = 100000; 100 / 100000 = 0.001%)
         7332168, #pauseWindowDuration
         2592000, #bufferPeriodDuration
@@ -88,7 +89,7 @@ def tokendiff(user, tokens, prev={}):
     return prev
 
 def test_pool_swap(linear_pool, dai, ddai4626, trader, vault):
-    assert dai.balanceOf(trader) == 1000000000 * 10**18
+    assert dai.balanceOf(trader) == 4000000000 * 10**18
     assert ddai4626.balanceOf(trader) == 1000000000 * 10**18
     assert linear_pool.balanceOf(trader) == 0
     pool_id = linear_pool.getPoolId()
@@ -225,13 +226,48 @@ def test_pool_swap(linear_pool, dai, ddai4626, trader, vault):
         sender=trader
     )
     bal = tokendiff(trader, tokens)
-    # #repeat the above tx 10 times
-    # for i in range(10):
-    #     vault.swap(
-    #         struct_single_swap, #SingleSwap singleSwap
-    #         struct_fund_management, #FundManagement funds
-    #         "1000.1 Ether", #uint256 limit
-    #         999999999999999999, #uint256 deadline
-    #         sender=trader
-    #     )
-    #     bal = tokendiff(trader, tokens)
+    #Lets make our 4626 get 2x yiels
+    dai.transfer(ddai4626, '1000000000 Ether', sender=trader)
+    bal = tokendiff(trader, tokens)
+    
+    vault.swap(
+        struct_single_swap, #SingleSwap singleSwap
+        struct_fund_management, #FundManagement funds
+        "1000.1 Ether", #uint256 limit
+        999999999999999999, #uint256 deadline
+        sender=trader
+    )
+    bal = tokendiff(trader, tokens)
+    #now when depositing ddai4626 we should get better price
+    struct_single_swap = (
+        pool_id, #bytes32 poolId
+        1, #SwapKind kind
+        ddai4626, #IAsset assetIn
+        linear_pool, #IAsset assetOut
+        "1000 Ether", #uint256 amount
+        b"" #bytes userData
+    )
+    vault.swap(
+        struct_single_swap, #SingleSwap singleSwap
+        struct_fund_management, #FundManagement funds
+        "1000.1 Ether", #uint256 limit
+        999999999999999999, #uint256 deadline
+        sender=trader
+    )
+    bal = tokendiff(trader, tokens)
+    struct_single_swap = (
+        pool_id, #bytes32 poolId
+        1, #SwapKind kind
+        ddai4626, #IAsset assetIn
+        dai, #IAsset assetOut
+        "1000 Ether", #uint256 amount
+        b"" #bytes userData
+    )
+    vault.swap(
+        struct_single_swap, #SingleSwap singleSwap
+        struct_fund_management, #FundManagement funds
+        "1000.1 Ether", #uint256 limit
+        999999999999999999, #uint256 deadline
+        sender=trader
+    )
+    bal = tokendiff(trader, tokens)
