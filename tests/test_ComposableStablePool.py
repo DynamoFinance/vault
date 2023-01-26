@@ -311,6 +311,43 @@ def test_composable(trader, vault, dai, frax, gho, dDAI, dFRAX, dGHO, dUSD, ddai
 
     #Trader gets back 222 DAI from initial investment of 200 DAI
 
-    #TODO: Batch swap to go from DAI --> dUSD
+    #Batch swap to go from DAI --> dUSD
+    #Swapping 500 DAI --> dDAI --> dUSD
 
-
+    vault.batchSwap(
+        0, #SwapKind.GIVEN_IN
+        [
+            (
+                dDAI.getPoolId(), #poolId
+                0, #assetInIndex = DAI
+                1, #assetOutIndex = dDAI
+                500*10**18, #amount
+                b"" #bytes userData
+            ),(
+                dUSD_pool_id,
+                1, #assetInIndex = dDAI
+                2, #assetOutIndex = dUSD
+                0, #amount: 0 means use whatever we got from previous step
+                b"" #bytes userData
+            )
+        ], #BatchSwapStep[] swaps
+        [
+            dai,
+            dDAI,
+            dUSD
+        ], #assets: An array of tokens which are used in the batch swap
+        (
+            trader, #address sender
+            False, #bool fromInternalBalance
+            trader, #address payable recipient
+            False #bool toInternalBalance
+        ), #funds
+        [
+            10**25,
+            0,
+            10**25
+        ], #limits: I dont understand how this works
+        999999999999999999, #uint256 deadline
+        sender=trader
+    )
+    bal = tokendiff(trader, tokens, bal)
