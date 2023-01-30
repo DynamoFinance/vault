@@ -1,6 +1,6 @@
 # @version 0.3.7
 from vyper.interfaces import ERC20
-from adapter import LPAdapter
+from interfaces.adapter import LPAdapter
 #This contract would only be called using delegate call, so we do
 # not use this contract's storage. Only immutable or constant.
 #If there is a strong reason for having storage, then the storage slots
@@ -55,14 +55,14 @@ def __init__(_lendingPool: address, _originalAsset: address, _wrappedAsset: addr
 @internal
 @view
 def asettoatoken(asset: uint256) -> uint256:
-    #TODO
-    return 0
+    #aDAI and DAI are pegged to each other...
+    return asset
 
 @internal
 @view
 def atokentoaset(asset: uint256) -> uint256:
-    #TODO
-    return 0
+    #aDAI and DAI are pegged to each other...
+    return asset
 
 
 @internal
@@ -115,7 +115,7 @@ def deposit(asset_amount: uint256):
     #Approve lending pool
     ERC20(originalAsset).approve(lendingPool, asset_amount)
     #Call deposit function
-    #"deposit_from" does now make sense. this is the beneficiary of a-tokens which must always be our vault.
+    #"deposit_from" does not make sense. this is the beneficiary of a-tokens which must always be our vault.
     AAVEV2(lendingPool).deposit(originalAsset, asset_amount, self, 0)
     #Now aave would have taken our actual token and given us a-tokens..
 
