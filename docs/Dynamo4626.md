@@ -7,8 +7,9 @@ Legend for Architecture Diagram Below:
     Red letters are contract addresses.
     Bold black items are actual ERC20/Pool assets.
     Blue zone is Vyper contract code.
-        The dotted line AssetManagers are logical contracts but likely will 
-        just be code in the larger AssetManager contract code base.
+        The dotted line LPAdapters are logical contracts but likely will 
+        just be code in the larger AssetManager contract code base which forward requests to
+        deployments of Lending Platform Specific Adapters.
     Green zones are Balancer Linear Pools which will require small amounts
         of Solidity code to construct properly.
     Yellow zone is the Balancer Boosted Pool which will require some Solidity
