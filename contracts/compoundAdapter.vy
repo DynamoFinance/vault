@@ -12,7 +12,7 @@ implements: LPAdapter
 
 #Address of underlying asset we are investing
 originalAsset: immutable(address)
-#Address of Compound v3 Token. we withdraw and deposit against this
+#Address of Compound v2 Token. we withdraw and deposit against this
 wrappedAsset: immutable(address)
 
 DIVISOR: constant(uint256) = 10**18
