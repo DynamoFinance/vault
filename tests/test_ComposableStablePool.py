@@ -90,6 +90,8 @@ def swap(pool_id, vault, intoken, outtoken, amount, trader):
 
 @pytest.fixture
 def dDAI(project, deployer, dai, ddai4626, vault, trader):
+    if is_not_hard_hat():
+        pytest.skip("Not on hard hat Ethereum snapshot.")
     lp = deployer.deploy(
         #We are using mock here which hardcodes exchange rate of 1:1
         #TODO: once we have a somewhat working 4626, we should probably use ERC4626LinearPool
@@ -115,6 +117,8 @@ def dDAI(project, deployer, dai, ddai4626, vault, trader):
 
 @pytest.fixture
 def dFRAX(project, deployer, frax, dfrax4626, vault, trader):
+    if is_not_hard_hat():
+        pytest.skip("Not on hard hat Ethereum snapshot.")
     lp = deployer.deploy(
         #We are using mock here which hardcodes exchange rate of 1:1
         #TODO: once we have a somewhat working 4626, we should probably use ERC4626LinearPool
@@ -140,6 +144,8 @@ def dFRAX(project, deployer, frax, dfrax4626, vault, trader):
 
 @pytest.fixture
 def dGHO(project, deployer, gho, dgho4626, vault, trader):
+    if is_not_hard_hat():
+        pytest.skip("Not on hard hat Ethereum snapshot.")
     lp = deployer.deploy(
         #We are using mock here which hardcodes exchange rate of 1:1
         #TODO: once we have a somewhat working 4626, we should probably use ERC4626LinearPool
@@ -198,6 +204,8 @@ def tokendiff(user, tokens, prev={}):
     return prev
 
 def test_composable(trader, vault, dai, frax, gho, dDAI, dFRAX, dGHO, dUSD, ddai4626, dfrax4626, dgho4626):
+    if is_not_hard_hat():
+        pytest.skip("Not on hard hat Ethereum snapshot.")
     #ensure oracle of each d-token returns 1 (since no yield yet)
     assert dDAI.getRate() == 10**18, "rate is not 1"
     assert dFRAX.getRate() == 10**18, "rate is not 1"

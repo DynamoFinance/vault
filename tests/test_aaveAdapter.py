@@ -26,6 +26,8 @@ def adai(project, deployer, trader):
 
 @pytest.fixture
 def dai(project, deployer, trader):
+    if is_not_hard_hat():
+        pytest.skip("Not on hard hat Ethereum snapshot.")
     dai = project.DAI.at(DAI)
     # print("wards", dai.wards(deployer))
     #Make deployer a minter
@@ -45,6 +47,8 @@ def dai(project, deployer, trader):
 
 @pytest.fixture
 def aave_adapter(project, deployer, dai):
+    if is_not_hard_hat():
+        pytest.skip("Not on hard hat Ethereum snapshot.")
     aa = deployer.deploy(project.aaveAdapter, AAVE_LENDING_POOL, dai, ADAI)
     #we run tests against interface
     #return project.LPAdapter.at(aa)
@@ -52,6 +56,8 @@ def aave_adapter(project, deployer, dai):
     return aa
 
 def test_aave_adapter(aave_adapter, trader, dai, adai):
+    if is_not_hard_hat():
+        pytest.skip("Not on hard hat Ethereum snapshot.")
     #Dont have any state...
     assert aave_adapter.assetBalance() == 0, "Asset balance should be 0"
     assert aave_adapter.maxWithdrawable() == 0, "maxWithdrawable should be 0"
@@ -63,18 +69,28 @@ def test_aave_adapter(aave_adapter, trader, dai, adai):
     dai.transfer(aave_adapter, "1000000 Ether", sender=trader)
     aave_adapter.deposit("1000000 Ether", sender=trader) #Anyone can call this, its intended to be delegate
     #There is no yield yet... so everything should be a million
-    assert adai.balanceOf(aave_adapter) == 1000000*10**18, "adai balance incorrect"
-    assert aave_adapter.assetBalance() == 1000000*10**18, "Asset balance should be 1000000"
-    assert aave_adapter.maxWithdrawable() == 1000000*10**18, "maxWithdrawable should be 1000000"
+    assert adai.balanceOf(aave_adapter) < 1000001*10**18, "adai balance incorrect"
+    assert aave_adapter.assetBalance() < 1000001*10**18, "Asset balance should be 1000000"
+    assert aave_adapter.maxWithdrawable() < 1000001*10**18, "maxWithdrawable should be 1000000"
     assert aave_adapter.maxDepositable() == 2**256 - 1, "maxDepositable should be MAX_UINT256"
-    print(adai.balanceOf(aave_adapter))
-    #TODO: cause aDAI to have a huge profit
+    # print(adai.balanceOf(aave_adapter))
+    #cause aDAI to have a huge profit
     #mine 100000 blocks with an interval of 5 minute
     set_storage_request = {"jsonrpc": "2.0", "method": "hardhat_mine", "id": 1,
         "params": ["0x186a0", "0x12c"]}
     print(requests.post("http://localhost:8545/", json.dumps(set_storage_request)))
-    print(adai.balanceOf(aave_adapter))
-    # assert adai.balanceOf(aave_adapter) == 1000000*10**18, "adai balance incorrect"
-    # assert aave_adapter.assetBalance() == 1000000*10**18, "Asset balance should be 1000000"
-    # assert aave_adapter.maxWithdrawable() == 1000000*10**18, "maxWithdrawable should be 1000000"
-    # assert aave_adapter.maxDepositable() == 2**256 - 1, "maxDepositable should be MAX_UINT256"
+    # print(adai.balanceOf(aave_adapter))
+    assert adai.balanceOf(aave_adapter) > 1012550*10**18, "adai balance incorrect"
+    assert aave_adapter.assetBalance() > 1012550*10**18, "Asset balance should be 1000000"
+    assert aave_adapter.maxWithdrawable() > 1012550*10**18, "maxWithdrawable should be 1000000"
+    assert aave_adapter.maxDepositable() == 2**256 - 1, "maxDepositable should be MAX_UINT256"
+    #Withdraw everything
+    trader_balance_pre = dai.balanceOf(trader)
+    aave_adapter.withdraw(aave_adapter.assetBalance(), trader, sender=trader)
+    trader_gotten = dai.balanceOf(trader) - trader_balance_pre
+    assert trader_gotten > 1012550*10**18, "trader gain balance incorrect"
+    assert aave_adapter.assetBalance() < 10**18, "Asset balance should be 0"
+    assert aave_adapter.maxWithdrawable() < 10**18, "maxWithdrawable should be 0"
+    assert aave_adapter.maxDepositable() == 2**256 - 1, "maxDepositable should be MAX_UINT256"
+    assert adai.balanceOf(aave_adapter) < 10**18, "adai balance incorrect"
+

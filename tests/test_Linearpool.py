@@ -49,6 +49,8 @@ def ddai4626(project, deployer, trader, dai):
 
 @pytest.fixture
 def linear_pool(project, deployer, dai, ddai4626):
+    if is_not_hard_hat():
+        pytest.skip("Not on hard hat Ethereum snapshot.")
     lp = deployer.deploy(
         #We are using mock here which hardcodes exchange rate of 1:1
         #TODO: once we have a somewhat working 4626, we should probably use ERC4626LinearPool
@@ -83,6 +85,8 @@ def print_pool_info(vault, pool_id, main_idx, wrapped_idx):
 
 
 def test_pool_swap(linear_pool, dai, ddai4626, trader, vault):
+    if is_not_hard_hat():
+        pytest.skip("Not on hard hat Ethereum snapshot.")
     assert dai.balanceOf(trader) == 4000000000 * 10**18
     assert ddai4626.balanceOf(trader) == 1000000000 * 10**18
     assert linear_pool.balanceOf(trader) == 0
