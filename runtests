@@ -1,4 +1,4 @@
 #!/usr/bin/bash
 
-ape test -s --network :mainnet-fork:hardhat
+ape test -s --network :mainnet-fork:hardhat $1 $2 $3 $4
 
