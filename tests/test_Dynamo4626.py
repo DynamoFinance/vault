@@ -41,3 +41,6 @@ def test_add_currency(project, deployer, dynamo4626, dai):
     assert result.return_value == True
     #assert result == True
 
+
+    result = dynamo4626.add_currency(deployer, sender=deployer) 
+    assert result.return_value == True

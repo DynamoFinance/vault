@@ -64,10 +64,10 @@ def _add_currency(_currency: address) -> bool:
     response: Bytes[32] = empty(Bytes[32])
     result_ok: bool = empty(bool)
 
-    result_ok, response = raw_call(_currency, method_id("totalSupply"), max_outsize=32, is_static_call=True, gas = 100000, revert_on_failure=False)
-    #result_ok = raw_call(_currency, method_id("totalSupply"), is_static_call=True)
-
+    result_ok, response = raw_call(_currency, method_id("totalSupply()"), max_outsize=32, is_static_call=True, gas = 100000, revert_on_failure=False)
     assert (response != empty(Bytes[32])), "Doesn't appear to be an ERC-20."
+
+    #assert ERC20(_currency).totalSupply() > 0, "Doesn't appear to be an ERC-20."
 
     #return True
 
