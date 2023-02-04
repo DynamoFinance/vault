@@ -33,8 +33,17 @@ def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20ass
     ddecimals = _decimals
     derc20asset = _erc20asset
 
+    # VYPER NOTE - if we don't explicitly initialize dlending_pools here
+    #              the ctor will initialize it to empty AFTER the
+    #              _add_pool() loop completes and erase the passed in pools!
+    self.dlending_pools = empty(DynArray[address, MAX_POOLS])
+
     self.owner = msg.sender
     self.totalSupply = 0
+
+    for pool in _pools:
+        self._add_pool(pool)
+
 
 @pure
 @external

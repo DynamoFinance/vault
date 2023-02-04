@@ -25,9 +25,21 @@ def dai(project, deployer, trader):
 
 
 @pytest.fixture
-def pool_adapter(project, deployer):
+def pool_adapterA(project, deployer):
     a = deployer.deploy(project.MockLPAdapter)
     return a
+
+
+@pytest.fixture
+def pool_adapterB(project, deployer):
+    b = deployer.deploy(project.MockLPAdapter)
+    return b
+
+
+@pytest.fixture
+def pool_adapterC(project, deployer):
+    c = deployer.deploy(project.MockLPAdapter)
+    return c    
 
 
 @pytest.fixture
@@ -36,17 +48,16 @@ def dynamo4626(project, deployer, dai, trader):
     return v
 
 
-# result is an ape.Result
+# tx is an ape.Result
 # event_names is an in-order list of strings of the names of the events generated in the tx.
 # if full_match == True, event_names must match all result events.
 # if full_match == False, we only check as many events as the event_names list has and ignore 
-#                         extra event logs that may exist.
-def events_in_logs(result, event_names, full_match=True) -> bool:
-    for a,b in zip_longest(result.decode_logs(), event_names):
+#                         extra event logs that may exist in tx.
+def events_in_logs(tx, event_names, full_match=True) -> bool:
+    for a,b in zip_longest(tx.decode_logs(), event_names):
         if b == None and full_match == False: continue
         assert a.event_name == b
     return True    
-
 
 
 def test_basic_initialization(project, deployer, dynamo4626):
@@ -54,7 +65,30 @@ def test_basic_initialization(project, deployer, dynamo4626):
     assert dynamo4626.symbol(sender=deployer) == d4626_token
     assert dynamo4626.decimals(sender=deployer) == d4626_decimals
 
-def test_add_pool(project, deployer, dynamo4626, pool_adapter, trader, dai):
+
+def test_initial_pools_initialization(project, deployer, dai, pool_adapterA, pool_adapterB, pool_adapterC):
+    pools = [pool_adapterA, pool_adapterB, pool_adapterC]
+    dynamo = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, pools)    
+
+
+    # This should fail because we can't add the same pool twice!
+    for pool in pools:
+        # can't add it a second time.
+        with ape.reverts("pool already supported."):
+            dynamo.add_pool(pool, sender=deployer)
+
+
+    pool_count = len(dynamo.lending_pools())
+    assert pool_count == 3
+
+    count = 0
+    for pool in dynamo.lending_pools():
+        count += 1
+
+    assert count == 3
+
+
+def test_add_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
 
     pool_count = len(dynamo4626.lending_pools())
     assert pool_count == 0
@@ -62,18 +96,18 @@ def test_add_pool(project, deployer, dynamo4626, pool_adapter, trader, dai):
     if is_not_hard_hat():
         pytest.skip("Not on hard hat Ethereum snapshot.")
 
-    # pool_adapter can only be added by the owner.
+    # pool_adapterA can only be added by the owner.
     with ape.reverts("Only owner can add new Lending Pools."):
-        result = dynamo4626.add_pool(pool_adapter, sender=trader)
+        result = dynamo4626.add_pool(pool_adapterA, sender=trader)
 
-    # pool_adapter is valid & deployer is allowed to add it.
-    result = dynamo4626.add_pool(pool_adapter, sender=deployer) 
+    # pool_adapterA is valid & deployer is allowed to add it.
+    result = dynamo4626.add_pool(pool_adapterA, sender=deployer) 
     assert result.return_value == True
     assert events_in_logs(result, ["poolAdded"])
 
     # can't add it a second time.
     with ape.reverts("pool already supported."):
-        result = dynamo4626.add_pool(pool_adapter, sender=deployer)
+        result = dynamo4626.add_pool(pool_adapterA, sender=deployer)
 
     # dai is not a valid adapter.
     with ape.reverts("Doesn't appear to be an LPAdapter."):    
