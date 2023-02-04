@@ -140,21 +140,38 @@ def _mint(_share_amount: uint256, _receiver: address) -> uint256:
     @param _to The account that will receive the created tokens.
     @param _value The amount that will be created.
     """
-    assert _receiver != empty(address), "receiver cannot be zero"
+    assert _receiver != empty(address), "Receiver cannot be zero."
     self.totalSupply += _share_amount
     self.balanceOf[_receiver] += _share_amount
     log Transfer(empty(address), _receiver, _share_amount)
     return _share_amount
 
 
+# TODO - should this external method even exist? Probably not...
 @external
 def mint(_share_amount: uint256, _receiver: address) -> uint256:
     assert msg.sender == self.owner, "Only owner can mint assets."
     return self._mint(_share_amount, _receiver)
 
 
+@internal
+def _adapter_deposit(_adapter: address, _asset_amount: uint256):
+    response: Bytes[32] = empty(Bytes[32])
+    result_ok: bool = True # empty(bool)
+
+    # raw_call(
+    #     _adapter,
+    #     concat( method_id("deposit(uint256)"), convert(_asset_amount, bytes32) ),
+    #     max_outsize=0,
+    #     is_delegate_call=True,
+    #     revert_on_failure=True
+    #     )
+    assert result_ok == True, "raw_call failed"
+
+
 @external
-def deposit(_asset_amount: uint256, receiver: address) -> uint256:
+def deposit(_asset_amount: uint256, _receiver: address) -> uint256:
+    assert _receiver != empty(address), "Cannot send shares to zero address."
 
     # Move assets to this contract from caller.
     ERC20(derc20asset).transferFrom(msg.sender, self, _asset_amount)
@@ -166,16 +183,21 @@ def deposit(_asset_amount: uint256, receiver: address) -> uint256:
     # Move the funds in/out of Lending Pools as required.
     for dtx in txs:
         if dtx.Qty > 0:
-            pass
+            # Move funds into the lending pool's adapter.
+            self._adapter_deposit(dtx.Adapter, convert(dtx.Qty, uint256))
 
         elif dtx.Qty < 0:
+            # Liquidate funds from lending pool's adapter.
+            qty: uint256 = convert(dtx.Qty * -1, uint256)
             pass
 
     # Now mint assets to return to investor.
     # TODO : Trade on a 1:1 value for now.
-    self._mint(_asset_amount, msg.sender)
+    self._mint(_asset_amount, _receiver)
 
-    return _asset_amount
+    result : uint256 = _asset_amount
+
+    return result
 
 
 

@@ -119,3 +119,20 @@ def test_add_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
     a = deployer.deploy(project.MockLPAdapter)
     with ape.reverts():
         dynamo4626.add_pool(a, sender=deployer)
+
+
+def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, dai, trader):
+    # Setup our pool.
+    dynamo4626.add_pool(pool_adapterA, sender=deployer)
+
+    # Trader needs to allow the 4626 contract to take funds.
+    dai.approve(dynamo4626,500, sender=trader)
+
+    result = dynamo4626.deposit(500, trader, sender=trader)
+
+    if is_not_hard_hat():
+        pytest.skip("Not on hard hat Ethereum snapshot.")
+
+    assert dynamo4626.balanceOf(trader) == 500
+    
+    assert result.return_value == 500    
