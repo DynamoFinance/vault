@@ -7,16 +7,14 @@ from vyper.interfaces import ERC20
 
 MAX_POOLS : constant(int128) = 5
 
-
-lending_pools : DynArray[address, MAX_POOLS]
-
-
 dname: immutable(String[64])
 dsymbol: immutable(String[32])
 ddecimals: immutable(uint8)
 derc20asset: immutable(address)
 
 owner: address
+
+dlending_pools : DynArray[address, MAX_POOLS]
 
 totalSupply: public(uint256)
 balanceOf: public(HashMap[address, uint256])
@@ -26,7 +24,6 @@ allowance: public(HashMap[address, HashMap[address, uint256]])
 event poolAdded:
     sender: indexed(address)
     contract_addr: indexed(address)
-
 
 
 @external
@@ -55,36 +52,38 @@ def decimals() -> uint8: return ddecimals
 @external
 def asset() -> address: return derc20asset
 
-
-# @internal 
-# def _add_pool(_pool: address) -> bool:    
-#     # Do we already support this pool?
-#     assert (_pool in self.lending_pools) == False, "pool already supported."
-
-#     # Is this likely to be an ERC-20 token contract?
-#     response: Bytes[32] = empty(Bytes[32])
-#     result_ok: bool = empty(bool)
-
-#     result_ok, response = raw_call(_pool, method_id("totalSupply()"), max_outsize=32, is_static_call=True, gas = 100000, revert_on_failure=False)
-#     assert (response != empty(Bytes[32])), "Doesn't appear to be an ERC-20."
-
-#     #assert ERC20(_pool).totalSupply() > 0, "Doesn't appear to be an ERC-20."
-
-#     #return True
-
-#     #self.supported_currencies.append(_pool)
-
-#     #log poolAdded(msg.sender, _pool)
-
-#     return True
+# Can't simply have a public lending_pools variable due to this Vyper issue:
+# https://github.com/vyperlang/vyper/issues/2897
+@view
+@external
+def lending_pools() -> DynArray[address, MAX_POOLS]: return self.dlending_pools
 
 
-# @external 
-# def add_pool(_pool: address) -> bool: 
-#     # Is this from the owner?
-#     assert msg.sender == self.owner, "Only owner can add new currencies."
+@internal 
+def _add_pool(_pool: address) -> bool:    
+    # Do we already support this pool?
+    assert (_pool in self.dlending_pools) == False, "pool already supported."
 
-#     return self._add_pool(_pool)
+    # Is this likely to be an actual LPAdapter contract?
+    response: Bytes[32] = empty(Bytes[32])
+    result_ok: bool = empty(bool)
+
+    result_ok, response = raw_call(_pool, method_id("maxDepositable()"), max_outsize=32, is_static_call=True, revert_on_failure=False)
+    assert (response != empty(Bytes[32])), "Doesn't appear to be an LPAdapter."
+
+    self.dlending_pools.append(_pool)
+
+    log poolAdded(msg.sender, _pool)
+
+    return True
+
+
+@external 
+def add_pool(_pool: address) -> bool: 
+    # Is this from the owner?
+    assert msg.sender == self.owner, "Only owner can add new Lending Pools."
+
+    return self._add_pool(_pool)
 
 
 

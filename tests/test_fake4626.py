@@ -37,6 +37,7 @@ def vault_4626(project, deployer, dai, trader):
 def test_4626(dai, vault_4626, trader):
     if is_not_hard_hat():
         pytest.skip("Not on hard hat Ethereum snapshot.")
+
     tokens = {
         "DAI": dai,
         "dDAI4626": vault_4626,

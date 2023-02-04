@@ -21,6 +21,13 @@ def dai(project, deployer, trader):
     ua.mint(trader, '1000000000 Ether', sender=deployer)
     return ua
 
+
+@pytest.fixture
+def pool_adapter(project, deployer):
+    a = deployer.deploy(project.MockLPAdapter)
+    return a
+
+
 @pytest.fixture
 def dynamo4626(project, deployer, dai, trader):
     v = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, [])    
@@ -32,15 +39,40 @@ def test_basic_initialization(project, deployer, dynamo4626):
     assert dynamo4626.symbol(sender=deployer) == d4626_token
     assert dynamo4626.decimals(sender=deployer) == d4626_decimals
 
-# def test_add_pool(project, deployer, dynamo4626, dai):
+def test_add_pool(project, deployer, dynamo4626, pool_adapter, trader, dai):
 
-#     print("Dai total supply is %s." % dai.totalSupply())
+    pool_count = len(dynamo4626.lending_pools())
+    assert pool_count == 0
 
+    if is_not_hard_hat():
+        pytest.skip("Not on hard hat Ethereum snapshot.")
 
-#     result = dynamo4626.add_currency(dai, sender=deployer) 
-#     assert result.return_value == True
-#     #assert result == True
+    # pool_adapter can only be added by the owner.
+    with ape.reverts("Only owner can add new Lending Pools."):
+        result = dynamo4626.add_pool(pool_adapter, sender=trader)
 
+    # pool_adapter is valid & deployer is allowed to add it.
+    result = dynamo4626.add_pool(pool_adapter, sender=deployer) 
+    assert result.return_value == True
 
-#     result = dynamo4626.add_currency(deployer, sender=deployer) 
-#     assert result.return_value == True
+    # can't add it a second time.
+    with ape.reverts("pool already supported."):
+        result = dynamo4626.add_pool(pool_adapter, sender=deployer)
+
+    # dai is not a valid adapter.
+    with ape.reverts("Doesn't appear to be an LPAdapter."):    
+        result = dynamo4626.add_pool(dai, sender=deployer) 
+    
+    pool_count = len(dynamo4626.lending_pools())
+    assert pool_count == 1
+
+    # How many more pools can we add?
+    for i in range(4): # Dynamo4626.MAX_POOLS - 1
+        a = deployer.deploy(project.MockLPAdapter)
+        result = dynamo4626.add_pool(a, sender=deployer) 
+        assert result.return_value == True
+
+    # One more pool is too many however.
+    a = deployer.deploy(project.MockLPAdapter)
+    with ape.reverts():
+        dynamo4626.add_pool(a, sender=deployer)
