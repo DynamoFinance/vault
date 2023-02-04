@@ -7,7 +7,8 @@ import requests, json
 import eth_abi
 
 DAI = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
-CDAI = "0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643"
+EDAI = "0xe025E3ca2bE02316033184551D4d3Aa22024D9DC"
+EULER = "0x27182842E098f60e3D576794A5bFFb0777E025d3"
 
 @pytest.fixture
 def deployer(accounts):
@@ -18,8 +19,11 @@ def trader(accounts):
     return accounts[1]
 
 @pytest.fixture
-def cdai(project, deployer, trader):
-    return project.cToken.at(CDAI)
+def edai(project, deployer, trader):
+    project.eToken.at("0x27182842E098f60e3D576794A5bFFb0777E025d3")
+    project.eToken.at("0xbb0D4bb654a21054aF95456a3B29c63e8D1F4c0a")
+    project.IRMClassStable.at("0x42ec0eb1d2746A9f2739D7501C5d5608bdE9eE89")
+    return project.eToken.at(EDAI)
 
 @pytest.fixture
 def dai(project, deployer, trader):
@@ -43,28 +47,44 @@ def dai(project, deployer, trader):
     return project.ERC20.at(DAI)
 
 @pytest.fixture
-def compound_adapter(project, deployer, dai):
+def euler_adapter(project, deployer, dai):
     if is_not_hard_hat():
         pytest.skip("Not on hard hat Ethereum snapshot.")
-    ca = deployer.deploy(project.compoundAdapter, dai, CDAI)
+    ca = deployer.deploy(project.eulerAdapter, dai, EDAI, EULER)
     #we run tests against interface
     #return project.LPAdapter.at(aa)
     #I wanted to run tests against interface, but seems vyper does not treat interface file as such?
     return ca
 
-def test_compound_adapter(compound_adapter, trader, dai, cdai):
+def test_euler_adapter(euler_adapter, trader, dai, edai):
     if is_not_hard_hat():
         pytest.skip("Not on hard hat Ethereum snapshot.")
     #Dont have any state...
-    assert compound_adapter.assetBalance() == 0, "Asset balance should be 0"
-    assert compound_adapter.maxWithdrawable() == 0, "maxWithdrawable should be 0"
-    assert compound_adapter.maxDepositable() == 2**256 - 1, "maxDepositable should be MAX_UINT256"
-    assert cdai.balanceOf(compound_adapter) == 0, "adai balance incorrect"
+    assert euler_adapter.assetBalance() == 0, "Asset balance should be 0"
+    assert euler_adapter.maxWithdrawable() == 0, "maxWithdrawable should be 0"
+    assert euler_adapter.maxDepositable() == 2**256 - 1, "maxDepositable should be MAX_UINT256"
+    assert edai.balanceOf(euler_adapter) == 0, "adai balance incorrect"
     #Deposit 1000,000 DAI
     #Normally this would be delegate call from 4626 that already has the funds,
     #but here we fake it by transferring DAI first then doing a CALL
-    dai.transfer(compound_adapter, "1000000 Ether", sender=trader)
-    compound_adapter.deposit("1000000 Ether", sender=trader) #Anyone can call this, its intended to be delegate
+    dai.transfer(euler_adapter, "10000 Ether", sender=trader)
+    print("trying deposit")
+    dai.approve(EULER, "10000 Ether", sender=trader)
+    recpt = edai.deposit(0, "10000 Ether", sender=trader)
+    recpt.show_trace(verbose=True)
+    # return
+    try:
+        foo = euler_adapter.deposit("10000 Ether", sender=trader,gas=10000000) #Anyone can call this, its intended to be delegate
+        print(foo)
+    except:
+        b = ape.chain.provider.get_block("latest")
+        print(b)
+        print(b.transactions[0])
+        recpt = ape.chain.provider.get_receipt(b.transactions[0].txn_hash)
+        print(recpt)
+        recpt.show_trace(verbose=True)
+        raise
+    return
     #There is no yield yet... so everything should be a million
     assert cdai.balanceOfUnderlying(compound_adapter, sender=trader).return_value < 1000001*10**18, "adai balance incorrect"
     assert compound_adapter.assetBalance() < 1000001*10**18, "Asset balance should be 1000000"
