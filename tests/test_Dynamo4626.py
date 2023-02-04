@@ -27,8 +27,17 @@ def dynamo4626(project, deployer, dai, trader):
     return v
 
 
-def test_basic_initialization(project, deployer, dai, dynamo4626):
+def test_basic_initialization(project, deployer, dynamo4626):
     assert dynamo4626.name(sender=deployer) == d4626_name
     assert dynamo4626.symbol(sender=deployer) == d4626_token
     assert dynamo4626.decimals(sender=deployer) == d4626_decimals
+
+def test_add_currency(project, deployer, dynamo4626, dai):
+
+    print("Dai total supply is %s." % dai.totalSupply())
+
+
+    result = dynamo4626.add_currency(dai, sender=deployer) 
+    assert result.return_value == True
+    #assert result == True
 

@@ -64,14 +64,18 @@ def _add_currency(_currency: address) -> bool:
     response: Bytes[32] = empty(Bytes[32])
     result_ok: bool = empty(bool)
 
-    result_ok, response = raw_call(_currency, method_id("totalSupply"), max_outsize=32, is_static_call=True, revert_on_failure=False)
-    assert (response != empty(Bytes[32])), "Doesn't appear to be an ERC-20."
+    #result_ok, response = raw_call(_currency, method_id("totalSupply"), max_outsize=32, is_static_call=True, revert_on_failure=False)
+    #result_ok = raw_call(_currency, method_id("totalSupply"), is_static_call=True)
 
-    self.supported_currencies.append(_currency)
-
-    log CurrencyAdded(msg.sender, _currency)
+    #assert (response != empty(Bytes[32])), "Doesn't appear to be an ERC-20."
 
     return True
+
+    #self.supported_currencies.append(_currency)
+
+    #log CurrencyAdded(msg.sender, _currency)
+
+    #return True
 
 
 @external 
@@ -80,6 +84,7 @@ def add_currency(_currency: address) -> bool:
     assert msg.sender == self.owner, "Only owner can add new currencies."
 
     return self._add_currency(_currency)
+
 
 
 
