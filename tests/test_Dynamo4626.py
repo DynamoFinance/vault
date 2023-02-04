@@ -70,22 +70,14 @@ def test_initial_pools_initialization(project, deployer, dai, pool_adapterA, poo
     pools = [pool_adapterA, pool_adapterB, pool_adapterC]
     dynamo = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, pools)    
 
-
     # This should fail because we can't add the same pool twice!
     for pool in pools:
         # can't add it a second time.
         with ape.reverts("pool already supported."):
             dynamo.add_pool(pool, sender=deployer)
 
-
     pool_count = len(dynamo.lending_pools())
     assert pool_count == 3
-
-    count = 0
-    for pool in dynamo.lending_pools():
-        count += 1
-
-    assert count == 3
 
 
 def test_add_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
@@ -93,12 +85,12 @@ def test_add_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
     pool_count = len(dynamo4626.lending_pools())
     assert pool_count == 0
 
-    if is_not_hard_hat():
-        pytest.skip("Not on hard hat Ethereum snapshot.")
-
     # pool_adapterA can only be added by the owner.
     with ape.reverts("Only owner can add new Lending Pools."):
         result = dynamo4626.add_pool(pool_adapterA, sender=trader)
+
+    if is_not_hard_hat():
+        pytest.skip("Not on hard hat Ethereum snapshot.")
 
     # pool_adapterA is valid & deployer is allowed to add it.
     result = dynamo4626.add_pool(pool_adapterA, sender=deployer) 
