@@ -13,9 +13,9 @@ supported_currencies : DynArray[address, MAX_CURRENCY_TYPES]
 lending_pools : DynArray[address, MAX_POOLS]
 
 
-name: immutable(String[64])
-symbol: immutable(String[32])
-decimals: immutable(uint8)
+dname: immutable(String[64])
+dsymbol: immutable(String[32])
+ddecimals: immutable(uint8)
 
 owner: address
 
@@ -32,15 +32,27 @@ event CurrencyAdded:
 
 @external
 def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _currencies : DynArray[address, MAX_CURRENCY_TYPES], _pools: DynArray[address, MAX_POOLS]):
-    name = _name
-    symbol = _symbol
-    decimals = _decimals
+    dname = _name
+    dsymbol = _symbol
+    ddecimals = _decimals
 
     self.owner = msg.sender
     self.totalSupply = 0
 
     for currency in _currencies:
         self._add_currency(currency)
+
+@pure
+@external
+def name() -> String[64]: return dname
+
+@pure
+@external
+def symbol() -> String[32]: return dsymbol
+
+@pure
+@external
+def decimals() -> uint8: return ddecimals
 
 
 @internal 
