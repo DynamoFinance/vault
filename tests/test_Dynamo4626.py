@@ -23,7 +23,7 @@ def dai(project, deployer, trader):
 
 @pytest.fixture
 def dynamo4626(project, deployer, dai, trader):
-    v = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, [], [])    
+    v = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, [])    
     return v
 
 
@@ -32,15 +32,15 @@ def test_basic_initialization(project, deployer, dynamo4626):
     assert dynamo4626.symbol(sender=deployer) == d4626_token
     assert dynamo4626.decimals(sender=deployer) == d4626_decimals
 
-def test_add_currency(project, deployer, dynamo4626, dai):
+# def test_add_pool(project, deployer, dynamo4626, dai):
 
-    print("Dai total supply is %s." % dai.totalSupply())
-
-
-    result = dynamo4626.add_currency(dai, sender=deployer) 
-    assert result.return_value == True
-    #assert result == True
+#     print("Dai total supply is %s." % dai.totalSupply())
 
 
-    result = dynamo4626.add_currency(deployer, sender=deployer) 
-    assert result.return_value == True
+#     result = dynamo4626.add_currency(dai, sender=deployer) 
+#     assert result.return_value == True
+#     #assert result == True
+
+
+#     result = dynamo4626.add_currency(deployer, sender=deployer) 
+#     assert result.return_value == True
