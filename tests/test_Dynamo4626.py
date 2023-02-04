@@ -95,7 +95,7 @@ def test_add_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
     # pool_adapterA is valid & deployer is allowed to add it.
     result = dynamo4626.add_pool(pool_adapterA, sender=deployer) 
     assert result.return_value == True
-    assert events_in_logs(result, ["poolAdded"])
+    assert events_in_logs(result, ["PoolAdded"])
 
     # can't add it a second time.
     with ape.reverts("pool already supported."):
@@ -113,7 +113,7 @@ def test_add_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
         a = deployer.deploy(project.MockLPAdapter)
         result = dynamo4626.add_pool(a, sender=deployer) 
         assert result.return_value == True
-        assert events_in_logs(result, ["poolAdded"])
+        assert events_in_logs(result, ["PoolAdded"])
 
     # One more pool is too many however.
     a = deployer.deploy(project.MockLPAdapter)
