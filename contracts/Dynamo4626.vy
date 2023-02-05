@@ -116,19 +116,21 @@ struct BalanceTX:
 def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALTX_DEPOSIT) -> BalanceTX[MAX_POOLS]:
 
     # result : DynArray[BalanceTX, MAX_POOLS] = empty(DynArray[BalanceTX, MAX_POOLS])
+    result : BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
 
-    # # If there are no pools then nothing to do.
-    # if len(self.dlending_pools) == 0: return result
+    # If there are no pools then nothing to do.
+    if len(self.dlending_pools) == 0: return result
 
-    # current_asset_balance : int128 = convert(ERC20(derc20asset).balanceOf(self), int128)
+    current_asset_balance : int128 = convert(ERC20(derc20asset).balanceOf(self), int128)
 
-    # # TODO - Just going to assume one adapter for now.
-    # pool : address = self.dlending_pools[0]
-    # delta_tx: int128 = current_asset_balance - convert(_target_asset_balance, int128)
-    # dtx: BalanceTX = BalanceTX({Qty: delta_tx, Adapter: pool})
+    # TODO - Just going to assume one adapter for now.
+    pool : address = self.dlending_pools[0]
+    delta_tx: int128 = current_asset_balance - convert(_target_asset_balance, int128)
+    dtx: BalanceTX = BalanceTX({Qty: delta_tx, Adapter: pool})
 
     # result.append(dtx)
-    result : BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
+    result[0] = dtx
+    
 
     return result
 
@@ -163,13 +165,14 @@ def _adapter_deposit(_adapter: address, _asset_amount: uint256):
     response: Bytes[32] = empty(Bytes[32])
     result_ok: bool = True # empty(bool)
 
-    # raw_call(
-    #     _adapter,
-    #     concat( method_id("deposit(uint256)"), convert(_asset_amount, bytes32) ),
-    #     max_outsize=0,
-    #     is_delegate_call=True,
-    #     revert_on_failure=True
-    #     )
+    raw_call(
+        _adapter,
+        concat( method_id("deposit(uint256)"), convert(_asset_amount, bytes32) ),
+        max_outsize=0,
+        is_delegate_call=True,
+        revert_on_failure=True
+        )
+    
     assert result_ok == True, "raw_call failed"
 
 
