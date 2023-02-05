@@ -112,23 +112,27 @@ struct BalanceTX:
     Adapter: address
 
 @internal
-def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALTX_DEPOSIT) -> DynArray[BalanceTX, MAX_POOLS]:
+#def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALTX_DEPOSIT) -> DynArray[BalanceTX, MAX_POOLS]:
+def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALTX_DEPOSIT) -> BalanceTX[MAX_POOLS]:
 
-    result : DynArray[BalanceTX, MAX_POOLS] = empty(DynArray[BalanceTX, MAX_POOLS])
+    # result : DynArray[BalanceTX, MAX_POOLS] = empty(DynArray[BalanceTX, MAX_POOLS])
 
-    # If there are no pools then nothing to do.
-    if len(self.dlending_pools) == 0: return result
+    # # If there are no pools then nothing to do.
+    # if len(self.dlending_pools) == 0: return result
 
-    current_asset_balance : int128 = convert(ERC20(derc20asset).balanceOf(self), int128)
+    # current_asset_balance : int128 = convert(ERC20(derc20asset).balanceOf(self), int128)
 
-    # TODO - Just going to assume one adapter for now.
-    pool : address = self.dlending_pools[0]
-    delta_tx: int128 = current_asset_balance - convert(_target_asset_balance, int128)
-    dtx: BalanceTX = BalanceTX({Qty: delta_tx, Adapter: pool})
+    # # TODO - Just going to assume one adapter for now.
+    # pool : address = self.dlending_pools[0]
+    # delta_tx: int128 = current_asset_balance - convert(_target_asset_balance, int128)
+    # dtx: BalanceTX = BalanceTX({Qty: delta_tx, Adapter: pool})
 
-    result.append(dtx)
+    # result.append(dtx)
+    result : BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
 
     return result
+
+
 
 
 @internal
@@ -178,7 +182,10 @@ def deposit(_asset_amount: uint256, _receiver: address) -> uint256:
 
     # It's our intention to move all funds into the lending pools so 
     # our target balance is zero.
-    txs: DynArray[BalanceTX, MAX_POOLS] = self._getBalanceTxs( empty(uint256) )
+    #txs: DynArray[BalanceTX, MAX_POOLS] = empty(DynArray[BalanceTX, MAX_POOLS])
+    txs: BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
+    target : uint256 = empty(uint256)
+    txs = self._getBalanceTxs( target )
 
     # Move the funds in/out of Lending Pools as required.
     for dtx in txs:
