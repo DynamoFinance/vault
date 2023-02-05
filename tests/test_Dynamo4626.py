@@ -23,22 +23,29 @@ def dai(project, deployer, trader):
     ua.mint(trader, '1000000000 Ether', sender=deployer)
     return ua
 
+@pytest.fixture
+def wdai(project, deployer, trader):
+    ua = deployer.deploy(project.ERC20, "WDAI", "WDAI", 18, 0, deployer)
+    #Transfer some to trader.
+    #ua.mint(trader, '1000000000 Ether', sender=deployer)
+    return ua    
+
 
 @pytest.fixture
-def pool_adapterA(project, deployer):
-    a = deployer.deploy(project.MockLPAdapter)
+def pool_adapterA(project, deployer, dai, wdai):
+    a = deployer.deploy(project.MockLPAdapter, dai, wdai)
     return a
 
 
 @pytest.fixture
-def pool_adapterB(project, deployer):
-    b = deployer.deploy(project.MockLPAdapter)
+def pool_adapterB(project, deployer, dai, wdai):
+    b = deployer.deploy(project.MockLPAdapter, dai, wdai)
     return b
 
 
 @pytest.fixture
-def pool_adapterC(project, deployer):
-    c = deployer.deploy(project.MockLPAdapter)
+def pool_adapterC(project, deployer, dai, wdai):
+    c = deployer.deploy(project.MockLPAdapter, dai, wdai)
     return c    
 
 
@@ -80,7 +87,7 @@ def test_initial_pools_initialization(project, deployer, dai, pool_adapterA, poo
     assert pool_count == 3
 
 
-def test_add_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
+def test_add_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai, wdai):
 
     pool_count = len(dynamo4626.lending_pools())
     assert pool_count == 0
@@ -110,13 +117,13 @@ def test_add_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
 
     # How many more pools can we add?
     for i in range(4): # Dynamo4626.MAX_POOLS - 1
-        a = deployer.deploy(project.MockLPAdapter)
+        a = deployer.deploy(project.MockLPAdapter, dai, wdai)
         result = dynamo4626.add_pool(a, sender=deployer) 
         assert result.return_value == True
         assert events_in_logs(result, ["PoolAdded"])
 
     # One more pool is too many however.
-    a = deployer.deploy(project.MockLPAdapter)
+    a = deployer.deploy(project.MockLPAdapter, dai, wdai)
     with ape.reverts():
         dynamo4626.add_pool(a, sender=deployer)
 
@@ -124,6 +131,11 @@ def test_add_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
 def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, dai, trader):
     # Setup our pool.
     dynamo4626.add_pool(pool_adapterA, sender=deployer)
+
+    trade_start_DAI = dai.balanceOf(trader)
+    trade_start_dyDAI = dynamo4626.balanceOf(trader)
+
+
 
     # Trader needs to allow the 4626 contract to take funds.
     dai.approve(dynamo4626,500, sender=trader)

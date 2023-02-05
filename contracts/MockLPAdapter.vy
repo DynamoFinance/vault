@@ -5,6 +5,14 @@ from interfaces.adapter import LPAdapter
 
 implements: LPAdapter
 
+originalAsset: immutable(address)
+wrappedAsset: immutable(address)
+
+@external
+def __init__(_originalAsset: address, _wrappedAsset: address):
+    originalAsset = _originalAsset
+    wrappedAsset = _wrappedAsset
+
 
 #How much asset can be withdrawn in a single call
 @external
