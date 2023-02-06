@@ -23,28 +23,24 @@ def dai(project, deployer, trader):
     ua.mint(trader, '1000000000 Ether', sender=deployer)
     return ua
 
-@pytest.fixture
-def wdai(project, deployer, trader):
-    ua = deployer.deploy(project.ERC20, "WDAI", "WDAI", 18, 0, deployer)
-    #Transfer some to trader.
-    #ua.mint(trader, '1000000000 Ether', sender=deployer)
-    return ua    
-
 
 @pytest.fixture
-def pool_adapterA(project, deployer, dai, wdai):
+def pool_adapterA(project, deployer, dai):
+    wdai = deployer.deploy(project.ERC20, "aWDAI", "aWDAI", 18, 0, deployer)
     a = deployer.deploy(project.MockLPAdapter, dai, wdai)
     return a
 
 
 @pytest.fixture
-def pool_adapterB(project, deployer, dai, wdai):
+def pool_adapterB(project, deployer, dai):
+    wdai = deployer.deploy(project.ERC20, "bWDAI", "bWDAI", 18, 0, deployer)
     b = deployer.deploy(project.MockLPAdapter, dai, wdai)
     return b
 
 
 @pytest.fixture
-def pool_adapterC(project, deployer, dai, wdai):
+def pool_adapterC(project, deployer, dai):
+    wdai = deployer.deploy(project.ERC20, "cWDAI", "cWDAI", 18, 0, deployer)
     c = deployer.deploy(project.MockLPAdapter, dai, wdai)
     return c    
 
@@ -87,7 +83,7 @@ def test_initial_pools_initialization(project, deployer, dai, pool_adapterA, poo
     assert pool_count == 3
 
 
-def test_add_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai, wdai):
+def test_add_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
 
     pool_count = len(dynamo4626.lending_pools())
     assert pool_count == 0
@@ -117,13 +113,13 @@ def test_add_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai, wda
 
     # How many more pools can we add?
     for i in range(4): # Dynamo4626.MAX_POOLS - 1
-        a = deployer.deploy(project.MockLPAdapter, dai, wdai)
+        a = deployer.deploy(project.MockLPAdapter, dai, dai)
         result = dynamo4626.add_pool(a, sender=deployer) 
         assert result.return_value == True
         assert events_in_logs(result, ["PoolAdded"])
 
     # One more pool is too many however.
-    a = deployer.deploy(project.MockLPAdapter, dai, wdai)
+    a = deployer.deploy(project.MockLPAdapter, dai, dai)
     with ape.reverts():
         dynamo4626.add_pool(a, sender=deployer)
 
@@ -132,10 +128,8 @@ def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, da
     # Setup our pool.
     dynamo4626.add_pool(pool_adapterA, sender=deployer)
 
-    trade_start_DAI = dai.balanceOf(trader)
+    trade_start_DAI = pool_adapterA.originalAsset.balanceOf(trader)
     trade_start_dyDAI = dynamo4626.balanceOf(trader)
-
-
 
     # Trader needs to allow the 4626 contract to take funds.
     dai.approve(dynamo4626,500, sender=trader)
@@ -146,5 +140,11 @@ def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, da
         pytest.skip("Not on hard hat Ethereum snapshot.")
 
     assert dynamo4626.balanceOf(trader) == 500
+
+    trade_end_DAI = pool_adapterA.originalAsset.balanceOf(trader)
+    trade_end_dyDAI = dynamo4626.balanceOf(trader)
+
+    assert trade_start_DAI - trade_end_dyDAI == 500
+    assert trade_end_dyDAI - trade_start_DAI == 500
     
     assert result.return_value == 500    
