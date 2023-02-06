@@ -3,15 +3,28 @@
 from vyper.interfaces import ERC20
 from interfaces.adapter import LPAdapter
 
+interface mintableERC20:
+    
+
 implements: LPAdapter
 
-originalAsset: immutable(address)
-wrappedAsset: immutable(address)
+aoriginalAsset: immutable(address)
+awrappedAsset: immutable(address)
 
 @external
 def __init__(_originalAsset: address, _wrappedAsset: address):
-    originalAsset = _originalAsset
-    wrappedAsset = _wrappedAsset
+    aoriginalAsset = _originalAsset
+    awrappedAsset = _wrappedAsset
+
+
+@external
+@pure
+def originalAsset() -> address: return aoriginalAsset
+
+
+@external
+@pure
+def wrappedAsset() -> address: return awrappedAsset
 
 
 #How much asset can be withdrawn in a single call
@@ -39,7 +52,8 @@ def assetBalance() -> uint256:
 @external
 @nonpayable
 def deposit(asset_amount: uint256):
-    pass
+    ERC20(aoriginalAsset).transferFrom(msg.sender, self, asset_amount)
+    ERC20(awrappedAsset).mint(self, asset_amount)   
 
 
 #Withdraw the asset from the LP to an arbitary address. 
