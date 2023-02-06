@@ -21,11 +21,11 @@ interface EulerToken:
     #Transfer underlying tokens from sender to the Euler pool, and increase account's eTokens
     #It appears subAccountId would always be 0
     #The amount is denominated in underlying tokens
-    def deposit(subAccountId: uint256, amount: uint256) -> uint256: nonpayable
+    def deposit(subAccountId: uint256, amount: uint256): nonpayable
     #Transfer underlying tokens from Euler pool to sender, and decrease account's eTokens
     #It appears subAccountId would always be 0
     #amount In underlying units
-    def withdraw(subAccountId: uint256, amount: uint256) -> uint256: nonpayable
+    def withdraw(subAccountId: uint256, amount: uint256): nonpayable
     #Balance of a particular account, in underlying units (increases as interest is earned)
     def balanceOfUnderlying(account: address) -> uint256: view
     #Convert an eToken balance to an underlying amount, taking into account current exchange rate

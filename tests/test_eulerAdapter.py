@@ -68,51 +68,30 @@ def test_euler_adapter(euler_adapter, trader, dai, edai):
     #Normally this would be delegate call from 4626 that already has the funds,
     #but here we fake it by transferring DAI first then doing a CALL
     dai.transfer(euler_adapter, "10000 Ether", sender=trader)
-    print("trying deposit")
-    dai.approve(EULER, "10000 Ether", sender=trader)
-    recpt = edai.deposit(0, "10000 Ether", sender=trader)
-    recpt.show_trace(verbose=True)
-    # return
-    try:
-        foo = euler_adapter.deposit("10000 Ether", sender=trader,gas=10000000) #Anyone can call this, its intended to be delegate
-        print(foo)
-    except:
-        b = ape.chain.provider.get_block("latest")
-        print(b)
-        print(b.transactions[0])
-        recpt = ape.chain.provider.get_receipt(b.transactions[0].txn_hash)
-        print(recpt)
-        recpt.show_trace(verbose=True)
-        raise
-    return
+    euler_adapter.deposit("10000 Ether", sender=trader) #Anyone can call this, its intended to be delegate
     #There is no yield yet... so everything should be a million
-    assert cdai.balanceOfUnderlying(compound_adapter, sender=trader).return_value < 1000001*10**18, "adai balance incorrect"
-    assert compound_adapter.assetBalance() < 1000001*10**18, "Asset balance should be 1000000"
-    assert compound_adapter.maxWithdrawable() < 1000001*10**18, "maxWithdrawable should be 1000000"
-    assert cdai.balanceOfUnderlying(compound_adapter, sender=trader).return_value > 999999*10**18, "adai balance incorrect"
-    assert compound_adapter.assetBalance() > 999999*10**18, "Asset balance should be 1000000"
-    assert compound_adapter.maxWithdrawable() > 999999*10**18, "maxWithdrawable should be 1000000"
-    assert compound_adapter.maxDepositable() == 2**256 - 1, "maxDepositable should be MAX_UINT256"
-    #cause cDAI to have a huge profit
+    assert euler_adapter.assetBalance() == pytest.approx(10000*10**18), "Asset balance should be 0"
+    assert euler_adapter.maxWithdrawable() == pytest.approx(10000*10**18), "maxWithdrawable should be 0"
+    assert euler_adapter.maxDepositable() == 2**256 - 1, "maxDepositable should be MAX_UINT256"
+    assert edai.balanceOf(euler_adapter) == pytest.approx(9825538538457378052087), "eDAI balance incorrect"
+    #cause eDAI to have a huge profit
     #mine 100000 blocks with an interval of 5 minute
     set_storage_request = {"jsonrpc": "2.0", "method": "hardhat_mine", "id": 1,
         "params": ["0x186a0", "0x12c"]}
     print(requests.post("http://localhost:8545/", json.dumps(set_storage_request)))
     # print(cdai.balanceOfUnderlying(compound_adapter, sender=trader).return_value)
+    edai.touch(sender=trader)
+    assert euler_adapter.assetBalance() == pytest.approx(10184976143813707854179), "Asset balance should be 0"
+    assert euler_adapter.maxWithdrawable() == pytest.approx(10184976143813707854179), "maxWithdrawable should be 0"
+    assert euler_adapter.maxDepositable() == 2**256 - 1, "maxDepositable should be MAX_UINT256"
+    assert edai.balanceOf(euler_adapter) == pytest.approx(9825538538457378052087), "eDAI balance incorrect"
 
-    assert cdai.balanceOfUnderlying(compound_adapter, sender=trader).return_value < 1000345*10**18, "adai balance incorrect"
-    assert compound_adapter.assetBalance() < 1000345*10**18, "Asset balance should be 1000000"
-    assert compound_adapter.maxWithdrawable() < 1000345*10**18, "maxWithdrawable should be 1000000"
-    assert cdai.balanceOfUnderlying(compound_adapter, sender=trader).return_value > 1000344*10**18, "adai balance incorrect"
-    assert compound_adapter.assetBalance() > 1000344*10**18, "Asset balance should be 1000000"
-    assert compound_adapter.maxWithdrawable() > 1000344*10**18, "maxWithdrawable should be 1000000"
-    assert compound_adapter.maxDepositable() == 2**256 - 1, "maxDepositable should be MAX_UINT256"
     #Withdraw everything
     trader_balance_pre = dai.balanceOf(trader)
-    compound_adapter.withdraw(cdai.balanceOfUnderlying(compound_adapter, sender=trader).return_value, trader, sender=trader)
+    euler_adapter.withdraw(euler_adapter.assetBalance(), trader, sender=trader)
     trader_gotten = dai.balanceOf(trader) - trader_balance_pre
-    assert trader_gotten > 1000344*10**18, "trader gain balance incorrect"
-    print(cdai.balanceOfUnderlying(compound_adapter, sender=trader).return_value)
-    assert cdai.balanceOfUnderlying(compound_adapter, sender=trader).return_value < 10**18, "adai balance incorrect"
-    assert compound_adapter.assetBalance() < 10**18, "Asset balance should be 1000000"
-    assert compound_adapter.maxWithdrawable() < 10**18, "maxWithdrawable should be 1000000"
+    assert trader_gotten == pytest.approx(10184976143813707854179), "trader gain balance incorrect"
+    assert euler_adapter.assetBalance() < (10**18)/1000, "Asset balance should be 0"
+    assert euler_adapter.maxWithdrawable() < (10**18)/1000, "maxWithdrawable should be 0"
+    assert euler_adapter.maxDepositable() == 2**256 - 1, "maxDepositable should be MAX_UINT256"
+    assert edai.balanceOf(euler_adapter) < (10**18)/1000, "adai balance incorrect"
