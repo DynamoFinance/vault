@@ -138,7 +138,7 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALTX_
 
 
 @internal
-def _mint(_share_amount: uint256, _receiver: address) -> uint256:
+def _mint(_receiver: address, _share_amount: uint256) -> uint256:
     """
     @dev Mint an amount of the token and assigns it to an account.
          This encapsulates the modification of balances such that the
@@ -155,24 +155,23 @@ def _mint(_share_amount: uint256, _receiver: address) -> uint256:
 
 # TODO - should this external method even exist? Probably not...
 @external
-def mint(_share_amount: uint256, _receiver: address) -> uint256:
+def mint(_receiver: address, _share_amount: uint256) -> uint256:
     assert msg.sender == self.owner, "Only owner can mint assets."
-    return self._mint(_share_amount, _receiver)
+    return self._mint(_receiver, _share_amount)
 
 
 @internal
 def _adapter_deposit(_adapter: address, _asset_amount: uint256):
     response: Bytes[32] = empty(Bytes[32])
-    result_ok: bool = True # empty(bool)
 
-    raw_call(
+    result_ok : bool = raw_call(
         _adapter,
         concat( method_id("deposit(uint256)"), convert(_asset_amount, bytes32) ),
-        max_outsize=0,
+        #max_outsize=8,
         is_delegate_call=True,
-        revert_on_failure=True
+        revert_on_failure=False
         )
-    
+
     assert result_ok == True, "raw_call failed"
 
 
@@ -199,11 +198,10 @@ def deposit(_asset_amount: uint256, _receiver: address) -> uint256:
         elif dtx.Qty < 0:
             # Liquidate funds from lending pool's adapter.
             qty: uint256 = convert(dtx.Qty * -1, uint256)
-            pass
 
     # Now mint assets to return to investor.
     # TODO : Trade on a 1:1 value for now.
-    self._mint(_asset_amount, _receiver)
+    self._mint(_receiver, _asset_amount)
 
     result : uint256 = _asset_amount
 

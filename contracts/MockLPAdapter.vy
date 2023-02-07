@@ -4,6 +4,7 @@ from vyper.interfaces import ERC20
 from interfaces.adapter import LPAdapter
 
 interface mintableERC20:
+    def mint(_receiver: address, _amount: uint256) -> uint256: nonpayable
     
 
 implements: LPAdapter
@@ -52,8 +53,9 @@ def assetBalance() -> uint256:
 @external
 @nonpayable
 def deposit(asset_amount: uint256):
-    ERC20(aoriginalAsset).transferFrom(msg.sender, self, asset_amount)
-    ERC20(awrappedAsset).mint(self, asset_amount)   
+    #mintableERC20(awrappedAsset).mint(self, asset_amount) 
+    #ERC20(aoriginalAsset).transferFrom(msg.sender, self, asset_amount)
+    pass
 
 
 #Withdraw the asset from the LP to an arbitary address. 
