@@ -11,11 +11,13 @@ implements: LPAdapter
 
 aoriginalAsset: immutable(address)
 awrappedAsset: immutable(address)
+adapterLPAddr: immutable(address)
 
 @external
 def __init__(_originalAsset: address, _wrappedAsset: address):
     aoriginalAsset = _originalAsset
     awrappedAsset = _wrappedAsset
+    adapterLPAddr = self
 
 
 @external
@@ -53,8 +55,11 @@ def assetBalance() -> uint256:
 @external
 @nonpayable
 def deposit(asset_amount: uint256):
+    # Move funds into the LP.
+    ERC20(aoriginalAsset).transfer(adapterLPAddr, asset_amount)
+
+    # Return LP wrapped assets to 4626 vault.
     mintableERC20(awrappedAsset).mint(self, asset_amount) 
-    # TODO: We haven't actually transferred our share of the asset to the LP yet.
 
 
 #Withdraw the asset from the LP to an arbitary address. 
