@@ -143,10 +143,11 @@ def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, da
     dai.approve(dynamo4626,1000, sender=trader)
 
     result = dynamo4626.deposit(500, trader, sender=trader)
-    assert result.return_value == 500     
-
+     
     if is_not_hard_hat():
         pytest.skip("Not on hard hat Ethereum snapshot.")
+
+    assert result.return_value == 500        
 
     assert dynamo4626.balanceOf(trader) == 500
 
@@ -165,7 +166,6 @@ def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, da
     assert LP_end_DAI - LP_start_DAI == 500
 
     # Now do it again!
-
     result = dynamo4626.deposit(500, trader, sender=trader)
     assert result.return_value == 500      
 
