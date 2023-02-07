@@ -127,6 +127,7 @@ def test_add_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
 def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, dai, trader):
     # Setup our pool.
     dynamo4626.add_pool(pool_adapterA, sender=deployer)
+    project.ERC20.at(pool_adapterA.wrappedAsset()).transferMinter(dynamo4626, sender=deployer)
 
     trade_start_DAI = project.ERC20.at(pool_adapterA.originalAsset()).balanceOf(trader)
     trade_start_dyDAI = dynamo4626.balanceOf(trader)
@@ -144,7 +145,7 @@ def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, da
     trade_end_DAI = project.ERC20.at(pool_adapterA.originalAsset()).balanceOf(trader)
     trade_end_dyDAI = dynamo4626.balanceOf(trader)
 
-    #assert trade_start_DAI - trade_end_DAI == 500
-    #assert trade_end_dyDAI - trade_start_dyDAI == 500
+    assert trade_start_DAI - trade_end_DAI == 500
+    assert trade_end_dyDAI - trade_start_dyDAI == 500
     
     assert result.return_value == 500    

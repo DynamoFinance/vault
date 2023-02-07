@@ -163,11 +163,11 @@ def mint(_receiver: address, _share_amount: uint256) -> uint256:
 @internal
 def _adapter_deposit(_adapter: address, _asset_amount: uint256):
     response: Bytes[32] = empty(Bytes[32])
-
-    result_ok : bool = raw_call(
+    result_ok: bool = False
+    result_ok, response = raw_call(
         _adapter,
         concat( method_id("deposit(uint256)"), convert(_asset_amount, bytes32) ),
-        #max_outsize=8,
+        max_outsize=32,
         is_delegate_call=True,
         revert_on_failure=False
         )
@@ -179,7 +179,7 @@ def _adapter_deposit(_adapter: address, _asset_amount: uint256):
 def deposit(_asset_amount: uint256, _receiver: address) -> uint256:
     assert _receiver != empty(address), "Cannot send shares to zero address."
 
-    # Move assets to this contract from caller.
+    # Move assets to this contract from caller in one go.
     ERC20(derc20asset).transferFrom(msg.sender, self, _asset_amount)
 
     # It's our intention to move all funds into the lending pools so 

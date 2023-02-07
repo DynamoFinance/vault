@@ -53,9 +53,8 @@ def assetBalance() -> uint256:
 @external
 @nonpayable
 def deposit(asset_amount: uint256):
-    #mintableERC20(awrappedAsset).mint(self, asset_amount) 
-    #ERC20(aoriginalAsset).transferFrom(msg.sender, self, asset_amount)
-    pass
+    mintableERC20(awrappedAsset).mint(self, asset_amount) 
+    # TODO: We haven't actually transferred our share of the asset to the LP yet.
 
 
 #Withdraw the asset from the LP to an arbitary address. 
