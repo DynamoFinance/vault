@@ -1,7 +1,7 @@
 import pytest
 
 import ape
-from tests.conftest import is_not_hard_hat
+from tests.conftest import ensure_hardhat
 from web3 import Web3
 from eth_abi import encode
 
@@ -21,28 +21,28 @@ def vault(project):
     return project.Vault.at(VAULT)
 
 @pytest.fixture
-def dai(project, deployer, trader):
+def dai(project, deployer, trader, ensure_hardhat):
     ua = deployer.deploy(project.ERC20, "DAI", "DAI", 18, 0, deployer)
     ua.mint(trader, '5000000000 Ether', sender=deployer)
     ua.approve(VAULT, '5000000000 Ether', sender=trader)
     return ua
 
 @pytest.fixture
-def frax(project, deployer, trader):
+def frax(project, deployer, trader, ensure_hardhat):
     ua = deployer.deploy(project.ERC20, "FRAX", "FRAX", 18, 0, deployer)
     ua.mint(trader, '5000000000 Ether', sender=deployer)
     ua.approve(VAULT, '5000000000 Ether', sender=trader)
     return ua
 
 @pytest.fixture
-def gho(project, deployer, trader):
+def gho(project, deployer, trader, ensure_hardhat):
     ua = deployer.deploy(project.ERC20, "GHO", "GHO", 18, 0, deployer)
     ua.mint(trader, '5000000000 Ether', sender=deployer)
     ua.approve(VAULT, '5000000000 Ether', sender=trader)
     return ua
 
 @pytest.fixture
-def ddai4626(project, deployer, trader, dai):
+def ddai4626(project, deployer, trader, dai, ensure_hardhat):
     ua = deployer.deploy(project.Fake4626, "Wrapped DAI", "dDAI4626", 18, dai)
     dai.approve(ua, '2000000000 Ether', sender=trader)
     ua.deposit('1000 Ether', trader, sender=trader)
@@ -50,7 +50,7 @@ def ddai4626(project, deployer, trader, dai):
     return ua
 
 @pytest.fixture
-def dfrax4626(project, deployer, trader, frax):
+def dfrax4626(project, deployer, trader, frax, ensure_hardhat):
     ua = deployer.deploy(project.Fake4626, "Wrapped FRAX", "dFRAX4626", 18, frax)
     frax.approve(ua, '2000000000 Ether', sender=trader)
     ua.deposit('1000 Ether', trader, sender=trader)
@@ -58,7 +58,7 @@ def dfrax4626(project, deployer, trader, frax):
     return ua
 
 @pytest.fixture
-def dgho4626(project, deployer, trader, gho):
+def dgho4626(project, deployer, trader, gho, ensure_hardhat):
     ua = deployer.deploy(project.Fake4626, "Wrapped GHO", "dGHO4626", 18, gho)
     gho.approve(ua, '2000000000 Ether', sender=trader)
     ua.deposit('1000 Ether', trader, sender=trader)
@@ -89,9 +89,7 @@ def swap(pool_id, vault, intoken, outtoken, amount, trader):
     )
 
 @pytest.fixture
-def dDAI(project, deployer, dai, ddai4626, vault, trader):
-    if is_not_hard_hat():
-        pytest.skip("Not on hard hat Ethereum snapshot.")
+def dDAI(project, deployer, dai, ddai4626, vault, trader, ensure_hardhat):
     lp = deployer.deploy(
         #We are using mock here which hardcodes exchange rate of 1:1
         #TODO: once we have a somewhat working 4626, we should probably use ERC4626LinearPool
@@ -116,9 +114,7 @@ def dDAI(project, deployer, dai, ddai4626, vault, trader):
     return lp
 
 @pytest.fixture
-def dFRAX(project, deployer, frax, dfrax4626, vault, trader):
-    if is_not_hard_hat():
-        pytest.skip("Not on hard hat Ethereum snapshot.")
+def dFRAX(project, deployer, frax, dfrax4626, vault, trader, ensure_hardhat):
     lp = deployer.deploy(
         #We are using mock here which hardcodes exchange rate of 1:1
         #TODO: once we have a somewhat working 4626, we should probably use ERC4626LinearPool
@@ -143,9 +139,7 @@ def dFRAX(project, deployer, frax, dfrax4626, vault, trader):
     return lp
 
 @pytest.fixture
-def dGHO(project, deployer, gho, dgho4626, vault, trader):
-    if is_not_hard_hat():
-        pytest.skip("Not on hard hat Ethereum snapshot.")
+def dGHO(project, deployer, gho, dgho4626, vault, trader, ensure_hardhat):
     lp = deployer.deploy(
         #We are using mock here which hardcodes exchange rate of 1:1
         #TODO: once we have a somewhat working 4626, we should probably use ERC4626LinearPool
@@ -170,7 +164,7 @@ def dGHO(project, deployer, gho, dgho4626, vault, trader):
     return lp
 
 @pytest.fixture
-def dUSD(project, deployer, vault, dai, frax, gho, dDAI, dFRAX, dGHO):
+def dUSD(project, deployer, vault, dai, frax, gho, dDAI, dFRAX, dGHO, ensure_hardhat):
     #Example pool: https://etherscan.io/address/0xa13a9247ea42d743238089903570127dda72fe44
     sp = deployer.deploy(
         project.ComposableStablePool,
@@ -203,9 +197,7 @@ def tokendiff(user, tokens, prev={}):
         prev[token] = bal
     return prev
 
-def test_composable(trader, vault, dai, frax, gho, dDAI, dFRAX, dGHO, dUSD, ddai4626, dfrax4626, dgho4626):
-    if is_not_hard_hat():
-        pytest.skip("Not on hard hat Ethereum snapshot.")
+def test_composable(trader, vault, dai, frax, gho, dDAI, dFRAX, dGHO, dUSD, ddai4626, dfrax4626, dgho4626, ensure_hardhat):
     #ensure oracle of each d-token returns 1 (since no yield yet)
     assert dDAI.getRate() == 10**18, "rate is not 1"
     assert dFRAX.getRate() == 10**18, "rate is not 1"

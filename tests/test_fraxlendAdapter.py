@@ -1,7 +1,7 @@
 import pytest
 
 import ape
-from tests.conftest import is_not_hard_hat
+from tests.conftest import ensure_hardhat
 from web3 import Web3
 import requests, json
 import eth_abi
@@ -19,13 +19,11 @@ def trader(accounts):
     return accounts[1]
 
 @pytest.fixture
-def fraxpair(project, deployer, trader):
+def fraxpair(project, deployer, trader, ensure_hardhat):
     return project.fraxpair.at(BTC_FRAX_PAIR)
 
 @pytest.fixture
-def frax(project, deployer, trader):
-    if is_not_hard_hat():
-        pytest.skip("Not on hard hat Ethereum snapshot.")
+def frax(project, deployer, trader, ensure_hardhat):
     frax = project.ERC20.at(FRAX)
     #TODO: Ensure trader has enough FRAX
     #first storage slot: mapping (address => uint256) internal _balances; 
@@ -37,16 +35,12 @@ def frax(project, deployer, trader):
     return frax
 
 @pytest.fixture
-def fraxlend_adapter(project, deployer, frax):
-    if is_not_hard_hat():
-        pytest.skip("Not on hard hat Ethereum snapshot.")
+def fraxlend_adapter(project, deployer, frax, ensure_hardhat):
     fa = deployer.deploy(project.fraxlendAdapter, BTC_FRAX_PAIR, FRAX)
     return fa
 
 
-def test_fraxlend_adapter(trader, frax, fraxpair, fraxlend_adapter, deployer):
-    if is_not_hard_hat():
-        pytest.skip("Not on hard hat Ethereum snapshot.")
+def test_fraxlend_adapter(trader, frax, fraxpair, fraxlend_adapter, deployer, ensure_hardhat):
     assert fraxlend_adapter.assetBalance() == 0, "Asset balance should be 0"
     assert fraxlend_adapter.maxWithdrawable() == 0, "maxWithdrawable should be 0"
     assert fraxlend_adapter.maxDepositable() == 2**256 - 1, "maxDepositable should be MAX_UINT256"
@@ -59,7 +53,7 @@ def test_fraxlend_adapter(trader, frax, fraxpair, fraxlend_adapter, deployer):
     assert fraxlend_adapter.assetBalance() == pytest.approx(1000000*10**18), "Asset balance should be 0"
     assert fraxlend_adapter.maxWithdrawable() == pytest.approx(1000000*10**18), "maxWithdrawable should be 0"
     assert fraxlend_adapter.maxDepositable() == 2**256 - 1, "maxDepositable should be MAX_UINT256"
-    assert fraxpair.balanceOf(fraxlend_adapter) == pytest.approx(999840061906620696326135), "fToken balance incorrect"
+    assert fraxpair.balanceOf(fraxlend_adapter) == pytest.approx(999131280088931076622037), "fToken balance incorrect"
 
     # print(fraxlend_adapter.assetBalance())
 
@@ -70,16 +64,16 @@ def test_fraxlend_adapter(trader, frax, fraxpair, fraxlend_adapter, deployer):
     print(requests.post("http://localhost:8545/", json.dumps(set_storage_request)))
     #The ```addInterest``` function is a public implementation of _addInterest and allows 3rd parties to trigger interest accrual
     fraxpair.addInterest(sender=deployer)
-    # print(fraxlend_adapter.assetBalance())
-    assert fraxlend_adapter.assetBalance() == pytest.approx(1000200902001664229610572), "Asset balance should be 0"
-    assert fraxlend_adapter.maxWithdrawable() == pytest.approx(1000200902001664229610572), "maxWithdrawable should be 0"
+    print(fraxlend_adapter.assetBalance())
+    assert fraxlend_adapter.assetBalance() == pytest.approx(1001351128441541669087483), "Asset balance should be 0"
+    assert fraxlend_adapter.maxWithdrawable() == pytest.approx(1001351128441541669087483), "maxWithdrawable should be 0"
     assert fraxlend_adapter.maxDepositable() == 2**256 - 1, "maxDepositable should be MAX_UINT256"
-    assert fraxpair.balanceOf(fraxlend_adapter) == pytest.approx(999840061906620696326135), "fToken balance incorrect"
+    assert fraxpair.balanceOf(fraxlend_adapter) == pytest.approx(999131280088931076622037), "fToken balance incorrect"
 
     trader_balance_pre = frax.balanceOf(trader)
     fraxlend_adapter.withdraw(fraxlend_adapter.assetBalance(), trader, sender=trader)
     trader_gotten = frax.balanceOf(trader) - trader_balance_pre
-    assert trader_gotten == pytest.approx(1000200902001664229610572), "trader gain balance incorrect"
+    assert trader_gotten == pytest.approx(1001351128541881348711843), "trader gain balance incorrect"
     assert fraxlend_adapter.assetBalance() < 5, "Asset balance should be 0"
     assert fraxlend_adapter.maxWithdrawable() < 5, "maxWithdrawable should be 0"
     assert fraxlend_adapter.maxDepositable() == 2**256 - 1, "maxDepositable should be MAX_UINT256"

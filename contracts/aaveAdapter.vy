@@ -38,11 +38,10 @@ struct ReserveData:
     interestRateStrategyAddress: address
     id: uint8
 
-interface AAVEV2:
+interface AAVEV3:
     def deposit(asset: address, amount: uint256, onBehalfOf: address, referralCode: uint16): nonpayable
     def withdraw(asset: address, amount: uint256, to: address) -> uint256: nonpayable
     def getReserveData(asset: address) -> ReserveData: view
-    def paused() -> bool: view
     
 
 @external
@@ -68,15 +67,17 @@ def atokentoaset(asset: uint256) -> uint256:
 @internal
 @view
 def is_active() -> bool:
-    config: uint256 = AAVEV2(lendingPool).getReserveData(originalAsset).configuration.data
-    return bitwise_and(config, ACTIVE_MASK) != 0
+    # config: uint256 = AAVEV3(lendingPool).getReserveData(originalAsset).configuration.data
+    # return bitwise_and(config, ACTIVE_MASK) != 0
+    #TODO: Broader question of if we try to detect this or not?
+    return True
 
 #How much asset can be withdrawn in a single transaction
 @external
 @view
 def maxWithdrawable() -> uint256:
-    if AAVEV2(lendingPool).paused():
-        return 0
+    # if AAVEV3(lendingPool).paused():
+    #     return 0
     if not self.is_active():
         return 0
     #How much original asset is currently available in the a-token contract
@@ -87,8 +88,8 @@ def maxWithdrawable() -> uint256:
 @external
 @view
 def maxDepositable() -> uint256:
-    if AAVEV2(lendingPool).paused():
-        return 0
+    # if AAVEV3(lendingPool).paused():
+    #     return 0
     if not self.is_active():
         return 0
     return MAX_UINT256
@@ -116,11 +117,11 @@ def deposit(asset_amount: uint256):
     ERC20(originalAsset).approve(lendingPool, asset_amount)
     #Call deposit function
     #"deposit_from" does not make sense. this is the beneficiary of a-tokens which must always be our vault.
-    AAVEV2(lendingPool).deposit(originalAsset, asset_amount, self, 0)
+    AAVEV3(lendingPool).deposit(originalAsset, asset_amount, self, 0)
     #Now aave would have taken our actual token and given us a-tokens..
 
 #Withdraw the asset from the LP
 @external
 @nonpayable
 def withdraw(asset_amount: uint256 , withdraw_to: address):
-    AAVEV2(lendingPool).withdraw(originalAsset, asset_amount, withdraw_to)
+    AAVEV3(lendingPool).withdraw(originalAsset, asset_amount, withdraw_to)

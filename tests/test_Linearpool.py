@@ -1,7 +1,7 @@
 import pytest
 
 import ape
-from tests.conftest import is_not_hard_hat
+from tests.conftest import ensure_hardhat
 from web3 import Web3
 
 
@@ -19,11 +19,11 @@ def trader(accounts):
     return accounts[1]
 
 @pytest.fixture
-def vault(project):
+def vault(project, ensure_hardhat):
     return project.Vault.at(VAULT)
 
 @pytest.fixture
-def dai(project, deployer, trader):
+def dai(project, deployer, trader, ensure_hardhat):
     ua = deployer.deploy(project.ERC20, "mock DAI", "DAI", 18, 0, deployer)
     #Transfer some to trader.
     ua.mint(trader, '5000000000 Ether', sender=deployer)
@@ -33,7 +33,7 @@ def dai(project, deployer, trader):
     return ua
 
 @pytest.fixture
-def ddai4626(project, deployer, trader, dai):
+def ddai4626(project, deployer, trader, dai, ensure_hardhat):
     #just a placeholder token. has no relation to dai.
     ua = deployer.deploy(project.Fake4626, "Wrapped DAI", "dDAI4626", 18, dai)
     #Grant allowance for trader
@@ -48,9 +48,7 @@ def ddai4626(project, deployer, trader, dai):
 
 
 @pytest.fixture
-def linear_pool(project, deployer, dai, ddai4626):
-    if is_not_hard_hat():
-        pytest.skip("Not on hard hat Ethereum snapshot.")
+def linear_pool(project, deployer, dai, ddai4626, ensure_hardhat):
     lp = deployer.deploy(
         #We are using mock here which hardcodes exchange rate of 1:1
         #TODO: once we have a somewhat working 4626, we should probably use ERC4626LinearPool
@@ -84,9 +82,7 @@ def print_pool_info(vault, pool_id, main_idx, wrapped_idx):
     print( "dDAI4626(pool): {bal:.4f}".format(bal=ret.balances[wrapped_idx] / 10**18))
 
 
-def test_pool_swap(linear_pool, dai, ddai4626, trader, vault):
-    if is_not_hard_hat():
-        pytest.skip("Not on hard hat Ethereum snapshot.")
+def test_pool_swap(linear_pool, dai, ddai4626, trader, vault, ensure_hardhat):
     assert dai.balanceOf(trader) == 4000000000 * 10**18
     assert ddai4626.balanceOf(trader) == 1000000000 * 10**18
     assert linear_pool.balanceOf(trader) == 0

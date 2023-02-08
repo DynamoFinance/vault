@@ -1,7 +1,7 @@
 import pytest
 
 import ape
-from tests.conftest import is_not_hard_hat
+from tests.conftest import ensure_hardhat
 from web3 import Web3
 import requests, json
 import eth_abi
@@ -18,13 +18,11 @@ def trader(accounts):
     return accounts[1]
 
 @pytest.fixture
-def cdai(project, deployer, trader):
+def cdai(project, deployer, trader, ensure_hardhat):
     return project.cToken.at(CDAI)
 
 @pytest.fixture
-def dai(project, deployer, trader):
-    if is_not_hard_hat():
-        pytest.skip("Not on hard hat Ethereum snapshot.")
+def dai(project, deployer, trader, ensure_hardhat):
     dai = project.DAI.at(DAI)
     # print("wards", dai.wards(deployer))
     #Make deployer a minter
@@ -43,18 +41,14 @@ def dai(project, deployer, trader):
     return project.ERC20.at(DAI)
 
 @pytest.fixture
-def compound_adapter(project, deployer, dai):
-    if is_not_hard_hat():
-        pytest.skip("Not on hard hat Ethereum snapshot.")
+def compound_adapter(project, deployer, dai, ensure_hardhat):
     ca = deployer.deploy(project.compoundAdapter, dai, CDAI)
     #we run tests against interface
     #return project.LPAdapter.at(aa)
     #I wanted to run tests against interface, but seems vyper does not treat interface file as such?
     return ca
 
-def test_compound_adapter(compound_adapter, trader, dai, cdai):
-    if is_not_hard_hat():
-        pytest.skip("Not on hard hat Ethereum snapshot.")
+def test_compound_adapter(compound_adapter, trader, dai, cdai, ensure_hardhat):
     #Dont have any state...
     assert compound_adapter.assetBalance() == 0, "Asset balance should be 0"
     assert compound_adapter.maxWithdrawable() == 0, "maxWithdrawable should be 0"
@@ -80,12 +74,12 @@ def test_compound_adapter(compound_adapter, trader, dai, cdai):
     print(requests.post("http://localhost:8545/", json.dumps(set_storage_request)))
     # print(cdai.balanceOfUnderlying(compound_adapter, sender=trader).return_value)
 
-    assert cdai.balanceOfUnderlying(compound_adapter, sender=trader).return_value < 1000345*10**18, "adai balance incorrect"
-    assert compound_adapter.assetBalance() < 1000345*10**18, "Asset balance should be 1000000"
-    assert compound_adapter.maxWithdrawable() < 1000345*10**18, "maxWithdrawable should be 1000000"
-    assert cdai.balanceOfUnderlying(compound_adapter, sender=trader).return_value > 1000344*10**18, "adai balance incorrect"
-    assert compound_adapter.assetBalance() > 1000344*10**18, "Asset balance should be 1000000"
-    assert compound_adapter.maxWithdrawable() > 1000344*10**18, "maxWithdrawable should be 1000000"
+    assert cdai.balanceOfUnderlying(compound_adapter, sender=trader).return_value == pytest.approx(1000495372237875489577903), "adai balance incorrect"
+    assert compound_adapter.assetBalance() == pytest.approx(1000495372237875489577903), "Asset balance should be 1000000"
+    assert compound_adapter.maxWithdrawable() == pytest.approx(1000495372237875489577903), "maxWithdrawable should be 1000000"
+    assert cdai.balanceOfUnderlying(compound_adapter, sender=trader).return_value == pytest.approx(1000495372237875489577903), "adai balance incorrect"
+    assert compound_adapter.assetBalance() == pytest.approx(1000495372237875489577903), "Asset balance should be 1000000"
+    assert compound_adapter.maxWithdrawable() == pytest.approx(1000495372237875489577903), "maxWithdrawable should be 1000000"
     assert compound_adapter.maxDepositable() == 2**256 - 1, "maxDepositable should be MAX_UINT256"
     #Withdraw everything
     trader_balance_pre = dai.balanceOf(trader)
