@@ -130,7 +130,7 @@ def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, da
 
     # Jiggle around transfer rights here for test purposes.
     project.ERC20.at(pool_adapterA.wrappedAsset()).transferMinter(dynamo4626, sender=deployer)
-    project.ERC20.at(pool_adapterA.wrappedAsset()).setApprove(pool_adapterA, dynamo4626, (1<<256)-1, sender=dynamo4626) # sender=pool_adapterA)
+    project.ERC20.at(pool_adapterA.wrappedAsset()).setApprove(pool_adapterA, dynamo4626, (1<<256)-1, sender=dynamo4626) 
     dai.setApprove(dynamo4626, pool_adapterA, (1<<256)-1, sender=deployer)
 
     d4626_start_DAI = dai.balanceOf(dynamo4626)

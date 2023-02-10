@@ -166,13 +166,30 @@ def _adapter_deposit(_adapter: address, _asset_amount: uint256):
     result_ok: bool = False
     result_ok, response = raw_call(
         _adapter,
-        concat( method_id("deposit(uint256)"), convert(_asset_amount, bytes32) ),
+        #concat( method_id("deposit(uint256)"), convert(_asset_amount, bytes32) ),
+        _abi_encode(_asset_amount, method_id=method_id("deposit(uint256)")),
         max_outsize=32,
         is_delegate_call=True,
         revert_on_failure=False
         )
 
     assert result_ok == True, "raw_call failed"
+
+
+@internal
+def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: address):
+    response: Bytes[32] = empty(Bytes[32])
+    result_ok: bool = False
+    result_ok, response = raw_call(
+        _adapter,
+        #concat( method_id("withdraw(uint256,address)"), convert(_asset_amount, bytes32), convert(_withdraw_to, bytes32) ),
+        _abi_encode(_asset_amount, _withdraw_to, method_id=method_id("withdraw(uint256,address)")),
+        max_outsize=32,
+        is_delegate_call=True,
+        revert_on_failure=False
+        )
+
+    assert result_ok == True, "raw_call failed"    
 
 
 @external
@@ -198,6 +215,7 @@ def deposit(_asset_amount: uint256, _receiver: address) -> uint256:
         elif dtx.Qty < 0:
             # Liquidate funds from lending pool's adapter.
             qty: uint256 = convert(dtx.Qty * -1, uint256)
+            self._adapter_withdraw(dtx.Adapter, qty, self)
 
     # Now mint assets to return to investor.
     # TODO : Trade on a 1:1 value for now.
