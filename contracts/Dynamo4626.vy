@@ -112,8 +112,7 @@ struct BalanceTX:
     Adapter: address
 
 @internal
-#def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALTX_DEPOSIT) -> DynArray[BalanceTX, MAX_POOLS]:
-def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALTX_DEPOSIT) -> BalanceTX[MAX_POOLS]:
+def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceTX[MAX_POOLS]:
 
     # result : DynArray[BalanceTX, MAX_POOLS] = empty(DynArray[BalanceTX, MAX_POOLS])
     result : BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
@@ -135,6 +134,23 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALTX_
     return result
 
 
+@internal
+def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALTX_DEPOSIT ):
+
+    # Make sure we have enough assets to send to _receiver.
+    txs: BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])    
+    txs = self._getBalanceTxs( _target_asset_balance, _max_txs )
+
+    # Move the funds in/out of Lending Pools as required.
+    for dtx in txs:
+        if dtx.Qty > 0:
+            # Move funds into the lending pool's adapter.
+            self._adapter_deposit(dtx.Adapter, convert(dtx.Qty, uint256))
+
+        elif dtx.Qty < 0:
+            # Liquidate funds from lending pool's adapter.
+            qty: uint256 = convert(dtx.Qty * -1, uint256)
+            self._adapter_withdraw(dtx.Adapter, qty, self)
 
 
 @internal
@@ -201,21 +217,7 @@ def deposit(_asset_amount: uint256, _receiver: address) -> uint256:
 
     # It's our intention to move all funds into the lending pools so 
     # our target balance is zero.
-    #txs: DynArray[BalanceTX, MAX_POOLS] = empty(DynArray[BalanceTX, MAX_POOLS])
-    txs: BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
-    target : uint256 = empty(uint256)
-    txs = self._getBalanceTxs( target )
-
-    # Move the funds in/out of Lending Pools as required.
-    for dtx in txs:
-        if dtx.Qty > 0:
-            # Move funds into the lending pool's adapter.
-            self._adapter_deposit(dtx.Adapter, convert(dtx.Qty, uint256))
-
-        elif dtx.Qty < 0:
-            # Liquidate funds from lending pool's adapter.
-            qty: uint256 = convert(dtx.Qty * -1, uint256)
-            self._adapter_withdraw(dtx.Adapter, qty, self)
+    self._balanceAdapters( empty(uint256) )
 
     # Now mint assets to return to investor.
     # TODO : Trade on a 1:1 value for now.
@@ -226,14 +228,14 @@ def deposit(_asset_amount: uint256, _receiver: address) -> uint256:
     return result
 
 
-    @external
+@external
 def withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint256:
 
     # TODO: need to determine actual shares necessary to provide the correct asset value. Assume 1:1 for now.
     shares: uint256 = _asset_amount # should be: self._convertToShares(_asset_amount)
 
     # Owner has adequate shares?
-    if self.balanceOf[_owner] < shares, "Owner has inadequate shares for this withdraw."
+    assert self.balanceOf[_owner] >= shares, "Owner has inadequate shares for this withdraw."
 
     # Withdrawl is handled by someone other than the owner?
     if msg.sender != _owner:
@@ -246,7 +248,11 @@ def withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint2
     self.totalSupply -= shares
     log Transfer(_owner, empty(address), shares)
 
+    # Make sure we have enough assets to send to _receiver.
+    self._balanceAdapters( _asset_amount )
 
+    # Now send assets to _receiver.
+    ERC20(derc20asset).transferFrom(self, _receiver, _asset_amount)
 
     return shares
 
