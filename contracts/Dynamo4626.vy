@@ -106,10 +106,10 @@ def add_pool(_pool: address) -> bool:
     return self._add_pool(_pool)
 
 
-
 struct BalanceTX:
     Qty: int128
     Adapter: address
+
 
 @internal
 def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceTX[MAX_POOLS]:
@@ -138,7 +138,7 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
 def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALTX_DEPOSIT ):
 
     # Make sure we have enough assets to send to _receiver.
-    txs: BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])    
+    txs: BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
     txs = self._getBalanceTxs( _target_asset_balance, _max_txs )
 
     # Move the funds in/out of Lending Pools as required.
