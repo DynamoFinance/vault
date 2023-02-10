@@ -166,13 +166,13 @@ def _adapter_deposit(_adapter: address, _asset_amount: uint256):
     result_ok: bool = False
     result_ok, response = raw_call(
         _adapter,
-        #concat( method_id("deposit(uint256)"), convert(_asset_amount, bytes32) ),
         _abi_encode(_asset_amount, method_id=method_id("deposit(uint256)")),
         max_outsize=32,
         is_delegate_call=True,
         revert_on_failure=False
         )
 
+    # TODO - interpret response as revert msg in case this assertion fails.
     assert result_ok == True, "raw_call failed"
 
 
@@ -182,13 +182,13 @@ def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: a
     result_ok: bool = False
     result_ok, response = raw_call(
         _adapter,
-        #concat( method_id("withdraw(uint256,address)"), convert(_asset_amount, bytes32), convert(_withdraw_to, bytes32) ),
         _abi_encode(_asset_amount, _withdraw_to, method_id=method_id("withdraw(uint256,address)")),
         max_outsize=32,
         is_delegate_call=True,
         revert_on_failure=False
         )
 
+    # TODO - interpret response as revert msg in case this assertion fails.
     assert result_ok == True, "raw_call failed"    
 
 
@@ -225,6 +225,30 @@ def deposit(_asset_amount: uint256, _receiver: address) -> uint256:
 
     return result
 
+
+    @external
+def withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint256:
+
+    # TODO: need to determine actual shares necessary to provide the correct asset value. Assume 1:1 for now.
+    shares: uint256 = _asset_amount # should be: self._convertToShares(_asset_amount)
+
+    # Owner has adequate shares?
+    if self.balanceOf[_owner] < shares, "Owner has inadequate shares for this withdraw."
+
+    # Withdrawl is handled by someone other than the owner?
+    if msg.sender != _owner:
+
+        assert self.allowance[_owner][msg.sender] >= shares, "Not authorized to move enough owner's shares."
+        self.allowance[_owner][msg.sender] -= shares
+
+    # Burn the shares.
+    self.balanceOf[_owner] -= shares
+    self.totalSupply -= shares
+    log Transfer(_owner, empty(address), shares)
+
+
+
+    return shares
 
 
 
