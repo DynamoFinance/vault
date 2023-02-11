@@ -66,5 +66,6 @@ def deposit(asset_amount: uint256):
 @external
 @nonpayable
 def withdraw(asset_amount: uint256 , withdraw_to: address):
-    pass
+    # Move funds into the controlling 4626 Pool.
+    ERC20(aoriginalAsset).transfer(withdraw_to, asset_amount)
 

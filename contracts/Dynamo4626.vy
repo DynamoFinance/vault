@@ -137,6 +137,7 @@ struct BalanceTX:
 
 @internal
 def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceTX[MAX_POOLS]:
+    # TODO: VERY INCOMPLETE
 
     # result : DynArray[BalanceTX, MAX_POOLS] = empty(DynArray[BalanceTX, MAX_POOLS])
     result : BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
@@ -218,6 +219,7 @@ def _adapter_deposit(_adapter: address, _asset_amount: uint256):
 
 @internal
 def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: address):
+    balbefore : uint256 = ERC20(derc20asset).balanceOf(self)
     response: Bytes[32] = empty(Bytes[32])
     result_ok: bool = False
     result_ok, response = raw_call(
@@ -227,6 +229,10 @@ def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: a
         is_delegate_call=True,
         revert_on_failure=False
         )
+
+    balafter : uint256 = ERC20(derc20asset).balanceOf(self)
+    assert balafter != balbefore, "NOTHING CHANGED!"
+    assert balafter - balbefore == _asset_amount, "DIDN'T GET OUR ASSETS BACK!"
 
     # TODO - interpret response as revert msg in case this assertion fails.
     assert result_ok == True, "raw_call failed"    
@@ -251,13 +257,10 @@ def deposit(_asset_amount: uint256, _receiver: address) -> uint256:
     return result
 
 
-    
-
-
 @external
 def withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint256:
 
-    # TODO: need to determine actual shares necessary to provide the correct asset value. Assume 1:1 for now.
+    # How many shares does it take to get the requested asset amount?
     shares: uint256 = self._convertToShares(_asset_amount)
 
     # Owner has adequate shares?
@@ -277,15 +280,12 @@ def withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint2
     # Make sure we have enough assets to send to _receiver.
     self._balanceAdapters( _asset_amount )
 
+    assert ERC20(derc20asset).balanceOf(self) >= _asset_amount, "ERROR - 4626 DOESN'T HAVE ENOUGH BALANCE TO WITHDRAW!"
+
     # Now send assets to _receiver.
     ERC20(derc20asset).transferFrom(self, _receiver, _asset_amount)
 
     return shares
-
-
-
-
-
 
 
 

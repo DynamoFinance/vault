@@ -124,14 +124,18 @@ def test_add_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
         dynamo4626.add_pool(a, sender=deployer)
 
 
-def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, dai, trader):
+def _setup_single_adapter(_project, _dynamo4626, _deployer, _dai, _adapter):
     # Setup our pool.
-    dynamo4626.add_pool(pool_adapterA, sender=deployer)
+    _dynamo4626.add_pool(_adapter, sender=_deployer)
 
     # Jiggle around transfer rights here for test purposes.
-    project.ERC20.at(pool_adapterA.wrappedAsset()).transferMinter(dynamo4626, sender=deployer)
-    project.ERC20.at(pool_adapterA.wrappedAsset()).setApprove(pool_adapterA, dynamo4626, (1<<256)-1, sender=dynamo4626) 
-    dai.setApprove(dynamo4626, pool_adapterA, (1<<256)-1, sender=deployer)
+    _project.ERC20.at(_adapter.wrappedAsset()).transferMinter(_dynamo4626, sender=_deployer)
+    _project.ERC20.at(_adapter.wrappedAsset()).setApprove(_adapter, _dynamo4626, (1<<256)-1, sender=_dynamo4626) 
+    _dai.setApprove(_dynamo4626, _adapter, (1<<256)-1, sender=_deployer)
+
+
+def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, dai, trader):
+    _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
 
     d4626_start_DAI = dai.balanceOf(dynamo4626)
     LP_start_DAI = dai.balanceOf(pool_adapterA)
@@ -184,3 +188,21 @@ def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, da
 
     LP_end_DAI = dai.balanceOf(pool_adapterA)
     assert LP_end_DAI - LP_start_DAI == 1000
+
+
+def test_single_adapter_withdraw(project, deployer, dynamo4626, pool_adapterA, dai, trader):
+    _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
+
+    # Trader needs to allow the 4626 contract to take funds.
+    dai.approve(dynamo4626,1000, sender=trader)
+
+    result = dynamo4626.deposit(1000, trader, sender=trader)
+     
+    if is_not_hard_hat():
+        pytest.skip("Not on hard hat Ethereum snapshot.")
+
+    assert result.return_value == 1000   
+
+    result = dynamo4626.withdraw(250, trader, trader, sender=trader)
+
+    assert result.return_value == 250
