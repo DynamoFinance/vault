@@ -106,6 +106,30 @@ def add_pool(_pool: address) -> bool:
     return self._add_pool(_pool)
 
 
+@internal
+@view
+def _convertToShares(_asset_amount: uint256) -> uint256:
+    # TODO: It's 1:1 for now.
+    return _asset_amount   
+
+
+@external
+@view
+def convertToShares(_asset_amount: uint256) -> uint256: return self._convertToShares(_asset_amount)
+
+
+@internal
+@view
+def _convertToAssets(_share_amount: uint256) -> uint256:
+    # TODO: It's 1:1 for now.
+    return _share_amount 
+
+
+@external
+@view
+def convertToAssets(_share_amount: uint256) -> uint256: return self._convertToAssets(_share_amount)
+
+
 struct BalanceTX:
     Qty: int128
     Adapter: address
@@ -219,20 +243,22 @@ def deposit(_asset_amount: uint256, _receiver: address) -> uint256:
     # our target balance is zero.
     self._balanceAdapters( empty(uint256) )
 
-    # Now mint assets to return to investor.
-    # TODO : Trade on a 1:1 value for now.
-    self._mint(_receiver, _asset_amount)
+    # Now mint assets to return to investor.    
+    self._mint(_receiver, self._convertToShares(_asset_amount))
 
     result : uint256 = _asset_amount
 
     return result
 
 
+    
+
+
 @external
 def withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint256:
 
     # TODO: need to determine actual shares necessary to provide the correct asset value. Assume 1:1 for now.
-    shares: uint256 = _asset_amount # should be: self._convertToShares(_asset_amount)
+    shares: uint256 = self._convertToShares(_asset_amount)
 
     # Owner has adequate shares?
     assert self.balanceOf[_owner] >= shares, "Owner has inadequate shares for this withdraw."
