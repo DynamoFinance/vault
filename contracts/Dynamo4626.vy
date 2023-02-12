@@ -258,7 +258,7 @@ def _adapter_deposit(_adapter: address, _asset_amount: uint256):
         )
 
     # TODO - interpret response as revert msg in case this assertion fails.
-    assert result_ok == True, "_adapter_deposit raw_call failed"
+    assert result_ok == True, convert(response, String[32]) #"_adapter_deposit raw_call failed"
 
 
 @internal

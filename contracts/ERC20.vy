@@ -42,6 +42,7 @@ owner: address
 
 @internal
 def _transfer(_from: address, _to: address, _value: uint256):
+    assert self.balanceOf[_from] >= _value, "ERC20 transfer insufficient funds."
     self.balanceOf[_from] -= _value
     self.balanceOf[_to] += _value
     log Transfer(_from, _to, _value)
@@ -54,8 +55,12 @@ def _approve(_owner: address, _spender: address, _value: uint256):
 
 @internal
 def _transferFrom(_operator: address, _from: address, _to:address, _value: uint256):
+    assert self.balanceOf[_from] >= _value, "ERC20 transferFrom insufficient funds."
     self.balanceOf[_from] -= _value
     self.balanceOf[_to] += _value
+
+    assert self.allowance[_from][_operator] >= _value, "ERC20 transfer insufficient allowance."
+
     self.allowance[_from][_operator] -= _value
     log Transfer(_from, _to, _value)
 
