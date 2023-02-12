@@ -115,6 +115,7 @@ def _totalAssets() -> uint256:
     assetQty : uint256 = ERC20(derc20asset).balanceOf(self)
     for pool in self.dlending_pools:
         if pool != empty(address):
+            # Shouldn't I just 'assetQty += LPAdapter(pool).totalAssets()'???
             result_ok, response = raw_call(
             pool,
             method_id("totalAssets()"),
