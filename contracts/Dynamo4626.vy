@@ -106,6 +106,17 @@ def add_pool(_pool: address) -> bool:
     return self._add_pool(_pool)
 
 
+@external
+@view
+def totalAssets() -> uint256:
+    assetQty : uint256 = ERC20(derc20asset).balanceOf(self)
+    for pool in self.dlending_pools:
+        if pool != empty(address):
+            assetQty += LPAdapter(pool).totalAssets()
+
+    return assetQty
+
+
 @internal
 @view
 def _convertToShares(_asset_amount: uint256) -> uint256:
