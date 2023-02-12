@@ -141,14 +141,16 @@ def totalAssets() -> uint256: return self._totalAssets()
 @internal
 #@view
 def _convertToShares(_asset_amount: uint256) -> uint256:
-    shareQty : uint256 = self.totalSupply
-    assetQty : uint256 = self._totalAssets()
+    return _asset_amount
 
-    # If there aren't any shares yet it's going to be 1:1.
-    if shareQty == 0 : return _asset_amount
+    # shareQty : uint256 = self.totalSupply
+    # assetQty : uint256 = self._totalAssets()
 
-    sharesPerAsset : uint256 = assetQty / shareQty
-    return _asset_amount * sharesPerAsset    
+    # # If there aren't any shares yet it's going to be 1:1.
+    # if shareQty == 0 : return _asset_amount
+
+    # sharesPerAsset : uint256 = assetQty / shareQty
+    # return _asset_amount * sharesPerAsset    
 
 
 @external
@@ -159,14 +161,16 @@ def convertToShares(_asset_amount: uint256) -> uint256: return self._convertToSh
 @internal
 #@view
 def _convertToAssets(_share_amount: uint256) -> uint256:
-    shareQty : uint256 = self.totalSupply
-    assetQty : uint256 = self._totalAssets()
+    return _share_amount
 
-    # If there aren't any shares yet it's going to be 1:1.
-    if shareQty == 0: return _share_amount
+    # shareQty : uint256 = self.totalSupply
+    # assetQty : uint256 = self._totalAssets()
 
-    assetsPerShare : uint256 = shareQty / assetQty
-    return _share_amount * assetsPerShare
+    # # If there aren't any shares yet it's going to be 1:1.
+    # if shareQty == 0: return _share_amount
+
+    # assetsPerShare : uint256 = shareQty / assetQty
+    # return _share_amount * assetsPerShare
 
 
 @external
@@ -286,6 +290,8 @@ def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: a
 def deposit(_asset_amount: uint256, _receiver: address) -> uint256:
     assert _receiver != empty(address), "Cannot send shares to zero address."
 
+    assert _asset_amount <= ERC20(derc20asset).balanceOf(msg.sender), "4626Deposit insufficient funds."
+
     # Move assets to this contract from caller in one go.
     ERC20(derc20asset).transferFrom(msg.sender, self, _asset_amount)
 
@@ -295,6 +301,8 @@ def deposit(_asset_amount: uint256, _receiver: address) -> uint256:
 
     # Now mint assets to return to investor.    
     self._mint(_receiver, self._convertToShares(_asset_amount))
+
+    #assert False, "GOT HERE!"
 
     result : uint256 = _asset_amount
 

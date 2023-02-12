@@ -126,8 +126,8 @@ def mint(_to: address, _value: uint256) -> bool:
     @param _to The account that will receive the created tokens.
     @param _value The amount that will be created.
     """
-    assert msg.sender == self.minter
-    assert _to != ZERO_ADDRESS
+    assert msg.sender == self.minter, "ERC20 only minter can mint!"
+    assert _to != ZERO_ADDRESS, "ERC20 can't mint to ZERO_ADDRESS."
     self.totalSupply += _value
     self.balanceOf[_to] += _value
     log Transfer(ZERO_ADDRESS, _to, _value)
@@ -142,7 +142,9 @@ def _burn(_to: address, _value: uint256):
     @param _to The account whose tokens will be burned.
     @param _value The amount that will be burned.
     """
-    assert _to != ZERO_ADDRESS
+    assert _to != ZERO_ADDRESS, "ERC20 can't burn ZERO_ADDRESS."
+    assert self.totalSupply >= _value, "ERC20 burning more than total supply."
+    assert self.balanceOf[_to] >= _value, "ERC20 burning more than available."
     self.totalSupply -= _value
     self.balanceOf[_to] -= _value
     log Transfer(_to, ZERO_ADDRESS, _value)

@@ -151,6 +151,7 @@ def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, da
         pytest.skip("Not on hard hat Ethereum snapshot.")
 
     assert dynamo4626.totalAssets(sender=trader).return_value == 0
+    assert pool_adapterA.totalAssets(sender=trader) == 0
 
     assert dynamo4626.convertToAssets(75, sender=trader).return_value == 75
 
@@ -159,7 +160,8 @@ def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, da
 
     result = dynamo4626.deposit(500, trader, sender=trader)
 
-    assert dynamo4626.totalAssets(sender=trader).return_value == 500        
+    assert dynamo4626.totalAssets(sender=trader).return_value == 500   
+    assert pool_adapterA.totalAssets(sender=trader) == 500     
 
     assert result.return_value == 500        
 
@@ -180,16 +182,16 @@ def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, da
     assert LP_end_DAI - LP_start_DAI == 500
 
     # Now do it again!
-    result = dynamo4626.deposit(500, trader, sender=trader)
-    assert result.return_value == 500      
+    result = dynamo4626.deposit(400, trader, sender=trader)
+    assert result.return_value == 400      
 
-    assert dynamo4626.balanceOf(trader) == 1000
+    assert dynamo4626.balanceOf(trader) == 900
 
     trade_end_DAI = project.ERC20.at(pool_adapterA.originalAsset()).balanceOf(trader)
     trade_end_dyDAI = dynamo4626.balanceOf(trader)
 
-    assert trade_start_DAI - trade_end_DAI == 1000
-    assert trade_end_dyDAI - trade_start_dyDAI == 1000
+    assert trade_start_DAI - trade_end_DAI == 900
+    assert trade_end_dyDAI - trade_start_dyDAI == 900
     
     d4626_end_DAI = dai.balanceOf(dynamo4626)
 
@@ -197,7 +199,7 @@ def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, da
     assert d4626_end_DAI == d4626_start_DAI
 
     LP_end_DAI = dai.balanceOf(pool_adapterA)
-    assert LP_end_DAI - LP_start_DAI == 1000
+    assert LP_end_DAI - LP_start_DAI == 900
 
 
 def test_single_adapter_withdraw(project, deployer, dynamo4626, pool_adapterA, dai, trader):

@@ -34,14 +34,16 @@ def wrappedAsset() -> address: return awrappedAsset
 @internal
 @view
 def _convertToShares(_asset_amount: uint256) -> uint256:
-    shareQty : uint256 = ERC20(awrappedAsset).totalSupply()
-    assetQty : uint256 = ERC20(aoriginalAsset).balanceOf(self)
-
-    # If there aren't any shares yet it's going to be 1:1.
-    if shareQty == 0 : return _asset_amount
+    return _asset_amount
     
-    sharesPerAsset : uint256 = assetQty / shareQty
-    return _asset_amount * sharesPerAsset 
+    # shareQty : uint256 = ERC20(awrappedAsset).totalSupply()
+    # assetQty : uint256 = ERC20(aoriginalAsset).balanceOf(self)
+
+    # # If there aren't any shares yet it's going to be 1:1.
+    # if shareQty == 0 : return _asset_amount
+    
+    # sharesPerAsset : uint256 = assetQty / shareQty
+    # return _asset_amount * sharesPerAsset 
 
 
 @external
@@ -52,14 +54,16 @@ def convertToShares(_asset_amount: uint256) -> uint256: return self._convertToSh
 @internal
 @view
 def _convertToAssets(_share_amount: uint256) -> uint256:
-    shareQty : uint256 = ERC20(awrappedAsset).totalSupply()
-    assetQty : uint256 = ERC20(aoriginalAsset).balanceOf(self)
+    return _share_amount
 
-    # If there aren't any shares yet it's going to be 1:1.
-    if shareQty == 0: return _share_amount
+    # shareQty : uint256 = ERC20(awrappedAsset).totalSupply()
+    # assetQty : uint256 = ERC20(aoriginalAsset).balanceOf(self)
+
+    # # If there aren't any shares yet it's going to be 1:1.
+    # if shareQty == 0: return _share_amount
     
-    assetsPerShare : uint256 = shareQty / assetQty
-    return _share_amount * assetsPerShare
+    # assetsPerShare : uint256 = shareQty / assetQty
+    # return _share_amount * assetsPerShare
 
 
 @external
