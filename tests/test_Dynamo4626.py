@@ -154,7 +154,6 @@ def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, da
     assert pool_adapterA.totalAssets() == 0
 
     assert dynamo4626.convertToAssets(75) == 75
-
     assert dynamo4626.convertToShares(55) == 55
 
 
@@ -166,6 +165,9 @@ def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, da
     assert result.return_value == 500        
 
     assert dynamo4626.balanceOf(trader) == 500
+
+    assert dynamo4626.convertToAssets(75) == 75
+    assert dynamo4626.convertToShares(55) == 55    
 
     trade_end_DAI = project.ERC20.at(pool_adapterA.originalAsset()).balanceOf(trader)
     trade_end_dyDAI = dynamo4626.balanceOf(trader)

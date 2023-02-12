@@ -44,11 +44,6 @@ def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20ass
     ddecimals = _decimals
     derc20asset = _erc20asset
 
-    # VYPER NOTE - if we don't explicitly initialize dlending_pools here
-    #              the ctor will initialize it to empty AFTER the
-    #              _add_pool() loop completes and erase the passed in pools!
-    self.dlending_pools = empty(DynArray[address, MAX_POOLS])
-
     self.owner = msg.sender
     self.totalSupply = 0
 
@@ -141,8 +136,6 @@ def totalAssets() -> uint256: return self._totalAssets()
 @internal
 @view
 def _convertToShares(_asset_amount: uint256) -> uint256:
-    # return _asset_amount
-
     shareQty : uint256 = self.totalSupply
     assetQty : uint256 = self._totalAssets()
 
@@ -150,8 +143,9 @@ def _convertToShares(_asset_amount: uint256) -> uint256:
     if shareQty == 0 : return _asset_amount
     if assetQty == 0 : return _asset_amount
 
-    sharesPerAsset : uint256 = shareQty / assetQty
-    return _asset_amount * sharesPerAsset    
+    sharesPerAsset : decimal = convert(shareQty, decimal) / convert(assetQty, decimal)
+
+    return convert(convert(_asset_amount, decimal) * sharesPerAsset, uint256)
 
 
 @external
@@ -170,8 +164,9 @@ def _convertToAssets(_share_amount: uint256) -> uint256:
     # If there aren't any shares yet it's going to be 1:1.
     if shareQty == 0: return _share_amount
 
-    assetsPerShare : uint256 = assetQty / shareQty
-    return _share_amount * assetsPerShare
+    assetsPerShare : decimal = convert(assetQty, decimal) / convert(shareQty, decimal)
+
+    return convert(convert(_share_amount, decimal) * assetsPerShare, uint256)
 
 
 @external
@@ -354,6 +349,9 @@ def _deposit(_asset_amount: uint256, _receiver: address) -> uint256:
 
     assert _asset_amount <= ERC20(derc20asset).balanceOf(msg.sender), "4626Deposit insufficient funds."
 
+    # MUST COMPUTE SHARES FIRST!
+    shares : uint256 = self._convertToShares(_asset_amount)
+
     # Move assets to this contract from caller in one go.
     ERC20(derc20asset).transferFrom(msg.sender, self, _asset_amount)
 
@@ -362,7 +360,8 @@ def _deposit(_asset_amount: uint256, _receiver: address) -> uint256:
     self._balanceAdapters( empty(uint256) )
 
     # Now mint assets to return to investor.    
-    self._mint(_receiver, self._convertToShares(_asset_amount))
+    assert shares == _asset_amount, "DIFFERENT VALUES!"
+    self._mint(_receiver, shares)
 
     #assert False, "GOT HERE!"
 
