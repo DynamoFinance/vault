@@ -31,7 +31,7 @@ event PoolAdded:
 event Transfer:
     sender: indexed(address)
     receiver: indexed(address)
-    value: uint256    
+    value: uint256
 
 
 @external

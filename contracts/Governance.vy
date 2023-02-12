@@ -28,10 +28,8 @@ event GovernanceContractChanged:
     VoteCount: uint256
     TotalGuards: uint256
 
-
 event VoteForNewGovernance:
     NewGovernance: indexed(address)
-
     
 struct ProposedStrategy:
     Weights: DynArray[uint256, MAX_POOLS]
@@ -73,6 +71,7 @@ interface Vault:
     def PoolRebalancer(currentStrategy: Strategy) -> bool: nonpayable
     def replaceGovernanceContract(NewGovernance: address) -> bool: nonpayable
 
+
 @external
 def __init__(contractOwner: address, _vault: address, _tdelay: uint256):
     self.contractOwner = contractOwner
@@ -81,7 +80,6 @@ def __init__(contractOwner: address, _vault: address, _tdelay: uint256):
     self.TDelay = _tdelay
     if _tdelay == empty(uint256):
         self.TDelay = 21600
-
 
 
 @external
@@ -107,7 +105,6 @@ def submitStrategy(strategy: ProposedStrategy) -> uint256:
     # Confirm strategy meets financial goal improvements.
     assert strategy.APYPredicted - strategy.APYNow > 0, "Cannot Submit Strategy without APY Increase"
 
-    
     self.PendingStrategy.Nonce = self.NextNonce
     self.NextNonce += 1
     self.PendingStrategy.ProposerAddress = msg.sender
@@ -121,10 +118,8 @@ def submitStrategy(strategy: ProposedStrategy) -> uint256:
     self.PendingStrategy.VotesEndorse = empty(DynArray[address, MAX_GUARDS])
     self.PendingStrategy.VotesReject = empty(DynArray[address, MAX_GUARDS])
 
-
     log StrategyProposal(self.PendingStrategy)
     return self.PendingStrategy.Nonce
-
 
 
 @external
@@ -142,7 +137,6 @@ def withdrawStrategy(Nonce: uint256):
     self.PendingStrategy.Withdrawn = True
 
     log StrategyWithdrawal(Nonce)
-
 
 
 @external
@@ -166,7 +160,6 @@ def endorseStrategy(Nonce: uint256):
     log StrategyVote(Nonce, msg.sender, False)
 
 
-
 @external
 def rejectStrategy(Nonce: uint256):
     #Check to see that the pending strategy is not the current strategy
@@ -186,7 +179,6 @@ def rejectStrategy(Nonce: uint256):
     self.PendingStrategy.VotesReject.append(msg.sender)
 
     log StrategyVote(Nonce, msg.sender, True)
-
 
 
 @external
@@ -230,7 +222,6 @@ def addGuard(GuardAddress: address):
     log NewGuard(GuardAddress)
 
 
-
 @external
 def removeGuard(GuardAddress: address):
     #Check to see that sender is the contract owner
@@ -261,7 +252,6 @@ def removeGuard(GuardAddress: address):
     log GuardRemoved(GuardAddress)
 
 
-
 @external
 def swapGuard(OldGuardAddress: address, NewGuardAddress: address):
     #Check that the sender is authorized to swap a guard
@@ -286,7 +276,6 @@ def swapGuard(OldGuardAddress: address, NewGuardAddress: address):
     self.LGov[current_index] = NewGuardAddress
 
     log GuardSwap(OldGuardAddress, NewGuardAddress)
-
 
 
 @external
@@ -322,3 +311,4 @@ def replaceGovernance(NewGovernance: address):
     #     Vault(self.Vault).replaceGovernanceContract(NewGovernance)
 
     log GovernanceContractChanged(self.Vault, Voter, NewGovernance, VoteCount, TotalGuards)
+
