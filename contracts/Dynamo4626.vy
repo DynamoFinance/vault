@@ -179,6 +179,74 @@ def _convertToAssets(_share_amount: uint256) -> uint256:
 def convertToAssets(_share_amount: uint256) -> uint256: return self._convertToAssets(_share_amount)
 
 
+@external
+@view
+def maxDeposit() -> uint256:
+    # TODO - if deposits are disabled return 0
+    # Ensure this value cannot take local asset balance over max_value(128) for _getBalanceTxs math.
+    return convert(max_value(int128), uint256) - ERC20(derc20asset).balanceOf(self)
+
+
+@external
+def previewDeposit(_asset_amount: uint256) -> uint256:
+    return self._convertToShares(_asset_amount)
+
+
+@external
+@view
+# Returns maximum number of shares that can be minted for this address.
+def maxMint(_receiver: address) -> uint256:
+    # TODO - if mints are disabled return 0.
+    return convert(max_value(int128), uint256)
+
+
+@external
+@view 
+# Returns asset qty that would be returned for this share_amount.
+def previewMint(_share_amount: uint256) -> uint256:
+    return self._convertToAssets(_share_amount)
+
+
+@external
+def mint(_share_amount: uint256, _receiver: address) -> uint256:
+    assetQty : uint256 = self._convertToAssets(_share_amount)
+    return self._deposit(assetQty, _receiver)
+
+
+@external
+@view 
+# Returns maximum assets this _owner can extract.
+def maxWithdraw(_owner: address) -> uint256:
+    # TODO: If withdraws are disabled return 0.
+    return self._convertToAssets(self.balanceOf[_owner])
+
+
+@external
+@view 
+def previewWithdraw(_asset_amount: uint256) -> uint256:
+    return self._convertToShares(_asset_amount)
+
+
+@external
+@view 
+# Returns maximum shares this _owner can redeem.
+def maxRedeem(_owner: address) -> uint256:
+    # TODO: If redemption is disabled return 0.
+    return self.balanceOf[_owner]
+
+
+@external
+@view 
+def previewRedeem(_share_amount: uint256) -> uint256:
+    return self._convertToAssets(_share_amount)
+
+
+@external
+def redeem(_share_amount: uint256, _receiver: address, _owner: address) -> uint256:
+    assetQty: uint256 = self._convertToAssets(_share_amount)
+    return self._withdraw(assetQty, _receiver, _owner)
+
+
 struct BalanceTX:
     Qty: int128
     Adapter: address
@@ -243,13 +311,6 @@ def _mint(_receiver: address, _share_amount: uint256) -> uint256:
     return _share_amount
 
 
-# TODO - should this external method even exist? Probably not...
-@external
-def mint(_receiver: address, _share_amount: uint256) -> uint256:
-    assert msg.sender == self.owner, "Only owner can mint assets."
-    return self._mint(_receiver, _share_amount)
-
-
 @internal
 def _adapter_deposit(_adapter: address, _asset_amount: uint256):
     response: Bytes[32] = empty(Bytes[32])
@@ -287,8 +348,8 @@ def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: a
     assert balafter - balbefore == _asset_amount, "DIDN'T GET OUR ASSETS BACK!"
 
 
-@external
-def deposit(_asset_amount: uint256, _receiver: address) -> uint256:
+@internal
+def _deposit(_asset_amount: uint256, _receiver: address) -> uint256:
     assert _receiver != empty(address), "Cannot send shares to zero address."
 
     assert _asset_amount <= ERC20(derc20asset).balanceOf(msg.sender), "4626Deposit insufficient funds."
@@ -311,7 +372,11 @@ def deposit(_asset_amount: uint256, _receiver: address) -> uint256:
 
 
 @external
-def withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint256:
+def deposit(_asset_amount: uint256, _receiver: address) -> uint256: return self._deposit(_asset_amount, _receiver)
+
+
+@internal
+def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint256:
 
     # How many shares does it take to get the requested asset amount?
     shares: uint256 = self._convertToShares(_asset_amount)
@@ -340,6 +405,8 @@ def withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint2
 
     return shares
 
+@external
+def withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint256: return self._withdraw(_asset_amount,_receiver,_owner)
 
 
 
