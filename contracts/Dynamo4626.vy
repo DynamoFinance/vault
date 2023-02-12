@@ -141,16 +141,16 @@ def totalAssets() -> uint256: return self._totalAssets()
 @internal
 #@view
 def _convertToShares(_asset_amount: uint256) -> uint256:
-    return _asset_amount
+    # return _asset_amount
 
-    # shareQty : uint256 = self.totalSupply
-    # assetQty : uint256 = self._totalAssets()
+    shareQty : uint256 = self.totalSupply
+    assetQty : uint256 = self._totalAssets()
 
-    # # If there aren't any shares yet it's going to be 1:1.
-    # if shareQty == 0 : return _asset_amount
+    # If there aren't any shares yet it's going to be 1:1.
+    if shareQty == 0 : return _asset_amount
 
-    # sharesPerAsset : uint256 = assetQty / shareQty
-    # return _asset_amount * sharesPerAsset    
+    sharesPerAsset : uint256 = assetQty / shareQty
+    return _asset_amount * sharesPerAsset    
 
 
 @external
@@ -161,16 +161,16 @@ def convertToShares(_asset_amount: uint256) -> uint256: return self._convertToSh
 @internal
 #@view
 def _convertToAssets(_share_amount: uint256) -> uint256:
-    return _share_amount
+    # return _share_amount
 
-    # shareQty : uint256 = self.totalSupply
-    # assetQty : uint256 = self._totalAssets()
+    shareQty : uint256 = self.totalSupply
+    assetQty : uint256 = self._totalAssets()
 
-    # # If there aren't any shares yet it's going to be 1:1.
-    # if shareQty == 0: return _share_amount
+    # If there aren't any shares yet it's going to be 1:1.
+    if shareQty == 0: return _share_amount
 
-    # assetsPerShare : uint256 = shareQty / assetQty
-    # return _share_amount * assetsPerShare
+    assetsPerShare : uint256 = shareQty / assetQty
+    return _share_amount * assetsPerShare
 
 
 @external
