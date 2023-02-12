@@ -147,10 +147,19 @@ def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, da
     # Trader needs to allow the 4626 contract to take funds.
     dai.approve(dynamo4626,1000, sender=trader)
 
-    result = dynamo4626.deposit(500, trader, sender=trader)
-     
     if is_not_hard_hat():
         pytest.skip("Not on hard hat Ethereum snapshot.")
+
+    assert dynamo4626.totalAssets(sender=trader).return_value == 0
+
+    assert dynamo4626.convertToAssets(75, sender=trader).return_value == 75
+
+    assert dynamo4626.convertToShares(55, sender=trader).return_value == 55
+
+
+    result = dynamo4626.deposit(500, trader, sender=trader)
+
+    assert dynamo4626.totalAssets(sender=trader).return_value == 500        
 
     assert result.return_value == 500        
 

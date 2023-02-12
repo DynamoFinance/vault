@@ -143,7 +143,10 @@ def totalAssets() -> uint256: return self._totalAssets()
 def _convertToShares(_asset_amount: uint256) -> uint256:
     shareQty : uint256 = self.totalSupply
     assetQty : uint256 = self._totalAssets()
-    if shareQty == 0 or assetQty == 0: return empty(uint256)
+
+    # If there aren't any shares yet it's going to be 1:1.
+    if shareQty == 0 : return _asset_amount
+
     sharesPerAsset : uint256 = assetQty / shareQty
     return _asset_amount * sharesPerAsset    
 
@@ -158,7 +161,10 @@ def convertToShares(_asset_amount: uint256) -> uint256: return self._convertToSh
 def _convertToAssets(_share_amount: uint256) -> uint256:
     shareQty : uint256 = self.totalSupply
     assetQty : uint256 = self._totalAssets()
-    if shareQty == 0 or assetQty == 0: return empty(uint256)
+
+    # If there aren't any shares yet it's going to be 1:1.
+    if shareQty == 0: return _share_amount
+
     assetsPerShare : uint256 = shareQty / assetQty
     return _share_amount * assetsPerShare
 
@@ -183,7 +189,7 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
     # If there are no pools then nothing to do.
     if len(self.dlending_pools) == 0: return result
 
-    current_asset_balance : int128 = convert(ERC20(derc20asset).balanceOf(self), int128)
+    current_asset_balance : int128 = convert(self._totalAssets(), int128) #convert(ERC20(derc20asset).balanceOf(self), int128)
 
     # TODO - Just going to assume one adapter for now.
     pool : address = self.dlending_pools[0]
@@ -252,7 +258,7 @@ def _adapter_deposit(_adapter: address, _asset_amount: uint256):
         )
 
     # TODO - interpret response as revert msg in case this assertion fails.
-    assert result_ok == True, "raw_call failed"
+    assert result_ok == True, "_adapter_deposit raw_call failed"
 
 
 @internal
