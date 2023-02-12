@@ -78,7 +78,7 @@ def maxDeposit() -> uint256:
 @external
 @view
 def totalAssets() -> uint256:
-    return ERC20(aoriginalAsset).balanceOf(self)
+    return ERC20(aoriginalAsset).balanceOf(adapterLPAddr)
 
 
 # Deposit the asset into underlying LP. The tokens must be present inside the 4626 vault.
