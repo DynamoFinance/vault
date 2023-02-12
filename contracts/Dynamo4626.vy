@@ -146,10 +146,11 @@ def _convertToShares(_asset_amount: uint256) -> uint256:
     shareQty : uint256 = self.totalSupply
     assetQty : uint256 = self._totalAssets()
 
-    # If there aren't any shares yet it's going to be 1:1.
+    # If there aren't any shares/assets yet it's going to be 1:1.
     if shareQty == 0 : return _asset_amount
+    if assetQty == 0 : return _asset_amount
 
-    sharesPerAsset : uint256 = assetQty / shareQty
+    sharesPerAsset : uint256 = shareQty / assetQty
     return _asset_amount * sharesPerAsset    
 
 
@@ -169,7 +170,7 @@ def _convertToAssets(_share_amount: uint256) -> uint256:
     # If there aren't any shares yet it's going to be 1:1.
     if shareQty == 0: return _share_amount
 
-    assetsPerShare : uint256 = shareQty / assetQty
+    assetsPerShare : uint256 = assetQty / shareQty
     return _share_amount * assetsPerShare
 
 
