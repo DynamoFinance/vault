@@ -88,7 +88,7 @@ def _add_pool(_pool: address) -> bool:
     response: Bytes[32] = empty(Bytes[32])
     result_ok: bool = empty(bool)
 
-    result_ok, response = raw_call(_pool, method_id("maxDepositable()"), max_outsize=32, is_static_call=True, revert_on_failure=False)
+    result_ok, response = raw_call(_pool, method_id("maxDeposit()"), max_outsize=32, is_static_call=True, revert_on_failure=False)
     assert (response != empty(Bytes[32])), "Doesn't appear to be an LPAdapter."
 
     self.dlending_pools.append(_pool)

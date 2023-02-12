@@ -34,22 +34,29 @@ def wrappedAsset() -> address: return awrappedAsset
 #How much asset can be withdrawn in a single call
 @external
 @view
-def maxWithdrawable() -> uint256: 
+def maxWithdraw() -> uint256: 
     return empty(uint256)
 
 
 #How much asset can be deposited in a single call
 @external
 @view
-def maxDepositable() -> uint256: 
-    return empty(uint256)
+def maxDeposit() -> uint256: 
+    return max_value(uint256)
 
 
-#How much asset this LP is responsible for.
+# #How much asset this LP is responsible for.
+# @external
+# @view
+# def assetBalance() -> uint256: 
+#     return ERC20(aoriginalAsset).balanceOf(self)
+
+
 @external
 @view
-def assetBalance() -> uint256: 
+def totalAssets() -> uint256:
     return ERC20(aoriginalAsset).balanceOf(self)
+
 
 
 # Deposit the asset into underlying LP. The tokens must be present inside the 4626 vault.
