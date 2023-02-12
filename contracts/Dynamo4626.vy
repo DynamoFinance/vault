@@ -193,11 +193,11 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
     # If there are no pools then nothing to do.
     if len(self.dlending_pools) == 0: return result
 
-    current_asset_balance : int128 = convert(self._totalAssets(), int128) #convert(ERC20(derc20asset).balanceOf(self), int128)
+    current_local_asset_balance : int128 = convert(ERC20(derc20asset).balanceOf(self), int128) 
 
     # TODO - Just going to assume one adapter for now.
     pool : address = self.dlending_pools[0]
-    delta_tx: int128 = current_asset_balance - convert(_target_asset_balance, int128)
+    delta_tx: int128 = current_local_asset_balance - convert(_target_asset_balance, int128)
     dtx: BalanceTX = BalanceTX({Qty: delta_tx, Adapter: pool})
 
     # result.append(dtx)
@@ -218,6 +218,7 @@ def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALT
     for dtx in txs:
         if dtx.Qty > 0:
             # Move funds into the lending pool's adapter.
+            assert ERC20(derc20asset).balanceOf(self) >= convert(dtx.Qty, uint256), "_balanceAdapters insufficient assets!"
             self._adapter_deposit(dtx.Adapter, convert(dtx.Qty, uint256))
 
         elif dtx.Qty < 0:
