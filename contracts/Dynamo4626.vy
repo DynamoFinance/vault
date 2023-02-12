@@ -219,7 +219,7 @@ def _adapter_deposit(_adapter: address, _asset_amount: uint256):
 
 @internal
 def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: address):
-    balbefore : uint256 = ERC20(derc20asset).balanceOf(self)
+    balbefore : uint256 = ERC20(derc20asset).balanceOf(_withdraw_to)
     response: Bytes[32] = empty(Bytes[32])
     result_ok: bool = False
     result_ok, response = raw_call(
@@ -230,12 +230,12 @@ def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: a
         revert_on_failure=False
         )
 
-    balafter : uint256 = ERC20(derc20asset).balanceOf(self)
+    # TODO - interpret response as revert msg in case this assertion fails.
+    assert result_ok == True, convert(response, String[32])
+
+    balafter : uint256 = ERC20(derc20asset).balanceOf(_withdraw_to)
     assert balafter != balbefore, "NOTHING CHANGED!"
     assert balafter - balbefore == _asset_amount, "DIDN'T GET OUR ASSETS BACK!"
-
-    # TODO - interpret response as revert msg in case this assertion fails.
-    assert result_ok == True, "raw_call failed"    
 
 
 @external

@@ -132,6 +132,7 @@ def _setup_single_adapter(_project, _dynamo4626, _deployer, _dai, _adapter):
     _project.ERC20.at(_adapter.wrappedAsset()).transferMinter(_dynamo4626, sender=_deployer)
     _project.ERC20.at(_adapter.wrappedAsset()).setApprove(_adapter, _dynamo4626, (1<<256)-1, sender=_dynamo4626) 
     _dai.setApprove(_dynamo4626, _adapter, (1<<256)-1, sender=_deployer)
+    _dai.setApprove(_adapter, _dynamo4626, (1<<256)-1, sender=_deployer)
 
 
 def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, dai, trader):

@@ -5,6 +5,7 @@ from interfaces.adapter import LPAdapter
 
 interface mintableERC20:
     def mint(_receiver: address, _amount: uint256) -> uint256: nonpayable
+    def burn(_value: uint256): nonpayable
     
 
 implements: LPAdapter
@@ -51,7 +52,7 @@ def assetBalance() -> uint256:
     return empty(uint256)
 
 
-#Deposit the asset into underlying LP. The tokens must be present inside the 4626 vault.
+# Deposit the asset into underlying LP. The tokens must be present inside the 4626 vault.
 @external
 @nonpayable
 def deposit(asset_amount: uint256):
@@ -62,10 +63,16 @@ def deposit(asset_amount: uint256):
     mintableERC20(awrappedAsset).mint(self, asset_amount) 
 
 
-#Withdraw the asset from the LP to an arbitary address. 
+# Withdraw the asset from the LP to an arbitary address. 
 @external
 @nonpayable
 def withdraw(asset_amount: uint256 , withdraw_to: address):
+    # Destroy the wrapped assets
+    mintableERC20(awrappedAsset).burn(asset_amount)
+
+    assert ERC20(aoriginalAsset).balanceOf(adapterLPAddr) >= asset_amount, "INSUFFICIENT FUNDS!"
+    #assert ERC20(aoriginalAsset).allowance(adapterLPAddr, self) >= asset_amount, "NO APPROVAL!"
+
     # Move funds into the controlling 4626 Pool.
-    ERC20(aoriginalAsset).transfer(withdraw_to, asset_amount)
+    ERC20(aoriginalAsset).transferFrom(adapterLPAddr, withdraw_to, asset_amount)
 
