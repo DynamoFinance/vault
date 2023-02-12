@@ -107,7 +107,7 @@ def add_pool(_pool: address) -> bool:
 
 
 @internal
-#@view
+@view
 def _totalAssets() -> uint256:
     response: Bytes[32] = empty(Bytes[32])
     result_ok: bool = False
@@ -117,13 +117,13 @@ def _totalAssets() -> uint256:
         if pool == empty(address): break
             
         # Shouldn't I just 'assetQty += LPAdapter(pool).totalAssets()'???
-        #assetQty += LPAdapter(pool).totalAssets()
+        # assetQty += LPAdapter(pool).totalAssets()
         result_ok, response = raw_call(
         pool,
         method_id("totalAssets()"),
         max_outsize=32,
-        #is_static_call=True,
-        is_delegate_call=True,
+        is_static_call=True,
+        #is_delegate_call=True,
         revert_on_failure=False
         )
         if result_ok:
@@ -134,12 +134,12 @@ def _totalAssets() -> uint256:
 
 
 @external
-#@view
+@view
 def totalAssets() -> uint256: return self._totalAssets()
 
 
 @internal
-#@view
+@view
 def _convertToShares(_asset_amount: uint256) -> uint256:
     # return _asset_amount
 
@@ -154,12 +154,12 @@ def _convertToShares(_asset_amount: uint256) -> uint256:
 
 
 @external
-#@view
+@view
 def convertToShares(_asset_amount: uint256) -> uint256: return self._convertToShares(_asset_amount)
 
 
 @internal
-#@view
+@view
 def _convertToAssets(_share_amount: uint256) -> uint256:
     # return _share_amount
 
@@ -174,7 +174,7 @@ def _convertToAssets(_share_amount: uint256) -> uint256:
 
 
 @external
-#@view
+@view
 def convertToAssets(_share_amount: uint256) -> uint256: return self._convertToAssets(_share_amount)
 
 
