@@ -107,55 +107,64 @@ def add_pool(_pool: address) -> bool:
 
 
 @internal
-@view
+#@view
 def _totalAssets() -> uint256:
     response: Bytes[32] = empty(Bytes[32])
     result_ok: bool = False
 
     assetQty : uint256 = ERC20(derc20asset).balanceOf(self)
     for pool in self.dlending_pools:
-        if pool != empty(address):
-            # Shouldn't I just 'assetQty += LPAdapter(pool).totalAssets()'???
-            result_ok, response = raw_call(
-            pool,
-            method_id("totalAssets()"),
-            max_outsize=32,
-            is_static_call=True,
-            #is_delegate_call=True,
-            revert_on_failure=False
-            )
-            if result_ok:
-                assetQty += convert(response, uint256)
+        if pool == empty(address): break
+            
+        # Shouldn't I just 'assetQty += LPAdapter(pool).totalAssets()'???
+        #assetQty += LPAdapter(pool).totalAssets()
+        result_ok, response = raw_call(
+        pool,
+        method_id("totalAssets()"),
+        max_outsize=32,
+        #is_static_call=True,
+        is_delegate_call=True,
+        revert_on_failure=False
+        )
+        if result_ok:
+            assetQty += convert(response, uint256)
+        assert result_ok, "TOTAL ASSETS REVERT!"  # TODO - remove.
 
     return assetQty
 
 
 @external
-@view
+#@view
 def totalAssets() -> uint256: return self._totalAssets()
 
 
 @internal
-@view
+#@view
 def _convertToShares(_asset_amount: uint256) -> uint256:
-    # TODO: It's 1:1 for now.
-    return _asset_amount   
+    shareQty : uint256 = self.totalSupply
+    assetQty : uint256 = self._totalAssets()
+    if shareQty == 0 or assetQty == 0: return empty(uint256)
+    sharesPerAsset : uint256 = assetQty / shareQty
+    return _asset_amount * sharesPerAsset    
 
 
 @external
-@view
+#@view
 def convertToShares(_asset_amount: uint256) -> uint256: return self._convertToShares(_asset_amount)
 
 
 @internal
-@view
+#@view
 def _convertToAssets(_share_amount: uint256) -> uint256:
-    # TODO: It's 1:1 for now.
-    return _share_amount 
+    shareQty : uint256 = self.totalSupply
+    assetQty : uint256 = self._totalAssets()
+    if shareQty == 0 or assetQty == 0: return empty(uint256)
+    assetsPerShare : uint256 = shareQty / assetQty
+    return _share_amount * assetsPerShare
 
 
 @external
-@view
+#@view
 def convertToAssets(_share_amount: uint256) -> uint256: return self._convertToAssets(_share_amount)
 
 
