@@ -31,11 +31,41 @@ def originalAsset() -> address: return aoriginalAsset
 def wrappedAsset() -> address: return awrappedAsset
 
 
+@internal
+@view
+def _convertToShares(_asset_amount: uint256) -> uint256:
+    shareQty : uint256 = ERC20(awrappedAsset).totalSupply()
+    assetQty : uint256 = ERC20(aoriginalAsset).balanceOf(self)
+    if shareQty == 0 or assetQty == 0: return empty(uint256)
+    sharesPerAsset : uint256 = assetQty / shareQty
+    return _asset_amount * sharesPerAsset 
+
+
+@external
+@view
+def convertToShares(_asset_amount: uint256) -> uint256: return self._convertToShares(_asset_amount)
+
+
+@internal
+@view
+def _convertToAssets(_share_amount: uint256) -> uint256:
+    shareQty : uint256 = ERC20(awrappedAsset).totalSupply()
+    assetQty : uint256 = ERC20(aoriginalAsset).balanceOf(self)
+    if shareQty == 0 or assetQty == 0: return empty(uint256)
+    assetsPerShare : uint256 = shareQty / assetQty
+    return _share_amount * assetsPerShare
+
+
+@external
+@view
+def convertToAssets(_share_amount: uint256) -> uint256: return self._convertToAssets(_share_amount)
+
+
 #How much asset can be withdrawn in a single call
 @external
 @view
 def maxWithdraw() -> uint256: 
-    return empty(uint256)
+    return self._convertToAssets(ERC20(awrappedAsset).balanceOf(msg.sender))
 
 
 #How much asset can be deposited in a single call
@@ -45,18 +75,10 @@ def maxDeposit() -> uint256:
     return max_value(uint256)
 
 
-# #How much asset this LP is responsible for.
-# @external
-# @view
-# def assetBalance() -> uint256: 
-#     return ERC20(aoriginalAsset).balanceOf(self)
-
-
 @external
 @view
 def totalAssets() -> uint256:
     return ERC20(aoriginalAsset).balanceOf(self)
-
 
 
 # Deposit the asset into underlying LP. The tokens must be present inside the 4626 vault.
