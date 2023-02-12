@@ -227,3 +227,18 @@ def test_single_adapter_withdraw(project, deployer, dynamo4626, pool_adapterA, d
     assert result.return_value == 250
 
 
+def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool_adapterA, dai, trader):
+    _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
+
+    dynamo4626.deposit(1000, trader, sender=trader)
+
+    assert dynamo4626.totalAssets() == 1000
+
+
+    # Increase assets in adapter so its assets will double.
+    dai.transfer(pool_adapterA, 1000, sender=deployer)
+
+    assert dynamo4626.totalAssets() == 2000
+
+    
+

@@ -198,7 +198,6 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
 
     # result.append(dtx)
     result[0] = dtx
-    
 
     return result
 
