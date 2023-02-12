@@ -106,15 +106,32 @@ def add_pool(_pool: address) -> bool:
     return self._add_pool(_pool)
 
 
-@external
+@internal
 @view
-def totalAssets() -> uint256:
+def _totalAssets() -> uint256:
+    response: Bytes[32] = empty(Bytes[32])
+    result_ok: bool = False
+
     assetQty : uint256 = ERC20(derc20asset).balanceOf(self)
     for pool in self.dlending_pools:
         if pool != empty(address):
-            assetQty += LPAdapter(pool).totalAssets()
+            result_ok, response = raw_call(
+            pool,
+            method_id("totalAssets()"),
+            max_outsize=32,
+            is_static_call=True,
+            #is_delegate_call=True,
+            revert_on_failure=False
+            )
+            if result_ok:
+                assetQty += convert(response, uint256)
 
     return assetQty
+
+
+@external
+@view
+def totalAssets() -> uint256: return self._totalAssets()
 
 
 @internal
