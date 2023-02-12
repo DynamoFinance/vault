@@ -283,7 +283,7 @@ def withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint2
     assert ERC20(derc20asset).balanceOf(self) >= _asset_amount, "ERROR - 4626 DOESN'T HAVE ENOUGH BALANCE TO WITHDRAW!"
 
     # Now send assets to _receiver.
-    ERC20(derc20asset).transferFrom(self, _receiver, _asset_amount)
+    ERC20(derc20asset).transfer(_receiver, _asset_amount)
 
     return shares
 

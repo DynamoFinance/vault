@@ -71,8 +71,8 @@ def withdraw(asset_amount: uint256 , withdraw_to: address):
     mintableERC20(awrappedAsset).burn(asset_amount)
 
     assert ERC20(aoriginalAsset).balanceOf(adapterLPAddr) >= asset_amount, "INSUFFICIENT FUNDS!"
-    #assert ERC20(aoriginalAsset).allowance(adapterLPAddr, self) >= asset_amount, "NO APPROVAL!"
+    assert ERC20(aoriginalAsset).allowance(adapterLPAddr, self) >= asset_amount, "NO APPROVAL!"
 
-    # Move funds into the controlling 4626 Pool.
+    # Move funds into the destination accout.
     ERC20(aoriginalAsset).transferFrom(adapterLPAddr, withdraw_to, asset_amount)
 
