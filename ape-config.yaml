@@ -35,5 +35,5 @@ hardhat:
     ethereum:
       mainnet:
         upstream_provider: alchemy
-        block_number: 15936703
+        block_number: 16581700
   fork_request_timeout: 1200

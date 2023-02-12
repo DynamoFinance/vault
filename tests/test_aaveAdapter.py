@@ -1,14 +1,14 @@
 import pytest
 
 import ape
-from tests.conftest import is_not_hard_hat
+from tests.conftest import ensure_hardhat
 from web3 import Web3
 import requests, json
 import eth_abi
 
 DAI = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
-AAVE_LENDING_POOL = "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9"
-ADAI = "0x028171bCA77440897B824Ca71D1c56caC55b68A3"
+AAVE_LENDING_POOL = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2"
+ADAI = "0x018008bfb33d285247A21d44E50697654f754e63"
 
 
 @pytest.fixture
@@ -20,14 +20,12 @@ def trader(accounts):
     return accounts[1]
 
 @pytest.fixture
-def adai(project, deployer, trader):
+def adai(project, deployer, trader, ensure_hardhat):
     return project.ERC20.at(ADAI)
 
 
 @pytest.fixture
-def dai(project, deployer, trader):
-    if is_not_hard_hat():
-        pytest.skip("Not on hard hat Ethereum snapshot.")
+def dai(project, deployer, trader, ensure_hardhat):
     dai = project.DAI.at(DAI)
     # print("wards", dai.wards(deployer))
     #Make deployer a minter
@@ -46,18 +44,14 @@ def dai(project, deployer, trader):
     return project.ERC20.at(DAI)
 
 @pytest.fixture
-def aave_adapter(project, deployer, dai):
-    if is_not_hard_hat():
-        pytest.skip("Not on hard hat Ethereum snapshot.")
+def aave_adapter(project, deployer, dai, ensure_hardhat):
     aa = deployer.deploy(project.aaveAdapter, AAVE_LENDING_POOL, dai, ADAI)
     #we run tests against interface
     #return project.LPAdapter.at(aa)
     #I wanted to run tests against interface, but seems vyper does not treat interface file as such?
     return aa
 
-def test_aave_adapter(aave_adapter, trader, dai, adai):
-    if is_not_hard_hat():
-        pytest.skip("Not on hard hat Ethereum snapshot.")
+def test_aave_adapter(aave_adapter, trader, dai, adai, ensure_hardhat):
     #Dont have any state...
     assert aave_adapter.assetBalance() == 0, "Asset balance should be 0"
     assert aave_adapter.maxWithdrawable() == 0, "maxWithdrawable should be 0"
@@ -80,15 +74,15 @@ def test_aave_adapter(aave_adapter, trader, dai, adai):
         "params": ["0x186a0", "0x12c"]}
     print(requests.post("http://localhost:8545/", json.dumps(set_storage_request)))
     # print(adai.balanceOf(aave_adapter))
-    assert adai.balanceOf(aave_adapter) > 1012550*10**18, "adai balance incorrect"
-    assert aave_adapter.assetBalance() > 1012550*10**18, "Asset balance should be 1000000"
-    assert aave_adapter.maxWithdrawable() > 1012550*10**18, "maxWithdrawable should be 1000000"
+    assert adai.balanceOf(aave_adapter) == pytest.approx(1007704413122972883649524), "adai balance incorrect"
+    assert aave_adapter.assetBalance() == pytest.approx(1007704413122972883649524), "Asset balance should be 1000000"
+    assert aave_adapter.maxWithdrawable() == pytest.approx(1007704413122972883649524), "maxWithdrawable should be 1000000"
     assert aave_adapter.maxDepositable() == 2**256 - 1, "maxDepositable should be MAX_UINT256"
     #Withdraw everything
     trader_balance_pre = dai.balanceOf(trader)
     aave_adapter.withdraw(aave_adapter.assetBalance(), trader, sender=trader)
     trader_gotten = dai.balanceOf(trader) - trader_balance_pre
-    assert trader_gotten > 1012550*10**18, "trader gain balance incorrect"
+    assert trader_gotten == pytest.approx(1007704413465903087954661), "trader gain balance incorrect"
     assert aave_adapter.assetBalance() < 10**18, "Asset balance should be 0"
     assert aave_adapter.maxWithdrawable() < 10**18, "maxWithdrawable should be 0"
     assert aave_adapter.maxDepositable() == 2**256 - 1, "maxDepositable should be MAX_UINT256"

@@ -1,7 +1,7 @@
 import pytest
 
 import ape
-from tests.conftest import is_not_hard_hat
+from tests.conftest import ensure_hardhat
 from web3 import Web3
 
 #ETH Mainnet addrs
@@ -24,18 +24,14 @@ def vault(project):
     return project.Vault.at(VAULT)
 
 #@pytest.mark.skipif(is_not_hard_hat(), reason="Only run when connected to hard hat.")
-def test_fork(vault):
-    if is_not_hard_hat():
-            pytest.skip("Not on hard hat Ethereum snapshot.")
+def test_fork(vault, ensure_hardhat):
     #Evidence of connecting to the real balancer vault contract on mainnet fork
     assert vault.WETH() == WETH
 
 def test_always_good():
     assert True
 
-def test_swap(vault, accounts, weth, bal):
-    if is_not_hard_hat():
-        pytest.skip("Not on hard hat Ethereum snapshot.")
+def test_swap(vault, accounts, weth, bal, ensure_hardhat):
     trader = accounts[0]
     print(trader)
     #let trader wrap 100 ETH
@@ -74,4 +70,4 @@ def test_swap(vault, accounts, weth, bal):
     assert weth.balanceOf(trader) == Web3.to_wei(99, 'ether')
     #copied this from output of prior run.
     #should be consistent as we fork off a specific block each time
-    assert bal.balanceOf(trader) == 233863765411278079176
+    assert bal.balanceOf(trader) == 232212803034529744021
