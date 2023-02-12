@@ -34,6 +34,8 @@ def wrappedAsset() -> address: return awrappedAsset
 @internal
 @view
 def _convertToShares(_asset_amount: uint256) -> uint256:
+    # return _asset_amount
+
     shareQty : uint256 = ERC20(awrappedAsset).totalSupply()
     assetQty : uint256 = ERC20(aoriginalAsset).balanceOf(self)
 
@@ -52,6 +54,8 @@ def convertToShares(_asset_amount: uint256) -> uint256: return self._convertToSh
 @internal
 @view
 def _convertToAssets(_share_amount: uint256) -> uint256:
+    # return _share_amount
+
     shareQty : uint256 = ERC20(awrappedAsset).totalSupply()
     assetQty : uint256 = ERC20(aoriginalAsset).balanceOf(self)
 

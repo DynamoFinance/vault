@@ -107,7 +107,7 @@ def add_pool(_pool: address) -> bool:
 
 
 @internal
-#@view
+@view
 def _totalAssets() -> uint256:
     response: Bytes[32] = empty(Bytes[32])
     result_ok: bool = False
@@ -117,13 +117,13 @@ def _totalAssets() -> uint256:
         if pool == empty(address): break
             
         # Shouldn't I just 'assetQty += LPAdapter(pool).totalAssets()'???
-        #assetQty += LPAdapter(pool).totalAssets()
+        # assetQty += LPAdapter(pool).totalAssets()
         result_ok, response = raw_call(
         pool,
         method_id("totalAssets()"),
         max_outsize=32,
-        #is_static_call=True,
-        is_delegate_call=True,
+        is_static_call=True,
+        #is_delegate_call=True,
         revert_on_failure=False
         )
         if result_ok:
@@ -134,13 +134,15 @@ def _totalAssets() -> uint256:
 
 
 @external
-#@view
+@view
 def totalAssets() -> uint256: return self._totalAssets()
 
 
 @internal
-#@view
+@view
 def _convertToShares(_asset_amount: uint256) -> uint256:
+    # return _asset_amount
+
     shareQty : uint256 = self.totalSupply
     assetQty : uint256 = self._totalAssets()
 
@@ -152,13 +154,15 @@ def _convertToShares(_asset_amount: uint256) -> uint256:
 
 
 @external
-#@view
+@view
 def convertToShares(_asset_amount: uint256) -> uint256: return self._convertToShares(_asset_amount)
 
 
 @internal
-#@view
+@view
 def _convertToAssets(_share_amount: uint256) -> uint256:
+    # return _share_amount
+
     shareQty : uint256 = self.totalSupply
     assetQty : uint256 = self._totalAssets()
 
@@ -170,7 +174,7 @@ def _convertToAssets(_share_amount: uint256) -> uint256:
 
 
 @external
-#@view
+@view
 def convertToAssets(_share_amount: uint256) -> uint256: return self._convertToAssets(_share_amount)
 
 
@@ -189,11 +193,11 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
     # If there are no pools then nothing to do.
     if len(self.dlending_pools) == 0: return result
 
-    current_asset_balance : int128 = convert(self._totalAssets(), int128) #convert(ERC20(derc20asset).balanceOf(self), int128)
+    current_local_asset_balance : int128 = convert(ERC20(derc20asset).balanceOf(self), int128) 
 
     # TODO - Just going to assume one adapter for now.
     pool : address = self.dlending_pools[0]
-    delta_tx: int128 = current_asset_balance - convert(_target_asset_balance, int128)
+    delta_tx: int128 = current_local_asset_balance - convert(_target_asset_balance, int128)
     dtx: BalanceTX = BalanceTX({Qty: delta_tx, Adapter: pool})
 
     # result.append(dtx)
@@ -213,6 +217,7 @@ def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALT
     for dtx in txs:
         if dtx.Qty > 0:
             # Move funds into the lending pool's adapter.
+            assert ERC20(derc20asset).balanceOf(self) >= convert(dtx.Qty, uint256), "_balanceAdapters insufficient assets!"
             self._adapter_deposit(dtx.Adapter, convert(dtx.Qty, uint256))
 
         elif dtx.Qty < 0:
@@ -257,7 +262,7 @@ def _adapter_deposit(_adapter: address, _asset_amount: uint256):
         )
 
     # TODO - interpret response as revert msg in case this assertion fails.
-    assert result_ok == True, "_adapter_deposit raw_call failed"
+    assert result_ok == True, convert(response, String[32]) #"_adapter_deposit raw_call failed"
 
 
 @internal
@@ -285,6 +290,8 @@ def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: a
 def deposit(_asset_amount: uint256, _receiver: address) -> uint256:
     assert _receiver != empty(address), "Cannot send shares to zero address."
 
+    assert _asset_amount <= ERC20(derc20asset).balanceOf(msg.sender), "4626Deposit insufficient funds."
+
     # Move assets to this contract from caller in one go.
     ERC20(derc20asset).transferFrom(msg.sender, self, _asset_amount)
 
@@ -294,6 +301,8 @@ def deposit(_asset_amount: uint256, _receiver: address) -> uint256:
 
     # Now mint assets to return to investor.    
     self._mint(_receiver, self._convertToShares(_asset_amount))
+
+    #assert False, "GOT HERE!"
 
     result : uint256 = _asset_amount
 
