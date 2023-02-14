@@ -56,17 +56,18 @@ class Pool:
 
         total_balance : uint256 = self.derc20asset.balanceOf(self) # + sum([self.derc20asset.balanceOf(pool) for pool in self.dlending_pools])
         # available_balance = total_balance - _target_asset_balance
-        total_shares : uint256 = sum(self.strategy)
+        total_shares : uint256 = 0 #sum(self.strategy)
         targetBalances : list[uint256] = [0 for x in range(MAX_POOLS)]
         currentBalances : list[uint256] = [0 for x in range(MAX_POOLS)]
         deltaBalances : list[uint256] = [0 for x in range(MAX_POOLS)]
-        sum_in : int128 = 0 
-        sum_out: int128  = 0
+        #sum_in : int128 = 0 
+        #sum_out: int128  = 0
 
         # Determine current balances.
         for pos, pool in enumerate(self.dlending_pools):            
             poolBalance : uint256 = uint256(self.derc20asset.balanceOf(pool))
             total_balance += poolBalance
+            total_shares += self.strategy[pos]
             currentBalances[pos] = poolBalance
             
         available_balance : int128 = total_balance - _target_asset_balance
@@ -75,10 +76,10 @@ class Pool:
         for pos, pool in enumerate(self.dlending_pools):               
             targetBalances[pos] = int((self.strategy[pos]/total_shares) * available_balance)
             deltaBalances[pos] = int(targetBalances[pos] - currentBalances[pos])
-            if deltaBalances[pos] > 0:
-                sum_out += deltaBalances[pos]
-            else:
-                sum_in += deltaBalances[pos]
+            #if deltaBalances[pos] > 0:
+            #    sum_out += deltaBalances[pos]
+            #else:
+            #    sum_in += deltaBalances[pos]
 
         
         leftover_balance : int128 = available_balance - (sum(currentBalances) + sum(deltaBalances))
@@ -92,8 +93,8 @@ class Pool:
         print("leftover_balance = %s." % leftover_balance)
         print("_target_asset_balance = %s." % _target_asset_balance)
         print("deltaTarget = %s." % deltaTarget)
-        print("sum_in = %s." % sum_in)
-        print("sum_out = %s." % sum_out)
+        #print("sum_in = %s." % sum_in)
+        #print("sum_out = %s." % sum_out)
 
         tx : uint256 = 0
         for i in range(len(self.dlending_pools)):

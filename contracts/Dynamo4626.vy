@@ -1,8 +1,8 @@
 # @version 0.3.7
 
 from vyper.interfaces import ERC20
-from interfaces.adapter import LPAdapter
-
+#from interfaces.adapter import LPAdapter
+import LPAdapter as LPAdapter
 # NOT YET! implements: ERC20
 
 
@@ -23,6 +23,8 @@ totalSupply: public(uint256)
 balanceOf: public(HashMap[address, uint256])
 allowance: public(HashMap[address, HashMap[address, uint256]])
 
+# Maps adapter address (not LP address) to ratios.
+strategy: public(HashMap[address, uint256])
 
 event PoolAdded:
     sender: indexed(address)
@@ -248,7 +250,7 @@ struct BalanceTX:
 
 
 @internal
-def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceTX[MAX_POOLS]:
+def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceTX[MAX_POOLS]: # DynArray[BalanceTX, MAX_POOLS]:
     # TODO: VERY INCOMPLETE
 
     # result : DynArray[BalanceTX, MAX_POOLS] = empty(DynArray[BalanceTX, MAX_POOLS])
@@ -258,6 +260,12 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
     if len(self.dlending_pools) == 0: return result
 
     current_local_asset_balance : int128 = convert(ERC20(derc20asset).balanceOf(self), int128) 
+    total_balance : int128 = current_local_asset_balance
+
+
+
+
+
 
     # TODO - Just going to assume one adapter for now.
     pool : address = self.dlending_pools[0]
@@ -274,6 +282,7 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
 def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALTX_DEPOSIT ):
 
     # Make sure we have enough assets to send to _receiver.
+    # txs: DynArray[BalanceTX, MAX_POOLS] = empty(DynArray[BalanceTX, MAX_POOLS])
     txs: BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
     txs = self._getBalanceTxs( _target_asset_balance, _max_txs )
 
