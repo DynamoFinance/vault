@@ -271,9 +271,9 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
     # If there are no pools then nothing to do.
     if len(self.dlending_pools) == 0: return result
 
-    current_local_asset_balance : int128 = convert(ERC20(derc20asset).balanceOf(self), int128) 
+    current_local_asset_balance : uint256 = ERC20(derc20asset).balanceOf(self) 
 
-    total_balance : int128 = current_local_asset_balance
+    total_balance : uint256 = current_local_asset_balance
     total_shares : uint256 = 0 
 
     targetBalances : uint256[MAX_POOLS] = empty(uint256[MAX_POOLS])
@@ -282,9 +282,9 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
 
     count: uint256 = 0
     for pool in self.dlending_pools:
-        #if self.dlending_pools[pos] == empty(address): break
-        if pool == empty(address): break
         poolBalance : uint256 = self._poolAssets(pool)
+        total_balance += poolBalance
+        total_shares += self.strategy[pool]
 
         count += 1
 
@@ -293,7 +293,7 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
 
     # TODO - Just going to assume one adapter for now.
     pool : address = self.dlending_pools[0]
-    delta_tx: int128 = current_local_asset_balance - convert(_target_asset_balance, int128)
+    delta_tx: int128 = convert(current_local_asset_balance, int128) - convert(_target_asset_balance, int128)
     dtx: BalanceTX = BalanceTX({Qty: delta_tx, Adapter: pool})
 
     # result.append(dtx)
