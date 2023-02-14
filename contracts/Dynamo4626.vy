@@ -50,8 +50,7 @@ def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20ass
     self.totalSupply = 0
 
     for pool in _pools:
-        self._add_pool(pool)
-
+        self._add_pool(pool)        
 
 @pure
 @external
@@ -89,6 +88,9 @@ def _add_pool(_pool: address) -> bool:
     assert (response != empty(Bytes[32])), "Doesn't appear to be an LPAdapter."
 
     self.dlending_pools.append(_pool)
+
+    # TODO : Hack - for now give each pool equal strategic balance.
+    self.strategy[_pool] = 1
 
     log PoolAdded(msg.sender, _pool)
 
@@ -276,19 +278,29 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
     total_balance : uint256 = current_local_asset_balance
     total_shares : uint256 = 0 
 
-    targetBalances : uint256[MAX_POOLS] = empty(uint256[MAX_POOLS])
-    currentBalances : uint256[MAX_POOLS] = empty(uint256[MAX_POOLS])
-    deltaBalances : int128[MAX_POOLS] = empty(int128[MAX_POOLS])
-
-    count: uint256 = 0
+    # Determine current balances.
+    currentBalances : uint256[MAX_POOLS] = empty(uint256[MAX_POOLS])    
+    pos: uint256 = 0
     for pool in self.dlending_pools:
         poolBalance : uint256 = self._poolAssets(pool)
         total_balance += poolBalance
         total_shares += self.strategy[pool]
+        currentBalances[pos] = poolBalance
+        pos += 1
 
-        count += 1
+    # Is there any strategy to deal with?
+    if total_shares == 0: return result        
 
+    available_balance : int128 = convert(total_balance, int128) - convert(_target_asset_balance, int128)
 
+    # Determine target balances.
+    targetBalances : uint256[MAX_POOLS] = empty(uint256[MAX_POOLS])    
+    deltaBalances : int128[MAX_POOLS] = empty(int128[MAX_POOLS])    
+    pos = 0
+    for pool in self.dlending_pools:
+        share_ratio : decimal = convert(self.strategy[pool], decimal) / convert(total_shares, decimal)
+        #targetBalances[pos] = convert( convert(self.strategy[pool], decimal)/convert(total_shares,decimal), uint256)
+        
 
 
     # TODO - Just going to assume one adapter for now.
