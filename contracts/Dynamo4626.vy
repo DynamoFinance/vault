@@ -110,6 +110,8 @@ def _poolAssets(_pool: address) -> uint256:
     response: Bytes[32] = empty(Bytes[32])
     result_ok: bool = False
 
+    assert _pool != empty(address), "EMPTY POOL!!"    
+
     # Shouldn't I just 'assetQty += LPAdapter(pool).totalAssets()'???
     # assetQty += LPAdapter(pool).totalAssets()
     result_ok, response = raw_call(
@@ -126,6 +128,7 @@ def _poolAssets(_pool: address) -> uint256:
 
     assert result_ok, "TOTAL ASSETS REVERT!"        
     return empty(uint256)
+
 
 @internal
 @view
@@ -277,9 +280,13 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
     currentBalances : uint256[MAX_POOLS] = empty(uint256[MAX_POOLS])
     deltaBalances : int128[MAX_POOLS] = empty(int128[MAX_POOLS])
 
-    # for pos in range(MAX_POOLS):
-    #     if self.dlending_pools[pos] == empty(address): break
-    #     poolBalance : uint256 = self._poolAssets(self.dlending_pools[pos])
+    count: uint256 = 0
+    for pool in self.dlending_pools:
+        #if self.dlending_pools[pos] == empty(address): break
+        if pool == empty(address): break
+        poolBalance : uint256 = self._poolAssets(pool)
+
+        count += 1
 
 
 
