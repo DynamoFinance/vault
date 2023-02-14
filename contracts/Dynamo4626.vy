@@ -299,8 +299,13 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
     pos = 0
     for pool in self.dlending_pools:
         share_ratio : decimal = convert(self.strategy[pool], decimal) / convert(total_shares, decimal)
-        #targetBalances[pos] = convert( convert(self.strategy[pool], decimal)/convert(total_shares,decimal), uint256)
-        
+        targetBalances[pos] = convert(convert(available_balance, decimal) * share_ratio, uint256)
+        deltaBalances[pos] = convert(targetBalances[pos],int128) - convert(currentBalances[pos], int128)
+
+    # How far off are we from our target asset balance?
+    deltaTarget : int128 = convert(current_local_asset_balance, int128) - convert(_target_asset_balance, int128)
+
+    # 
 
 
     # TODO - Just going to assume one adapter for now.
