@@ -103,29 +103,38 @@ def add_pool(_pool: address) -> bool:
     return self._add_pool(_pool)
 
 
+
 @internal
 @view
-def _totalAssets() -> uint256:
+def _poolAssets(_pool: address) -> uint256:
     response: Bytes[32] = empty(Bytes[32])
     result_ok: bool = False
 
-    assetQty : uint256 = ERC20(derc20asset).balanceOf(self)
-    for pool in self.dlending_pools:
-        if pool == empty(address): break
-            
-        # Shouldn't I just 'assetQty += LPAdapter(pool).totalAssets()'???
-        # assetQty += LPAdapter(pool).totalAssets()
-        result_ok, response = raw_call(
-        pool,
+    # Shouldn't I just 'assetQty += LPAdapter(pool).totalAssets()'???
+    # assetQty += LPAdapter(pool).totalAssets()
+    result_ok, response = raw_call(
+        _pool,
         method_id("totalAssets()"),
         max_outsize=32,
         is_static_call=True,
         #is_delegate_call=True,
         revert_on_failure=False
         )
-        if result_ok:
-            assetQty += convert(response, uint256)
-        assert result_ok, "TOTAL ASSETS REVERT!"  # TODO - remove.
+
+    if result_ok:
+        return convert(response, uint256)
+
+    assert result_ok, "TOTAL ASSETS REVERT!"        
+    return empty(uint256)
+
+@internal
+@view
+def _totalAssets() -> uint256:
+    assetQty : uint256 = ERC20(derc20asset).balanceOf(self)
+    for pool in self.dlending_pools:
+        if pool == empty(address): break
+        assetQty += self._poolAssets(pool)
+
 
     return assetQty
 
@@ -260,9 +269,17 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
     if len(self.dlending_pools) == 0: return result
 
     current_local_asset_balance : int128 = convert(ERC20(derc20asset).balanceOf(self), int128) 
+
     total_balance : int128 = current_local_asset_balance
+    total_shares : uint256 = 0 
 
+    targetBalances : uint256[MAX_POOLS] = empty(uint256[MAX_POOLS])
+    currentBalances : uint256[MAX_POOLS] = empty(uint256[MAX_POOLS])
+    deltaBalances : int128[MAX_POOLS] = empty(int128[MAX_POOLS])
 
+    # for pos in range(MAX_POOLS):
+    #     if self.dlending_pools[pos] == empty(address): break
+    #     poolBalance : uint256 = self._poolAssets(self.dlending_pools[pos])
 
 
 
