@@ -3,7 +3,7 @@
 
 
 
-|  |`maxWithdraw()`|`maxDeposit()`|`totalAssets()`|`deposit()`|`withdraw`|
+|  |`maxWithdraw()`|`maxDeposit()`|`totalAssets()`|`deposit()`|`withdraw()`|
 |--|---------------|--------------|---------------|-----------|----------|
 |AAVE|Works fine|Works fine|Works fine|reverts error="29"|reverts error="29"|
 |compound|TODO|TODO|TODO|TODO|TODO|
