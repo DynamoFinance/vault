@@ -20,6 +20,8 @@ I could find 3 ways in which AAVE can be paused.
 3. All AAVE contracts are upgradable, so there can be unknown way the contract is paused/exploited/rug-pulled.
 
 
+PS: Adapter can probe this. Look at `is_active()` method of aaveAdapter.vy . Current code uses this to return 0 as maxDeposit() and maxWithdraw(). There might be very tiny amount of gas savings if we dont do this check and let it revert. The savings is not a lot as deposit/withdraw would eventually read the same storage slot.
+
 ## Compound
 
 
