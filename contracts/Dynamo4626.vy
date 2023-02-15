@@ -265,8 +265,6 @@ struct BalanceTX:
 
 @internal
 def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceTX[MAX_POOLS]: # DynArray[BalanceTX, MAX_POOLS]:
-    # TODO: VERY INCOMPLETE
-
     # result : DynArray[BalanceTX, MAX_POOLS] = empty(DynArray[BalanceTX, MAX_POOLS])
     result : BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
 
@@ -305,7 +303,30 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
     # How far off are we from our target asset balance?
     deltaTarget : int128 = convert(current_local_asset_balance, int128) - convert(_target_asset_balance, int128)
 
-    # 
+    # Prioritize and allocate transactions.    
+    pos = 0
+    for pool in self.dlending_pools:
+        # Is the 4626 pool short on its requirements?
+        if deltaTarget < 0:
+            lowest : int128 = 0
+            lowest_pos : uint256 = 0 
+
+            # Find the tx that will bring the most money into the 4626 pool.
+            i : uint256 = 0
+            for ip in self.dlending_pools:                
+                low_candidate : int128 = deltaBalances[pos]
+                if low_candidate < lowest:
+                    lowest = low_candidate
+                    lowest_pos = pos 
+            result[pos] = BalanceTX({Qty: lowest, Adapter:self.dlending_pools[lowest_pos]})
+            deltaBalances[lowest_pos] = 0
+            deltaTarget -= lowest
+            pos += 1
+            continue
+        else:
+            pass
+
+
 
 
     # TODO - Just going to assume one adapter for now.
