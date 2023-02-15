@@ -5,7 +5,7 @@
 
 |  |`maxWithdraw()`|`maxDeposit()`|`totalAssets()`|`deposit()`|`withdraw`|
 |--|---------------|--------------|---------------|-----------|----------|
-|AAVE|Works fine|Works fine|reverts error="29"|reverts error="29"|
+|AAVE|Works fine|Works fine|Works fine|reverts error="29"|reverts error="29"|
 |compound|TODO|TODO|TODO|TODO|TODO|
 |euller|TODO|TODO|TODO|TODO|TODO|
 |fraxlend|TODO|TODO|TODO|TODO|TODO|
