@@ -18,30 +18,15 @@ wrappedAsset: immutable(address)
 adapterAddr: immutable(address)
 
 ############ Aave V2 ###########
-ACTIVE_MASK: constant(uint256) = 72057594037927936 # 1 << 56
-#porting logic and interfaces from https://github.com/timeless-fi/yield-daddy/blob/main/src/aave-v2/AaveV2ERC4626.sol
+PAUSE_MASK: constant(uint256) = 115792089237316195423570985008687907853269984665640564039456431086408522792959 # 1 << 56
 
 struct ReserveConfigurationMap:
     data: uint256
 
-struct ReserveData:
-    configuration: ReserveConfigurationMap
-    liquidityIndex: uint128
-    variableBorrowIndex: uint128
-    currentLiquidityRate: uint128
-    currentVariableBorrowRate: uint128
-    currentStableBorrowRate: uint128
-    lastUpdateTimestamp: uint40
-    aTokenAddress: address
-    stableDebtTokenAddress: address
-    variableDebtTokenAddress: address
-    interestRateStrategyAddress: address
-    id: uint8
-
 interface AAVEV3:
     def deposit(asset: address, amount: uint256, onBehalfOf: address, referralCode: uint16): nonpayable
     def withdraw(asset: address, amount: uint256, to: address) -> uint256: nonpayable
-    def getReserveData(asset: address) -> ReserveData: view
+    def getConfiguration(asset: address) -> ReserveConfigurationMap: view
     
 
 @external
@@ -79,10 +64,8 @@ def atokentoaset(asset: uint256) -> uint256:
 @internal
 @view
 def is_active() -> bool:
-    # config: uint256 = AAVEV3(lendingPool).getReserveData(originalAsset).configuration.data
-    # return bitwise_and(config, ACTIVE_MASK) != 0
-    #TODO: Broader question of if we try to detect this or not?
-    return True
+    config: uint256 = AAVEV3(lendingPool).getConfiguration(originalAsset).data
+    return bitwise_and(config, bitwise_not(PAUSE_MASK)) == 0
 
 #How much asset can be withdrawn in a single transaction
 @external
