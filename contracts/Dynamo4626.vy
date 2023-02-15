@@ -318,14 +318,53 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
                 if low_candidate < lowest:
                     lowest = low_candidate
                     lowest_pos = pos 
+                i+=1
             result[pos] = BalanceTX({Qty: lowest, Adapter:self.dlending_pools[lowest_pos]})
             deltaBalances[lowest_pos] = 0
-            deltaTarget -= lowest
-            pos += 1
-            continue
+            deltaTarget -= lowest                        
         else:
-            pass
+            # Prioritize the tx that will have the highest impact on the balances.
+            largest : int128 = 0
+            largest_pos : uint256 = 0
 
+            i : uint256 = 0
+            for ip in self.dlending_pools: 
+                if abs(convert(deltaBalances[i], int256)) > abs(convert(largest, int256)):
+                    # Ensure we don't let our 4626 pool fall short of its requirements.
+                    if deltaTarget + deltaBalances[i] < 0: continue
+                    largest = deltaBalances[i]
+                    largest_pos = i
+                i+=1
+            result[pos] = BalanceTX({Qty: largest, Adapter:self.dlending_pools[largest_pos]})
+            deltaBalances[largest_pos] = 0
+            deltaTarget += largest
+            
+        pos += 1
+
+    # Make sure we meet our _target_asset_balance goal within _max_txs steps!
+    running_balance : int128 = convert(current_local_asset_balance, int128)
+    for btx in result:        
+        if btx.Qty == 0: break
+        running_balance += btx.Qty
+
+    if running_balance < convert(_target_asset_balance, int128):
+        diff : int128 = convert(_target_asset_balance, int128) - running_balance
+        pos = 0
+        for btx in result:
+            # Is there enough in the Adapter to satisfy our deficit?
+            available_funds : uint256 = self._poolAssets(btx.Adapter) + convert(btx.Qty, uint256)
+            if available_funds >= convert(diff, uint256):
+                btx.Qty-=diff
+                diff = 0 
+                break
+            elif available_funds > 0:
+                btx.Qty-=convert(available_funds, int128)
+                diff+=convert(available_funds,int128)
+
+        # TODO - remove this after testing.
+        assert diff <= 0, "CAN'T BALANCE SOON ENOUGH!"
+
+    pos = 0
 
 
 
