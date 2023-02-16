@@ -10,6 +10,9 @@ DAI = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
 AAVE_LENDING_POOL = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2"
 ADAI = "0x018008bfb33d285247A21d44E50697654f754e63"
 AAVE_PAUSE_MASK = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFF
+#validate with aave dapp
+AAVE_DAI_SUPPLY_CAP = 338000000000000000000000000
+
 
 @pytest.fixture
 def deployer(accounts):
@@ -62,7 +65,7 @@ def test_aave_adapter(aave_adapter, trader, dai, adai, aave_configurator, ensure
     #we use sender=aave_adapter in view functions to troll the vault_location() method
     assert aave_adapter.totalAssets(sender=aave_adapter) == 0, "Asset balance should be 0"
     assert aave_adapter.maxWithdraw(sender=aave_adapter) == 0, "maxWithdraw should be 0"
-    assert aave_adapter.maxDeposit(sender=aave_adapter) == 2**256 - 1, "maxDeposit should be MAX_UINT256"
+    assert aave_adapter.maxDeposit(sender=aave_adapter) == AAVE_DAI_SUPPLY_CAP, "maxDeposit should be MAX_UINT256"
     assert adai.balanceOf(aave_adapter) == 0, "adai balance incorrect"
     #Deposit 1000,000 DAI
     #Normally this would be delegate call from 4626 that already has the funds,
@@ -73,7 +76,7 @@ def test_aave_adapter(aave_adapter, trader, dai, adai, aave_configurator, ensure
     assert adai.balanceOf(aave_adapter) < 1000001*10**18, "adai balance incorrect"
     assert aave_adapter.totalAssets(sender=aave_adapter) < 1000001*10**18, "Asset balance should be 1000000"
     assert aave_adapter.maxWithdraw(sender=aave_adapter) < 1000001*10**18, "maxWithdraw should be 1000000"
-    assert aave_adapter.maxDeposit(sender=aave_adapter) == 2**256 - 1, "maxDeposit should be MAX_UINT256"
+    assert aave_adapter.maxDeposit(sender=aave_adapter) == AAVE_DAI_SUPPLY_CAP, "maxDeposit should be MAX_UINT256"
     # print(adai.balanceOf(aave_adapter))
     #cause aDAI to have a huge profit
     #mine 100000 blocks with an interval of 5 minute
@@ -84,7 +87,7 @@ def test_aave_adapter(aave_adapter, trader, dai, adai, aave_configurator, ensure
     assert adai.balanceOf(aave_adapter) == pytest.approx(1007704413122972883649524), "adai balance incorrect"
     assert aave_adapter.totalAssets(sender=aave_adapter) == pytest.approx(1007704413122972883649524), "Asset balance should be 1000000"
     assert aave_adapter.maxWithdraw(sender=aave_adapter) == pytest.approx(1007704413122972883649524), "maxWithdraw should be 1000000"
-    assert aave_adapter.maxDeposit(sender=aave_adapter) == 2**256 - 1, "maxDeposit should be MAX_UINT256"
+    assert aave_adapter.maxDeposit(sender=aave_adapter) == AAVE_DAI_SUPPLY_CAP, "maxDeposit should be MAX_UINT256"
     #Withdraw everything
     trader_balance_pre = dai.balanceOf(trader)
     aave_adapter.withdraw(aave_adapter.totalAssets(sender=aave_adapter), trader, sender=trader)
@@ -92,7 +95,7 @@ def test_aave_adapter(aave_adapter, trader, dai, adai, aave_configurator, ensure
     assert trader_gotten == pytest.approx(1007704413465903087954661), "trader gain balance incorrect"
     assert aave_adapter.totalAssets(sender=aave_adapter) < 10**18, "Asset balance should be 0"
     assert aave_adapter.maxWithdraw(sender=aave_adapter) < 10**18, "maxWithdraw should be 0"
-    assert aave_adapter.maxDeposit(sender=aave_adapter) == 2**256 - 1, "maxDeposit should be MAX_UINT256"
+    assert aave_adapter.maxDeposit(sender=aave_adapter) == AAVE_DAI_SUPPLY_CAP, "maxDeposit should be MAX_UINT256"
     assert adai.balanceOf(aave_adapter) < 10**18, "adai balance incorrect"
     
     paused = lendingpool.getConfiguration(dai).data & ~AAVE_PAUSE_MASK

@@ -22,7 +22,9 @@ PAUSE_MASK: constant(uint256) = 115792089237316195423570985008687907853269984665
 ACTIVE_MASK: constant(uint256) = 115792089237316195423570985008687907853269984665640564039457511950319091711999 # constant ACTIVE_MASK =                    0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFF
 FROZEN_MASK: constant(uint256) = 115792089237316195423570985008687907853269984665640564039457439892725053784063 # constant FROZEN_MASK =                    0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFDFFFFFFFFFFFFFF
 SUPPLY_CAP_MASK: constant(uint256) = 115792089237316195423570985008682198862499243902866067452821842515308866174975 # constant SUPPLY_CAP_MASK =                0xFFFFFFFFFFFFFFFFFFFFFFFFFF000000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFF
-SUPPLY_CAP_START_BIT_POSITION: constant(int128) = 116
+DECIMALS_MASK: constant(uint256) = 115792089237316195423570985008687907853269984665640564039457512231794068422655#constant DECIMALS_MASK =                  0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00FFFFFFFFFFFF
+SUPPLY_CAP_START_BIT_POSITION: constant(int128) = -116
+RESERVE_DECIMALS_START_BIT_POSITION: constant(int128) = -48 #constant RESERVE_DECIMALS_START_BIT_POSITION = 48
 
 
 struct ReserveConfigurationMap:
@@ -107,12 +109,18 @@ def deposit_allowed(config: uint256) -> bool:
 
 @internal
 @pure
+def get_decimals(config: uint256) -> uint256:
+    decumals_flag: uint256 = bitwise_and(config, bitwise_not(DECIMALS_MASK))
+    return shift(decumals_flag, RESERVE_DECIMALS_START_BIT_POSITION)
+
+@internal
+@pure
 def max_supply(config: uint256) -> uint256:
-    supply_flag: uint256 = bitwise_and(config, bitwise_not(FROZEN_MASK))
+    supply_flag: uint256 = bitwise_and(config, bitwise_not(SUPPLY_CAP_MASK))
     if supply_flag == 0:
         #no supply limitation has been set
         return MAX_UINT256
-    return shift(supply_flag, SUPPLY_CAP_START_BIT_POSITION)
+    return shift(supply_flag, SUPPLY_CAP_START_BIT_POSITION) * (10**self.get_decimals(config))
 
 #How much asset can be withdrawn in a single transaction
 @external
@@ -132,6 +140,7 @@ def maxDeposit() -> uint256:
     config: uint256 = AAVEV3(lendingPool).getConfiguration(originalAsset).data
     if not self.deposit_allowed(config):
         return 0
+    #TODO: this is incorrect. we must substract whats already been supplied
     return self.max_supply(config)
 
 
