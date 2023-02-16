@@ -21,6 +21,9 @@ adapterAddr: immutable(address)
 PAUSE_MASK: constant(uint256) = 115792089237316195423570985008687907853269984665640564039456431086408522792959 # constant PAUSED_MASK =                    0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFF
 ACTIVE_MASK: constant(uint256) = 115792089237316195423570985008687907853269984665640564039457511950319091711999 # constant ACTIVE_MASK =                    0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFF
 FROZEN_MASK: constant(uint256) = 115792089237316195423570985008687907853269984665640564039457439892725053784063 # constant FROZEN_MASK =                    0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFDFFFFFFFFFFFFFF
+SUPPLY_CAP_MASK: constant(uint256) = 115792089237316195423570985008682198862499243902866067452821842515308866174975 # constant SUPPLY_CAP_MASK =                0xFFFFFFFFFFFFFFFFFFFFFFFFFF000000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+SUPPLY_CAP_START_BIT_POSITION: constant(int128) = 116
+
 
 struct ReserveConfigurationMap:
     data: uint256
@@ -87,28 +90,36 @@ def is_frozen(config: uint256) -> bool:
     return bitwise_and(config, bitwise_not(FROZEN_MASK)) != 0
 
 @internal
-@view
-def withdraw_allowed() -> bool:
-    config: uint256 = AAVEV3(lendingPool).getConfiguration(originalAsset).data
+@pure
+def withdraw_allowed(config: uint256) -> bool:
     if self.is_paused(config):
         return False
     return self.is_active(config)
 
 @internal
-@view
-def deposit_allowed() -> bool:
-    config: uint256 = AAVEV3(lendingPool).getConfiguration(originalAsset).data
+@pure
+def deposit_allowed(config: uint256) -> bool:
     if self.is_paused(config):
         return False
     if self.is_frozen(config):
         return False
     return self.is_active(config)
 
+@internal
+@pure
+def max_supply(config: uint256) -> uint256:
+    supply_flag: uint256 = bitwise_and(config, bitwise_not(FROZEN_MASK))
+    if supply_flag == 0:
+        #no supply limitation has been set
+        return MAX_UINT256
+    return shift(supply_flag, SUPPLY_CAP_START_BIT_POSITION)
+
 #How much asset can be withdrawn in a single transaction
 @external
 @view
 def maxWithdraw() -> uint256:
-    if not self.withdraw_allowed():
+    config: uint256 = AAVEV3(lendingPool).getConfiguration(originalAsset).data
+    if not self.withdraw_allowed(config):
         return 0
     #How much original asset is currently available in the a-token contract
     cash: uint256 = ERC20(originalAsset).balanceOf(wrappedAsset) #asset
@@ -118,9 +129,10 @@ def maxWithdraw() -> uint256:
 @external
 @view
 def maxDeposit() -> uint256:
-    if not self.deposit_allowed():
+    config: uint256 = AAVEV3(lendingPool).getConfiguration(originalAsset).data
+    if not self.deposit_allowed(config):
         return 0
-    return MAX_UINT256
+    return self.max_supply(config)
 
 
 #How much asset this LP is responsible for.
