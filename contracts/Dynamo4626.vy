@@ -356,6 +356,7 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
         for btx in result:
             # Is there enough in the Adapter to satisfy our deficit?
             available_funds : int256 = convert(self._poolAssets(btx.Adapter), int256) + btx.Qty
+            # TODO : Consider also checking that we aren't over the Adapter's maxWithdraw limit here.
             if available_funds >= diff:
                 btx.Qty-= diff
                 diff = 0 
@@ -402,11 +403,17 @@ def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALT
         if dtx.Qty > 0:
             # Move funds into the lending pool's adapter.
             assert ERC20(derc20asset).balanceOf(self) >= convert(dtx.Qty, uint256), "_balanceAdapters insufficient assets!"
+            # TODO : check for deposit failure. If it's due to going beyond
+            #        the adapter's maxDeposit() limit, try again with lower limit.
             self._adapter_deposit(dtx.Adapter, convert(dtx.Qty, uint256))
 
         elif dtx.Qty < 0:
             # Liquidate funds from lending pool's adapter.
             qty: uint256 = convert(dtx.Qty * -1, uint256)
+            # TODO : check for withdraw failure. If it's due to going beyond
+            #        the adapter's maxWithdraw limit then try again with lower limit.
+            # TODO:  We also have to check to see if we short the 4626 balance, where
+            #        the necessary funds will come from! Otherwise this may need to revert.
             self._adapter_withdraw(dtx.Adapter, qty, self)
 
 
