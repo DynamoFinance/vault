@@ -259,7 +259,7 @@ def redeem(_share_amount: uint256, _receiver: address, _owner: address) -> uint2
 
 
 struct BalanceTX:
-    Qty: int128
+    Qty: int256
     Adapter: address
 
 
@@ -290,32 +290,32 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
     # Is there any strategy to deal with?
     if total_shares == 0: return result        
 
-    available_balance : int128 = convert(total_balance, int128) - convert(_target_asset_balance, int128)
+    available_balance : int256 = convert(total_balance, int256) - convert(_target_asset_balance, int256)
 
     # Determine target balances.
     targetBalances : uint256[MAX_POOLS] = empty(uint256[MAX_POOLS])    
-    deltaBalances : int128[MAX_POOLS] = empty(int128[MAX_POOLS])    
+    deltaBalances : int256[MAX_POOLS] = empty(int256[MAX_POOLS])    
     pos = 0
     for pool in self.dlending_pools:
         share_ratio : decimal = convert(self.strategy[pool], decimal) / convert(total_shares, decimal)
         targetBalances[pos] = convert(convert(available_balance, decimal) * share_ratio, uint256)
-        deltaBalances[pos] = convert(targetBalances[pos],int128) - convert(currentBalances[pos], int128)
+        deltaBalances[pos] = convert(targetBalances[pos],int256) - convert(currentBalances[pos], int256)
 
     # How far off are we from our target asset balance?
-    deltaTarget : int128 = convert(current_local_asset_balance, int128) - convert(_target_asset_balance, int128)
+    deltaTarget : int256 = convert(current_local_asset_balance, int256) - convert(_target_asset_balance, int256)
 
     # Prioritize and allocate transactions.    
     pos = 0
     for pool in self.dlending_pools:
         # Is the 4626 pool short on its requirements?
         if deltaTarget < 0:
-            lowest : int128 = 0
+            lowest : int256 = 0
             lowest_pos : uint256 = 0 
 
             # Find the tx that will bring the most money into the 4626 pool.
             i : uint256 = 0
             for ip in self.dlending_pools:                
-                low_candidate : int128 = deltaBalances[pos]
+                low_candidate : int256 = deltaBalances[pos]
                 if low_candidate < lowest:
                     lowest = low_candidate
                     lowest_pos = pos 
@@ -325,12 +325,12 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
             deltaTarget -= lowest                        
         else:
             # Prioritize the tx that will have the highest impact on the balances.
-            largest : int128 = 0
+            largest : int256 = 0
             largest_pos : uint256 = 0
 
             i : uint256 = 0
             for ip in self.dlending_pools: 
-                if abs(convert(deltaBalances[i], int256)) > abs(convert(largest, int256)):
+                if abs(deltaBalances[i]) > abs(largest):
                     # Ensure we don't let our 4626 pool fall short of its requirements.
                     if deltaTarget + deltaBalances[i] < 0: continue
                     largest = deltaBalances[i]
@@ -347,7 +347,7 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
     running_balance : int256 = convert(current_local_asset_balance, int256)
     for btx in result:        
         if btx.Qty == 0: break
-        running_balance += convert(btx.Qty, int256)
+        running_balance += btx.Qty
 
 
     if running_balance < convert(_target_asset_balance, int256):
@@ -355,13 +355,13 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
         pos = 0
         for btx in result:
             # Is there enough in the Adapter to satisfy our deficit?
-            available_funds : int256 = convert(self._poolAssets(btx.Adapter), int256) + convert(btx.Qty, int256)
+            available_funds : int256 = convert(self._poolAssets(btx.Adapter), int256) + btx.Qty
             if available_funds >= diff:
-                btx.Qty-= convert(diff, int128)
+                btx.Qty-= diff
                 diff = 0 
                 break
             elif available_funds > 0:
-                btx.Qty-=convert(available_funds, int128)
+                btx.Qty-=available_funds
                 diff+=available_funds
 
         # TODO - remove this after testing.
@@ -380,7 +380,7 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
 
     # TODO - Just going to assume one adapter for now.
     pool : address = self.dlending_pools[0]
-    delta_tx: int128 = convert(current_local_asset_balance, int128) - convert(_target_asset_balance, int128)
+    delta_tx: int256 = convert(current_local_asset_balance, int256) - convert(_target_asset_balance, int256)
     dtx: BalanceTX = BalanceTX({Qty: delta_tx, Adapter: pool})
 
     # result.append(dtx)
