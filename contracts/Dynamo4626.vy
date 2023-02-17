@@ -343,24 +343,26 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
         pos += 1
 
     # Make sure we meet our _target_asset_balance goal within _max_txs steps!
-    running_balance : int128 = convert(current_local_asset_balance, int128)
+    assert current_local_asset_balance <= max_value(int128) and convert(current_local_asset_balance, int256) >= min_value(int128), "BUSTED!" # TODO remove
+    running_balance : int256 = convert(current_local_asset_balance, int256)
     for btx in result:        
         if btx.Qty == 0: break
-        running_balance += btx.Qty
+        running_balance += convert(btx.Qty, int256)
 
-    if running_balance < convert(_target_asset_balance, int128):
-        diff : int128 = convert(_target_asset_balance, int128) - running_balance
+
+    if running_balance < convert(_target_asset_balance, int256):
+        diff : int256 = convert(_target_asset_balance, int256) - running_balance
         pos = 0
         for btx in result:
             # Is there enough in the Adapter to satisfy our deficit?
-            available_funds : uint256 = self._poolAssets(btx.Adapter) + convert(btx.Qty, uint256)
-            if available_funds >= convert(diff, uint256):
-                btx.Qty-=diff
+            available_funds : int256 = convert(self._poolAssets(btx.Adapter), int256) + convert(btx.Qty, int256)
+            if available_funds >= diff:
+                btx.Qty-= convert(diff, int128)
                 diff = 0 
                 break
             elif available_funds > 0:
                 btx.Qty-=convert(available_funds, int128)
-                diff+=convert(available_funds,int128)
+                diff+=available_funds
 
         # TODO - remove this after testing.
         assert diff <= 0, "CAN'T BALANCE SOON ENOUGH!"
