@@ -10,10 +10,10 @@ MAX_POOLS : constant(int128) = 5
 MAX_BALTX_DEPOSIT : constant(uint8) = 2
 
 
-dname: immutable(String[64])
-dsymbol: immutable(String[32])
-ddecimals: immutable(uint8)
-derc20asset: immutable(address)
+name: public(immutable(String[64]))
+symbol: public(immutable(String[32]))
+decimals: public(immutable(uint8))
+asset: public(immutable(address))
 
 owner: address
 
@@ -41,10 +41,10 @@ def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20ass
 
     assert MAX_BALTX_DEPOSIT <= MAX_POOLS, "Invalid contract pre-conditions."
 
-    dname = _name
-    dsymbol = _symbol
-    ddecimals = _decimals
-    derc20asset = _erc20asset
+    name = _name
+    symbol = _symbol
+    decimals = _decimals
+    asset = _erc20asset
 
     self.owner = msg.sender
     self.totalSupply = 0
@@ -52,21 +52,6 @@ def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20ass
     for pool in _pools:
         self._add_pool(pool)        
 
-@pure
-@external
-def name() -> String[64]: return dname
-
-@pure
-@external
-def symbol() -> String[32]: return dsymbol
-
-@pure
-@external
-def decimals() -> uint8: return ddecimals
-
-@pure
-@external
-def asset() -> address: return derc20asset
 
 # Can't simply have a public lending_pools variable due to this Vyper issue:
 # https://github.com/vyperlang/vyper/issues/2897
@@ -105,7 +90,6 @@ def add_pool(_pool: address) -> bool:
     return self._add_pool(_pool)
 
 
-
 @internal
 @view
 def _poolAssets(_pool: address) -> uint256:
@@ -135,7 +119,7 @@ def _poolAssets(_pool: address) -> uint256:
 @internal
 @view
 def _totalAssets() -> uint256:
-    assetQty : uint256 = ERC20(derc20asset).balanceOf(self)
+    assetQty : uint256 = ERC20(asset).balanceOf(self)
     for pool in self.dlending_pools:
         if pool == empty(address): break
         assetQty += self._poolAssets(pool)
@@ -195,7 +179,7 @@ def convertToAssets(_share_amount: uint256) -> uint256: return self._convertToAs
 def maxDeposit() -> uint256:
     # TODO - if deposits are disabled return 0
     # Ensure this value cannot take local asset balance over max_value(128) for _getBalanceTxs math.
-    return convert(max_value(int128), uint256) - ERC20(derc20asset).balanceOf(self)
+    return convert(max_value(int128), uint256) - ERC20(asset).balanceOf(self)
 
 
 @external
@@ -271,7 +255,7 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
     # If there are no pools then nothing to do.
     if len(self.dlending_pools) == 0: return result
 
-    current_local_asset_balance : uint256 = ERC20(derc20asset).balanceOf(self) 
+    current_local_asset_balance : uint256 = ERC20(asset).balanceOf(self) 
 
     # TODO - New stuff starts here!
     total_balance : uint256 = current_local_asset_balance
@@ -402,7 +386,7 @@ def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALT
     for dtx in txs:
         if dtx.Qty > 0:
             # Move funds into the lending pool's adapter.
-            assert ERC20(derc20asset).balanceOf(self) >= convert(dtx.Qty, uint256), "_balanceAdapters insufficient assets!"
+            assert ERC20(asset).balanceOf(self) >= convert(dtx.Qty, uint256), "_balanceAdapters insufficient assets!"
             # TODO : check for deposit failure. If it's due to going beyond
             #        the adapter's maxDeposit() limit, try again with lower limit.
             self._adapter_deposit(dtx.Adapter, convert(dtx.Qty, uint256))
@@ -451,7 +435,7 @@ def _adapter_deposit(_adapter: address, _asset_amount: uint256):
 
 @internal
 def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: address):
-    balbefore : uint256 = ERC20(derc20asset).balanceOf(_withdraw_to)
+    balbefore : uint256 = ERC20(asset).balanceOf(_withdraw_to)
     response: Bytes[32] = empty(Bytes[32])
     result_ok: bool = False
     result_ok, response = raw_call(
@@ -465,7 +449,7 @@ def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: a
     # TODO - interpret response as revert msg in case this assertion fails.
     assert result_ok == True, convert(response, String[32])
 
-    balafter : uint256 = ERC20(derc20asset).balanceOf(_withdraw_to)
+    balafter : uint256 = ERC20(asset).balanceOf(_withdraw_to)
     assert balafter != balbefore, "NOTHING CHANGED!"
     assert balafter - balbefore == _asset_amount, "DIDN'T GET OUR ASSETS BACK!"
 
@@ -474,13 +458,13 @@ def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: a
 def _deposit(_asset_amount: uint256, _receiver: address) -> uint256:
     assert _receiver != empty(address), "Cannot send shares to zero address."
 
-    assert _asset_amount <= ERC20(derc20asset).balanceOf(msg.sender), "4626Deposit insufficient funds."
+    assert _asset_amount <= ERC20(asset).balanceOf(msg.sender), "4626Deposit insufficient funds."
 
     # MUST COMPUTE SHARES FIRST!
     shares : uint256 = self._convertToShares(_asset_amount)
 
     # Move assets to this contract from caller in one go.
-    ERC20(derc20asset).transferFrom(msg.sender, self, _asset_amount)
+    ERC20(asset).transferFrom(msg.sender, self, _asset_amount)
 
     # It's our intention to move all funds into the lending pools so 
     # our target balance is zero.
@@ -524,10 +508,10 @@ def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint
     # Make sure we have enough assets to send to _receiver.
     self._balanceAdapters( _asset_amount )
 
-    assert ERC20(derc20asset).balanceOf(self) >= _asset_amount, "ERROR - 4626 DOESN'T HAVE ENOUGH BALANCE TO WITHDRAW!"
+    assert ERC20(asset).balanceOf(self) >= _asset_amount, "ERROR - 4626 DOESN'T HAVE ENOUGH BALANCE TO WITHDRAW!"
 
     # Now send assets to _receiver.
-    ERC20(derc20asset).transfer(_receiver, _asset_amount)
+    ERC20(asset).transfer(_receiver, _asset_amount)
 
     return shares
 
