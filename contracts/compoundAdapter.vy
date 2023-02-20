@@ -104,6 +104,7 @@ def deposit(asset_amount: uint256):
     ERC20(originalAsset).approve(wrappedAsset, asset_amount)
     #Call deposit function
     #"deposit_from" does not make sense. this is the beneficiary of a-tokens which must always be our vault.
+    #TODO: check for returned error code!!!
     CompoundToken(wrappedAsset).mint(asset_amount)
     #Now aave would have taken our actual token and given us a-tokens..
 
