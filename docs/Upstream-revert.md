@@ -6,7 +6,7 @@
 |  |`maxWithdraw()`|`maxDeposit()`|`totalAssets()`|`deposit()`|`withdraw()`|
 |--|---------------|--------------|---------------|-----------|----------|
 |AAVE|Works fine|Works fine|Works fine|reverts error="29"|reverts error="29"|
-|compound|Works fine|Works fine|Works fine|TODO|TODO|
+|compound|Works fine|Works fine|Works fine|can revert `MintComptrollerRejection`|can revert `RedeemComptrollerRejection`|
 |euller|TODO|TODO|TODO|TODO|TODO|
 |fraxlend|TODO|TODO|TODO|TODO|TODO|
 
@@ -25,12 +25,17 @@ The idea is that `maxDeposit()` and `maxWithdraw()` return some value, and as lo
 
 current logic
 
-- `maxDeposit()` = max_supply minus assets deposited . TODO: current implementation just returns max_supply. [Relavent upstream check](https://github.com/aave/aave-v3-core/blob/94e571f3a7465201881a59555314cd550ccfda57/contracts/protocol/libraries/logic/ValidationLogic.sol#L57)
+- `maxDeposit()` = max_supply minus assets deposited . TODO: current implementation is max_supply - totalSupply, but in reality amount accrued to treasury also needs to be taken into account. [Relavent upstream check](https://github.com/aave/aave-v3-core/blob/94e571f3a7465201881a59555314cd550ccfda57/contracts/protocol/libraries/logic/ValidationLogic.sol#L57)
 - `maxWithdraw()` = min(adapter balance of the asset, the asset currently available in aave) . TODO: Validate if this is true . [Relavent upstream check](https://github.com/aave/aave-v3-core/blob/94e571f3a7465201881a59555314cd550ccfda57/contracts/protocol/libraries/logic/ValidationLogic.sol#L87)
 
 ## Compound
 
 The code for fetching the exchange rate looks benign, not revert-ey.
+
+current logic
+
+- `maxWithdraw()` : min(adapter balance of the asset, the asset currently available in compound)
+- `maxDeposit()` : maxuint256
 
 PS: `maxWithdraw()` and `maxDeposit()` currently does not take reality into account, so theres a chance of revert during actual withdraw/deposit
 
