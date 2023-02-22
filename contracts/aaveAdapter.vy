@@ -171,4 +171,5 @@ def deposit(asset_amount: uint256):
 @external
 @nonpayable
 def withdraw(asset_amount: uint256 , withdraw_to: address):
-    AAVEV3(lendingPool).withdraw(originalAsset, asset_amount, withdraw_to)
+    withdrawn: uint256 = AAVEV3(lendingPool).withdraw(originalAsset, asset_amount, withdraw_to)
+    assert withdrawn == asset_amount, "Withdraw did not get full amount"
