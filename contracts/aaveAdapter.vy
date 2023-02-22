@@ -34,7 +34,9 @@ interface AAVEV3:
     def deposit(asset: address, amount: uint256, onBehalfOf: address, referralCode: uint16): nonpayable
     def withdraw(asset: address, amount: uint256, to: address) -> uint256: nonpayable
     def getConfiguration(asset: address) -> ReserveConfigurationMap: view
-    
+
+interface Atoken:
+    def scaledTotalSupply() -> uint256: view
 
 @external
 def __init__(_lendingPool: address, _originalAsset: address, _wrappedAsset: address):
@@ -67,14 +69,6 @@ def atokentoaset(asset: uint256) -> uint256:
     #aDAI and DAI are pegged to each other...
     return asset
 
-
-# @internal
-# @view
-# def is_active() -> bool:
-#     config: uint256 = AAVEV3(lendingPool).getConfiguration(originalAsset).data
-#     if bitwise_and(config, bitwise_not(PAUSE_MASK)) != 0:
-#         return False
-#     return bitwise_and(config, bitwise_not(ACTIVE_MASK)) != 0
 
 @internal
 @pure
@@ -140,8 +134,12 @@ def maxDeposit() -> uint256:
     config: uint256 = AAVEV3(lendingPool).getConfiguration(originalAsset).data
     if not self.deposit_allowed(config):
         return 0
-    #TODO: this is incorrect. we must substract whats already been supplied
-    return self.max_supply(config)
+    #TODO: this is still incorrect
+    #https://github.com/aave/aave-v3-core/blob/94e571f3a7465201881a59555314cd550ccfda57/contracts/protocol/libraries/logic/ValidationLogic.sol#L72-L76
+    #We are also supposed to substract whats been provided to treasury or something
+    #loads of internal structures/data used for computation, falling back to totalSupply for approximation
+    supply: uint256 = ERC20(wrappedAsset).totalSupply()
+    return self.max_supply(config) - supply
 
 
 #How much asset this LP is responsible for.
