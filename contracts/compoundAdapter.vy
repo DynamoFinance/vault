@@ -71,6 +71,7 @@ def ctokentoaset(wrapped: uint256) -> uint256:
 @external
 @view
 def maxWithdraw() -> uint256:
+    #TODO: There are additional checks unaccounted here
     #How much original asset is currently available in the c-token contract
     cash: uint256 = ERC20(originalAsset).balanceOf(wrappedAsset) #asset
     return min(cash, self._assetBalance())
@@ -79,7 +80,8 @@ def maxWithdraw() -> uint256:
 @external
 @view
 def maxDeposit() -> uint256:
-    return MAX_UINT256
+    #TODO: There are additional checks unaccounted here
+    return max_value(uint256)
 
 
 #How much asset this LP is responsible for.
@@ -95,6 +97,14 @@ def _assetBalance() -> uint256:
     unWrappedBalance: uint256 = self.ctokentoaset(wrappedBalance) #asset
     return unWrappedBalance
 
+
+#Need to make this proxy method because vyper needs type defined before initiating uint2str
+@internal
+@pure
+def stringify(b: uint256) -> String[78]:
+    return uint2str(b)
+
+
 #Deposit the asset into underlying LP
 @external
 @nonpayable
@@ -104,15 +114,18 @@ def deposit(asset_amount: uint256):
     ERC20(originalAsset).approve(wrappedAsset, asset_amount)
     #Call deposit function
     #"deposit_from" does not make sense. this is the beneficiary of a-tokens which must always be our vault.
-    #TODO: check for returned error code!!!
-    CompoundToken(wrappedAsset).mint(asset_amount)
-    #Now aave would have taken our actual token and given us a-tokens..
+    #check for returned error code!!!
+    err: uint256 = CompoundToken(wrappedAsset).mint(asset_amount)
+    #uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+    assert err == 0, concat( "Compound mint: ", self.stringify(err))
 
 #Withdraw the asset from the LP
 @external
 @nonpayable
 def withdraw(asset_amount: uint256 , withdraw_to: address):
     #Could not find redeemTo in compound v2
-    CompoundToken(wrappedAsset).redeemUnderlying(asset_amount)
+    err: uint256 = CompoundToken(wrappedAsset).redeemUnderlying(asset_amount)
+    #uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+    assert err == 0, concat( "Compound redeem: ", self.stringify(err))
     if withdraw_to != self:
         ERC20(originalAsset).transfer(withdraw_to, asset_amount)
