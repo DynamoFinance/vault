@@ -33,7 +33,20 @@ event Transfer:
     receiver: indexed(address)
     value: uint256
 
+event Deposit:
+    sender: indexed(address)
+    owner: indexed(address)
+    assets: uint256
+    shares: uint256
 
+event Withdraw:
+    sender: indexed(address)
+    receiver: indexed(address)
+    owner: indexed(address)
+    assets: uint256
+    shares: uint256
+
+    
 @external
 def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20asset : address, _pools: DynArray[address, MAX_POOLS]):
 
