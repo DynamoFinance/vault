@@ -380,6 +380,8 @@ def _deposit(_asset_amount: uint256, _receiver: address) -> uint256:
 
     result : uint256 = _asset_amount
 
+    log Deposit(msg.sender, empty(address), _asset_amount, shares)
+
     return result
 
 
@@ -414,6 +416,8 @@ def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint
 
     # Now send assets to _receiver.
     ERC20(derc20asset).transfer(_receiver, _asset_amount)
+
+    log Withdraw(msg.sender, _receiver, _owner, _asset_amount, shares)
 
     return shares
 
