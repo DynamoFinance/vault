@@ -380,7 +380,7 @@ def _deposit(_asset_amount: uint256, _receiver: address) -> uint256:
 
     result : uint256 = _asset_amount
 
-    log Deposit(msg.sender, empty(address), _asset_amount, shares)
+    log Deposit(msg.sender, _receiver, _asset_amount, shares)
 
     return result
 
