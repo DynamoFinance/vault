@@ -96,7 +96,7 @@ def submitStrategy(strategy: ProposedStrategy, vault: address) -> uint256:
     assert len(self.LGov) > 0, "Cannot Submit Strategy without Guards"
 
     # No using a Strategy function without a vault
-    assert vault != ZERO_ADDRESS, "Cannot call Strategy function with no vault"
+    assert len(self.VaultList) > 0, "Cannot call Strategy function with no vault"
 
     # Confirm there's no currently pending strategy so we can replace the old one.
 
@@ -136,7 +136,7 @@ def submitStrategy(strategy: ProposedStrategy, vault: address) -> uint256:
 @external
 def withdrawStrategy(Nonce: uint256, vault: address):
     # No using a Strategy function without a vault
-    assert vault != ZERO_ADDRESS, "Cannot call Strategy function with no vault"
+    assert len(self.VaultList) > 0, "Cannot call Strategy function with no vault"
 
     #Check to see that the pending strategy is not the current strategy
     assert (self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce), "Cannot withdraw Current Strategy"
@@ -156,7 +156,7 @@ def withdrawStrategy(Nonce: uint256, vault: address):
 @external
 def endorseStrategy(Nonce: uint256, vault: address):
     # No using a Strategy function without a vault
-    assert vault != ZERO_ADDRESS, "Cannot call Strategy function with no vault"
+    assert len(self.VaultList) > 0, "Cannot call Strategy function with no vault"
 
     #Check to see that the pending strategy is not the current strategy
     assert self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce, "Cannot Endorse Strategy thats already  Strategy"
@@ -180,7 +180,7 @@ def endorseStrategy(Nonce: uint256, vault: address):
 @external
 def rejectStrategy(Nonce: uint256, vault: address):
     # No using a Strategy function without a vault
-    assert vault != ZERO_ADDRESS, "Cannot call Strategy function with no vault"
+    assert len(self.VaultList) > 0, "Cannot call Strategy function with no vault"
 
     #Check to see that the pending strategy is not the current strategy
     assert self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce, "Cannot Reject Strategy thats already Current Strategy"
@@ -204,7 +204,7 @@ def rejectStrategy(Nonce: uint256, vault: address):
 @external
 def activateStrategy(Nonce: uint256, vault: address):
     # No using a Strategy function without a vault
-    assert vault != ZERO_ADDRESS, "Cannot call Strategy function with no vault"
+    assert len(self.VaultList) > 0, "Cannot call Strategy function with no vault"
 
     #Confirm there is a currently pending strategy
     assert (self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce)
