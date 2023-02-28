@@ -39,6 +39,10 @@ event NewVault:
 event VaultRemoved:
     vault: indexed(address)
 
+event VaultSwap:
+    OldVaultAddress: indexed(address)
+    NewVaultAddress: indexed(address)
+
 struct ProposedStrategy:
     Weights: DynArray[uint256, MAX_POOLS]
     APYNow: uint256
@@ -426,3 +430,30 @@ def removeVault(vault: address):
 
     #Log Vault Removal
     log VaultRemoved(vault)
+
+
+@external
+def swapVault(OldVaultAddress: address, NewVaultAddress: address):
+    #Check that the sender is authorized to swap vault
+    assert msg.sender == self.contractOwner
+
+    #Check that the vault we are swapping in is a valid address
+    assert NewVaultAddress != ZERO_ADDRESS
+
+    #Check that the vault we are swapping in is not on the list of vaults already
+    assert NewVaultAddress not in self.VaultList
+
+    #Run through list of vaults to find the one we want to swap out
+    current_vault: uint256 = 0 
+    for vault_addr in self.VaultList:
+        if vault_addr == OldVaultAddress: break
+        current_vault += 1
+
+    #Make sure that OldVaultAddress is a vault on the list of vaults
+    assert OldVaultAddress == self.VaultList[current_vault]
+
+    #Replace OldVaultAddress with NewVaultAddress
+    self.VaultList[current_vault] = NewVaultAddress
+
+    # Log Vault Swap
+    log VaultSwap(OldVaultAddress, NewVaultAddress)
