@@ -6,4 +6,8 @@ PyGithub==1.56
 eth-ape @ git+https://github.com/sajal/ape.git#egg=eth-ape
 
 ape-hardhat
+<<<<<<< HEAD
 pytest
+=======
+pytest
+>>>>>>> origin/master
