@@ -2,14 +2,17 @@
 
 event StrategyWithdrawal:
     Nonce: uint256
+    vault: address
 
 event StrategyVote:
     Nonce: uint256
+    vault: address
     GuardAddress: indexed(address)
     Endorse: bool
 
 event StrategyActivation:
     strategy: Strategy
+    vault: address
 
 event NewGuard:
     GuardAddress: indexed(address)
@@ -51,6 +54,7 @@ struct Strategy:
 
 event StrategyProposal:
     strategy: Strategy
+    vault: address
     
 # Contract assigned storage 
 contractOwner: public(address)
@@ -73,9 +77,8 @@ interface Vault:
 
 
 @external
-def __init__(contractOwner: address, _vault: address, _tdelay: uint256):
+def __init__(contractOwner: address, _tdelay: uint256):
     self.contractOwner = contractOwner
-    self.Vault = _vault
     self.NextNonce = 1
     self.TDelay = _tdelay
     if _tdelay == empty(uint256):
@@ -83,9 +86,12 @@ def __init__(contractOwner: address, _vault: address, _tdelay: uint256):
 
 
 @external
-def submitStrategy(strategy: ProposedStrategy) -> uint256:
+def submitStrategy(strategy: ProposedStrategy, vault: address) -> uint256:
     # No Strategy proposals if no governance guards
     assert len(self.LGov) > 0, "Cannot Submit Strategy without Guards"
+
+    # No using a Strategy function without a vault
+    assert vault != ZERO_ADDRESS, "Cannot call Strategy function with no vault"
 
     # Confirm there's no currently pending strategy so we can replace the old one.
 
@@ -118,12 +124,15 @@ def submitStrategy(strategy: ProposedStrategy) -> uint256:
     self.PendingStrategy.VotesEndorse = empty(DynArray[address, MAX_GUARDS])
     self.PendingStrategy.VotesReject = empty(DynArray[address, MAX_GUARDS])
 
-    log StrategyProposal(self.PendingStrategy)
+    log StrategyProposal(self.PendingStrategy, vault)
     return self.PendingStrategy.Nonce
 
 
 @external
-def withdrawStrategy(Nonce: uint256):
+def withdrawStrategy(Nonce: uint256, vault: address):
+    # No using a Strategy function without a vault
+    assert vault != ZERO_ADDRESS, "Cannot call Strategy function with no vault"
+
     #Check to see that the pending strategy is not the current strategy
     assert (self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce), "Cannot withdraw Current Strategy"
 
@@ -136,11 +145,14 @@ def withdrawStrategy(Nonce: uint256):
     #Withdraw Pending Strategy
     self.PendingStrategy.Withdrawn = True
 
-    log StrategyWithdrawal(Nonce)
+    log StrategyWithdrawal(Nonce, vault)
 
 
 @external
-def endorseStrategy(Nonce: uint256):
+def endorseStrategy(Nonce: uint256, vault: address):
+    # No using a Strategy function without a vault
+    assert vault != ZERO_ADDRESS, "Cannot call Strategy function with no vault"
+
     #Check to see that the pending strategy is not the current strategy
     assert self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce, "Cannot Endorse Strategy thats already  Strategy"
 
@@ -157,11 +169,14 @@ def endorseStrategy(Nonce: uint256):
     #Vote to endorse strategy
     self.PendingStrategy.VotesEndorse.append(msg.sender)
 
-    log StrategyVote(Nonce, msg.sender, False)
+    log StrategyVote(Nonce, vault, msg.sender, False)
 
 
 @external
-def rejectStrategy(Nonce: uint256):
+def rejectStrategy(Nonce: uint256, vault: address):
+    # No using a Strategy function without a vault
+    assert vault != ZERO_ADDRESS, "Cannot call Strategy function with no vault"
+
     #Check to see that the pending strategy is not the current strategy
     assert self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce, "Cannot Reject Strategy thats already Current Strategy"
 
@@ -178,11 +193,14 @@ def rejectStrategy(Nonce: uint256):
     #Vote to reject strategy
     self.PendingStrategy.VotesReject.append(msg.sender)
 
-    log StrategyVote(Nonce, msg.sender, True)
+    log StrategyVote(Nonce, vault, msg.sender, True)
 
 
 @external
-def activateStrategy(Nonce: uint256):
+def activateStrategy(Nonce: uint256, vault: address):
+    # No using a Strategy function without a vault
+    assert vault != ZERO_ADDRESS, "Cannot call Strategy function with no vault"
+
     #Confirm there is a currently pending strategy
     assert (self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce)
     assert (self.PendingStrategy.Withdrawn == False)
@@ -199,7 +217,7 @@ def activateStrategy(Nonce: uint256):
     self.CurrentStrategy = self.PendingStrategy
     # Vault(self.Vault).PoolRebalancer(self.CurrentStrategy)
 
-    log StrategyActivation(self.CurrentStrategy)
+    log StrategyActivation(self.CurrentStrategy, vault)
  
 
 @external
