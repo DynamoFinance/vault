@@ -98,6 +98,14 @@ def submitStrategy(strategy: ProposedStrategy, vault: address) -> uint256:
     # No using a Strategy function without a vault
     assert len(self.VaultList) > 0, "Cannot call Strategy function with no vault"
 
+    #Run through list of vaults and make sure the vault is in vault list
+    current_vault: uint256 = 0
+    for vault_addr in self.VaultList:
+        if vault_addr == vault: break
+        current_vault += 1
+
+    assert vault == self.VaultList[current_vault], "vault not on vault list." 
+
     # Confirm there's no currently pending strategy so we can replace the old one.
 
             # First is it the same as the current one?
@@ -138,6 +146,14 @@ def withdrawStrategy(Nonce: uint256, vault: address):
     # No using a Strategy function without a vault
     assert len(self.VaultList) > 0, "Cannot call Strategy function with no vault"
 
+    #Run through list of vaults and make sure the vault is in vault list
+    current_vault: uint256 = 0
+    for vault_addr in self.VaultList:
+        if vault_addr == vault: break
+        current_vault += 1
+
+    assert vault == self.VaultList[current_vault], "vault not on vault list." 
+
     #Check to see that the pending strategy is not the current strategy
     assert (self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce), "Cannot withdraw Current Strategy"
 
@@ -157,6 +173,14 @@ def withdrawStrategy(Nonce: uint256, vault: address):
 def endorseStrategy(Nonce: uint256, vault: address):
     # No using a Strategy function without a vault
     assert len(self.VaultList) > 0, "Cannot call Strategy function with no vault"
+
+    #Run through list of vaults and make sure the vault is in vault list
+    current_vault: uint256 = 0
+    for vault_addr in self.VaultList:
+        if vault_addr == vault: break
+        current_vault += 1
+
+    assert vault == self.VaultList[current_vault], "vault not on vault list." 
 
     #Check to see that the pending strategy is not the current strategy
     assert self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce, "Cannot Endorse Strategy thats already  Strategy"
@@ -182,6 +206,14 @@ def rejectStrategy(Nonce: uint256, vault: address):
     # No using a Strategy function without a vault
     assert len(self.VaultList) > 0, "Cannot call Strategy function with no vault"
 
+    #Run through list of vaults and make sure the vault is in vault list
+    current_vault: uint256 = 0
+    for vault_addr in self.VaultList:
+        if vault_addr == vault: break
+        current_vault += 1
+
+    assert vault == self.VaultList[current_vault], "vault not on vault list." 
+
     #Check to see that the pending strategy is not the current strategy
     assert self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce, "Cannot Reject Strategy thats already Current Strategy"
 
@@ -205,6 +237,14 @@ def rejectStrategy(Nonce: uint256, vault: address):
 def activateStrategy(Nonce: uint256, vault: address):
     # No using a Strategy function without a vault
     assert len(self.VaultList) > 0, "Cannot call Strategy function with no vault"
+
+    #Run through list of vaults and make sure the vault is in vault list
+    current_vault: uint256 = 0
+    for vault_addr in self.VaultList:
+        if vault_addr == vault: break
+        current_vault += 1
+
+    assert vault == self.VaultList[current_vault], "vault not on vault list." 
 
     #Confirm there is a currently pending strategy
     assert (self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce)
