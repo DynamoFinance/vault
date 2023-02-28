@@ -61,12 +61,12 @@ def vault_location() -> address:
 
 @internal
 @view
-def asettoetoken(asset: uint256) -> uint256:
+def assettoetoken(asset: uint256) -> uint256:
     return EulerToken(wrappedAsset).convertUnderlyingToBalance(asset)
 
 @internal
 @view
-def etokentoaset(wrapped: uint256) -> uint256:
+def etokentoasset(wrapped: uint256) -> uint256:
     return EulerToken(wrappedAsset).convertBalanceToUnderlying(wrapped)
 
 

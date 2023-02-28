@@ -7,8 +7,8 @@
 |--|---------------|--------------|---------------|-----------|----------|
 |AAVE|Works fine|Works fine|Works fine|reverts error="29"|reverts error="29"|
 |compound|Works fine|Works fine|Works fine|can revert `MintComptrollerRejection`|can revert `RedeemComptrollerRejection`|
-|euller|TODO|TODO|TODO|TODO|TODO|
-|fraxlend|TODO|TODO|TODO|TODO|TODO|
+|euller|Works fine|Works fine|Works fine|Works fine|Works fine|
+|fraxlend|Works fine|Works fine|Works fine|Works fine|Works fine|
 
 
 
@@ -66,5 +66,30 @@ Withdraw also has a similar check at CToken.sol line 508
 
 ## Euller
 
+It's a bit hard to trace thru eullers code path, particularly because the entire thing is a complex web of "modules".
+
+It does not appear to revert on anything aside from obvious bad inputs (like wrong amounts, no approval, etc).
+
+I can't see any pause mechanism, or any supply cap and such, maybe I'm missing some validation hook somewhere?
 
 ## Fraxlend
+
+Same as Euller, there doesnt seem to be any permission check or such.
+
+Just that withdraw as this check (FraxlendPairCore.sol line 288 - 298)
+
+```solidity
+    /// @notice The ```_totalAssetAvailable``` function returns the total balance of Asset Tokens in the contract
+    /// @param _totalAsset VaultAccount struct which stores total amount and shares for assets
+    /// @param _totalBorrow VaultAccount struct which stores total amount and shares for borrows
+    /// @return The balance of Asset Tokens held by contract
+    function _totalAssetAvailable(VaultAccount memory _totalAsset, VaultAccount memory _totalBorrow)
+        internal
+        pure
+        returns (uint256)
+    {
+        return _totalAsset.amount - _totalBorrow.amount;
+    }
+```
+
+The adapter calculates `maxWithdraw()` using the amount of asset available by the fraxlend contract, however fraxlend uses internal counters, essentially for the same purpose. There is a remote chance that these values can drift, and even lesser likely for us to hit it.
