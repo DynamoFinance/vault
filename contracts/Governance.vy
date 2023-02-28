@@ -25,7 +25,6 @@ event GuardSwap:
     NewGuardAddress: indexed(address)
 
 event GovernanceContractChanged:
-    Vault: address
     Voter: address
     NewGovernance: indexed(address)
     VoteCount: uint256
@@ -33,7 +32,13 @@ event GovernanceContractChanged:
 
 event VoteForNewGovernance:
     NewGovernance: indexed(address)
-    
+
+event NewVault:
+    vault: indexed(address)
+
+event VaultRemoved:
+    vault: indexed(address)
+
 struct ProposedStrategy:
     Weights: DynArray[uint256, MAX_POOLS]
     APYNow: uint256
@@ -69,7 +74,7 @@ VotesGC: public(HashMap[address, address])
 MIN_GUARDS: constant(uint256) = 1
 NextNonce: uint256
 
-Vault: public(address)
+VaultList: public(DynArray[address, MAX_POOLS])
 
 interface Vault:
     def PoolRebalancer(currentStrategy: Strategy) -> bool: nonpayable
@@ -328,5 +333,56 @@ def replaceGovernance(NewGovernance: address):
     # if len(self.LGov) == VoteCount:
     #     Vault(self.Vault).replaceGovernanceContract(NewGovernance)
 
-    log GovernanceContractChanged(self.Vault, Voter, NewGovernance, VoteCount, TotalGuards)
+    log GovernanceContractChanged(Voter, NewGovernance, VoteCount, TotalGuards)
 
+
+@external
+def addVault(vault: address): 
+    # Must be Contract Owner to add vault
+    assert msg.sender == self.contractOwner
+
+    # Must have space to add vault
+    assert len(self.VaultList) <= MAX_POOLS
+
+    # Must be a real vault address
+    assert vault != ZERO_ADDRESS
+
+    # Must not already be in vault list
+    assert vault not in self.VaultList
+
+    # Add vault to vault list
+    self.VaultList.append(vault)
+
+    # Log new vault
+    log NewVault(vault)
+
+
+@external
+def removeVault(vault: address):
+    # Must be Contract owner to remove vault
+    assert msg.sender == self.contractOwner
+
+    last_vault: uint256 = len(self.VaultList) 
+    # Vault List must not be empty
+    assert last_vault != 0
+
+    # Correct size to zero offset position.
+    last_vault -= 1
+    
+    #Run through list of vaults to find the one we want to remove
+    current_vault: uint256 = 0
+    for vault_addr in self.VaultList:
+        if vault_addr == vault: break
+        current_vault += 1
+
+    # Make sure that vault is the vault we want to remove from vault list
+    assert vault == self.VaultList[current_vault], "vault not a current vault."    
+
+    # Replace current vault with the last
+    self.VaultList[current_vault] = self.VaultList[last_vault]
+
+    # Remove the last
+    self.VaultList.pop()
+
+    #Log Vault Removal
+    log VaultRemoved(vault)
