@@ -77,7 +77,7 @@ CurrentStrategyByVault: public(HashMap[address, Strategy])
 PendingStrategyByVault: public(HashMap[address, Strategy])
 VotesGC: public(HashMap[address, address])
 MIN_GUARDS: constant(uint256) = 1
-NextNonce: uint256
+NextNonce: public(HashMap[address, uint256])
 VaultList: public(DynArray[address, MAX_POOLS])
 
 
@@ -89,7 +89,6 @@ interface Vault:
 @external
 def __init__(contractOwner: address, _tdelay: uint256):
     self.contractOwner = contractOwner
-    self.NextNonce = 1
     self.TDelay = _tdelay
     if _tdelay == empty(uint256):
         self.TDelay = 21600
@@ -97,6 +96,9 @@ def __init__(contractOwner: address, _tdelay: uint256):
 
 @external
 def submitStrategy(strategy: ProposedStrategy, vault: address) -> uint256:
+    if self.NextNonce[vault] == 0:
+        self.NextNonce[vault] += 1
+
     # No Strategy proposals if no governance guards
     assert len(self.LGov) > 0, "Cannot Submit Strategy without Guards"
 
@@ -129,8 +131,8 @@ def submitStrategy(strategy: ProposedStrategy, vault: address) -> uint256:
     # Confirm strategy meets financial goal improvements.
     assert strategy.APYPredicted - strategy.APYNow > 0, "Cannot Submit Strategy without APY Increase"
 
-    self.PendingStrategyByVault[vault].Nonce = self.NextNonce
-    self.NextNonce += 1
+    self.PendingStrategyByVault[vault].Nonce = self.NextNonce[vault]
+    self.NextNonce[vault] += 1
     self.PendingStrategyByVault[vault].ProposerAddress = msg.sender
     self.PendingStrategyByVault[vault].Weights = strategy.Weights
     self.PendingStrategyByVault[vault].APYNow = strategy.APYNow
