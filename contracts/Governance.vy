@@ -70,15 +70,16 @@ event StrategyProposal:
 contractOwner: public(address)
 MAX_GUARDS: constant(uint256) = 2
 MAX_POOLS: constant(uint256) = 10
+MAX_VAULTS: constant(uint256) = 3
 LGov: public(DynArray[address, MAX_GUARDS])
 TDelay: public(uint256)
 no_guards: public(uint256)
 CurrentStrategyByVault: public(HashMap[address, Strategy])
 PendingStrategyByVault: public(HashMap[address, Strategy])
-VotesGC: public(HashMap[address, address])
+VotesGCByVault: public(HashMap[address, HashMap[address, address]])
 MIN_GUARDS: constant(uint256) = 1
 NextNonce: public(HashMap[address, uint256])
-VaultList: public(DynArray[address, MAX_POOLS])
+VaultList: public(DynArray[address, MAX_VAULTS])
 
 
 interface Vault:
@@ -350,7 +351,7 @@ def swapGuard(OldGuardAddress: address, NewGuardAddress: address):
 
 
 @external
-def replaceGovernance(NewGovernance: address):
+def replaceGovernance(NewGovernance: address, vault: address):
     VoteCount: uint256 = 0
     Voter: address = msg.sender
     TotalGuards: uint256 = len(self.LGov)
@@ -367,15 +368,15 @@ def replaceGovernance(NewGovernance: address):
     assert NewGovernance != ZERO_ADDRESS
 
     #Check if sender has voted, if not log new vote
-    if self.VotesGC[msg.sender] != NewGovernance: 
+    if self.VotesGCByVault[vault][msg.sender] != NewGovernance: 
         log VoteForNewGovernance(NewGovernance)
 
     #Record Vote
-    self.VotesGC[msg.sender] = NewGovernance
+    self.VotesGCByVault[vault][msg.sender] = NewGovernance
 
     #Add Vote to VoteCount
     for guard_addr in self.LGov:
-        if self.VotesGC[guard_addr] == NewGovernance:
+        if self.VotesGCByVault[vault][guard_addr] == NewGovernance:
             VoteCount += 1
 
     # if len(self.LGov) == VoteCount:
@@ -390,7 +391,7 @@ def addVault(vault: address):
     assert msg.sender == self.contractOwner
 
     # Must have space to add vault
-    assert len(self.VaultList) <= MAX_POOLS
+    assert len(self.VaultList) <= MAX_VAULTS
 
     # Must be a real vault address
     assert vault != ZERO_ADDRESS
