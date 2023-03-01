@@ -355,6 +355,17 @@ def replaceGovernance(NewGovernance: address, vault: address):
     VoteCount: uint256 = 0
     Voter: address = msg.sender
     TotalGuards: uint256 = len(self.LGov)
+    # No using function without a vault
+    assert len(self.VaultList) > 0, "Cannot call Strategy function with no vault"
+
+    #Run through list of vaults and make sure the vault is in vault list
+    current_vault: uint256 = 0
+    for vault_addr in self.VaultList:
+        if vault_addr == vault: break
+        current_vault += 1
+    
+    assert vault == self.VaultList[current_vault], "vault not on vault list."
+
     #Check if there are enough guards to change governance
     assert len(self.LGov) >= MIN_GUARDS
 
