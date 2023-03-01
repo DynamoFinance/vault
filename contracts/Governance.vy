@@ -73,8 +73,8 @@ MAX_POOLS: constant(uint256) = 10
 LGov: public(DynArray[address, MAX_GUARDS])
 TDelay: public(uint256)
 no_guards: public(uint256)
-CurrentStrategy: public(Strategy)
-PendingStrategy: public(Strategy)
+CurrentStrategyByVault: public(HashMap[address, Strategy])
+PendingStrategyByVault: public(HashMap[address, Strategy])
 VotesGC: public(HashMap[address, address])
 MIN_GUARDS: constant(uint256) = 1
 NextNonce: uint256
@@ -82,7 +82,7 @@ VaultList: public(DynArray[address, MAX_POOLS])
 
 
 interface Vault:
-    def PoolRebalancer(currentStrategy: Strategy) -> bool: nonpayable
+    def PoolRebalancer(CurrentStrategy: Strategy) -> bool: nonpayable
     def replaceGovernanceContract(NewGovernance: address) -> bool: nonpayable
 
 
@@ -111,17 +111,17 @@ def submitStrategy(strategy: ProposedStrategy, vault: address) -> uint256:
 
     assert vault == self.VaultList[current_vault], "vault not on vault list." 
 
-    # Confirm there's no currently pending strategy so we can replace the old one.
+    # Confirm there's no currently pending strategy for this vault so we can replace the old one.
 
             # First is it the same as the current one?
             # Otherwise has it been withdrawn? 
             # Otherwise, has it been short circuited down voted? 
             # Has the period of protection from being replaced expired already?         
-    assert  (self.CurrentStrategy.Nonce == self.PendingStrategy.Nonce) or \
-            (self.PendingStrategy.Withdrawn == True) or \
-            len(self.PendingStrategy.VotesReject) > 0 and \
-            (len(self.PendingStrategy.VotesReject) >= self.PendingStrategy.no_guards/2) or \
-            (convert(block.timestamp, decimal) > (convert(self.PendingStrategy.TSubmitted, decimal)+(convert(self.TDelay, decimal) * 1.25)))
+    assert  (self.CurrentStrategyByVault[vault].Nonce == self.PendingStrategyByVault[vault].Nonce) or \
+            (self.PendingStrategyByVault[vault].Withdrawn == True) or \
+            len(self.PendingStrategyByVault[vault].VotesReject) > 0 and \
+            (len(self.PendingStrategyByVault[vault].VotesReject) >= self.PendingStrategyByVault[vault].no_guards/2) or \
+            (convert(block.timestamp, decimal) > (convert(self.PendingStrategyByVault[vault].TSubmitted, decimal)+(convert(self.TDelay, decimal) * 1.25)))
 
     # Confirm msg.sender Eligibility
     # Confirm msg.sender is not blacklisted
@@ -129,22 +129,22 @@ def submitStrategy(strategy: ProposedStrategy, vault: address) -> uint256:
     # Confirm strategy meets financial goal improvements.
     assert strategy.APYPredicted - strategy.APYNow > 0, "Cannot Submit Strategy without APY Increase"
 
-    self.PendingStrategy.Nonce = self.NextNonce
+    self.PendingStrategyByVault[vault].Nonce = self.NextNonce
     self.NextNonce += 1
-    self.PendingStrategy.ProposerAddress = msg.sender
-    self.PendingStrategy.Weights = strategy.Weights
-    self.PendingStrategy.APYNow = strategy.APYNow
-    self.PendingStrategy.APYPredicted = strategy.APYPredicted
-    self.PendingStrategy.TSubmitted = block.timestamp
-    self.PendingStrategy.TActivated = 0    
-    self.PendingStrategy.Withdrawn = False
-    self.PendingStrategy.no_guards = len(self.LGov)
-    self.PendingStrategy.VotesEndorse = empty(DynArray[address, MAX_GUARDS])
-    self.PendingStrategy.VotesReject = empty(DynArray[address, MAX_GUARDS])
-    self.PendingStrategy.VaultAddress = vault
+    self.PendingStrategyByVault[vault].ProposerAddress = msg.sender
+    self.PendingStrategyByVault[vault].Weights = strategy.Weights
+    self.PendingStrategyByVault[vault].APYNow = strategy.APYNow
+    self.PendingStrategyByVault[vault].APYPredicted = strategy.APYPredicted
+    self.PendingStrategyByVault[vault].TSubmitted = block.timestamp
+    self.PendingStrategyByVault[vault].TActivated = 0    
+    self.PendingStrategyByVault[vault].Withdrawn = False
+    self.PendingStrategyByVault[vault].no_guards = len(self.LGov)
+    self.PendingStrategyByVault[vault].VotesEndorse = empty(DynArray[address, MAX_GUARDS])
+    self.PendingStrategyByVault[vault].VotesReject = empty(DynArray[address, MAX_GUARDS])
+    self.PendingStrategyByVault[vault].VaultAddress = vault
 
-    log StrategyProposal(self.PendingStrategy, vault)
-    return self.PendingStrategy.Nonce
+    log StrategyProposal(self.PendingStrategyByVault[vault], vault)
+    return self.PendingStrategyByVault[vault].Nonce
 
 
 @external
@@ -161,16 +161,16 @@ def withdrawStrategy(Nonce: uint256, vault: address):
     assert vault == self.VaultList[current_vault], "vault not on vault list." 
 
     #Check to see that the pending strategy is not the current strategy
-    assert (self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce), "Cannot withdraw Current Strategy"
+    assert (self.CurrentStrategyByVault[vault].Nonce != self.PendingStrategyByVault[vault].Nonce), "Cannot withdraw Current Strategy"
 
     #Check to see that the pending strategy's nonce matches the nonce we want to withdraw
-    assert self.PendingStrategy.Nonce == Nonce, "Cannot Withdraw Strategy if its not Pending Strategy"
+    assert self.PendingStrategyByVault[vault].Nonce == Nonce, "Cannot Withdraw Strategy if its not Pending Strategy"
 
     #Check to see that sender is eligible to withdraw
-    assert self.PendingStrategy.ProposerAddress == msg.sender
+    assert self.PendingStrategyByVault[vault].ProposerAddress == msg.sender
 
     #Withdraw Pending Strategy
-    self.PendingStrategy.Withdrawn = True
+    self.PendingStrategyByVault[vault].Withdrawn = True
 
     log StrategyWithdrawal(Nonce, vault)
 
@@ -189,20 +189,20 @@ def endorseStrategy(Nonce: uint256, vault: address):
     assert vault == self.VaultList[current_vault], "vault not on vault list." 
 
     #Check to see that the pending strategy is not the current strategy
-    assert self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce, "Cannot Endorse Strategy thats already  Strategy"
+    assert self.CurrentStrategyByVault[vault].Nonce != self.PendingStrategyByVault[vault].Nonce, "Cannot Endorse Strategy thats already  Strategy"
 
     #Check to see that the pending strategy's nonce matches the nonce we want to endorse
-    assert self.PendingStrategy.Nonce == Nonce, "Cannot Endorse Strategy if its not Pending Strategy"
+    assert self.PendingStrategyByVault[vault].Nonce == Nonce, "Cannot Endorse Strategy if its not Pending Strategy"
 
     #Check to see that sender is eligible to vote
     assert msg.sender in self.LGov, "Sender is not eligible to vote"
 
     #Check to see that sender has not already voted
-    assert msg.sender not in self.PendingStrategy.VotesReject
-    assert msg.sender not in self.PendingStrategy.VotesEndorse
+    assert msg.sender not in self.PendingStrategyByVault[vault].VotesReject
+    assert msg.sender not in self.PendingStrategyByVault[vault].VotesEndorse
 
     #Vote to endorse strategy
-    self.PendingStrategy.VotesEndorse.append(msg.sender)
+    self.PendingStrategyByVault[vault].VotesEndorse.append(msg.sender)
 
     log StrategyVote(Nonce, vault, msg.sender, False)
 
@@ -221,20 +221,20 @@ def rejectStrategy(Nonce: uint256, vault: address):
     assert vault == self.VaultList[current_vault], "vault not on vault list." 
 
     #Check to see that the pending strategy is not the current strategy
-    assert self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce, "Cannot Reject Strategy thats already Current Strategy"
+    assert self.CurrentStrategyByVault[vault].Nonce != self.PendingStrategyByVault[vault].Nonce, "Cannot Reject Strategy thats already Current Strategy"
 
     #Check to see that the pending strategy's nonce matches the nonce we want to reject
-    assert self.PendingStrategy.Nonce == Nonce, "Cannot Reject Strategy if its not Pending Strategy"
+    assert self.PendingStrategyByVault[vault].Nonce == Nonce, "Cannot Reject Strategy if its not Pending Strategy"
 
     #Check to see that sender is eligible to vote
     assert msg.sender in self.LGov
 
     #Check to see that sender has not already voted
-    assert msg.sender not in self.PendingStrategy.VotesReject
-    assert msg.sender not in self.PendingStrategy.VotesEndorse
+    assert msg.sender not in self.PendingStrategyByVault[vault].VotesReject
+    assert msg.sender not in self.PendingStrategyByVault[vault].VotesEndorse
 
     #Vote to reject strategy
-    self.PendingStrategy.VotesReject.append(msg.sender)
+    self.PendingStrategyByVault[vault].VotesReject.append(msg.sender)
 
     log StrategyVote(Nonce, vault, msg.sender, True)
 
@@ -253,22 +253,22 @@ def activateStrategy(Nonce: uint256, vault: address):
     assert vault == self.VaultList[current_vault], "vault not on vault list." 
 
     #Confirm there is a currently pending strategy
-    assert (self.CurrentStrategy.Nonce != self.PendingStrategy.Nonce)
-    assert (self.PendingStrategy.Withdrawn == False)
+    assert (self.CurrentStrategyByVault[vault].Nonce != self.PendingStrategyByVault[vault].Nonce)
+    assert (self.PendingStrategyByVault[vault].Withdrawn == False)
 
     #Confirm strategy is approved by guards
-    assert (len(self.PendingStrategy.VotesEndorse) >= len(self.LGov)/2) or \
-           ((self.PendingStrategy.TSubmitted + self.TDelay) < block.timestamp)
-    assert len(self.PendingStrategy.VotesReject) < len(self.PendingStrategy.VotesEndorse)
+    assert (len(self.PendingStrategyByVault[vault].VotesEndorse) >= len(self.LGov)/2) or \
+           ((self.PendingStrategyByVault[vault].TSubmitted + self.TDelay) < block.timestamp)
+    assert len(self.PendingStrategyByVault[vault].VotesReject) < len(self.PendingStrategyByVault[vault].VotesEndorse)
 
     #Confirm Pending Strategy is the Strategy we want to activate
-    assert self.PendingStrategy.Nonce == Nonce
+    assert self.PendingStrategyByVault[vault].Nonce == Nonce
 
     #Make Current Strategy and Activate Strategy
-    self.CurrentStrategy = self.PendingStrategy
-    # Vault(self.Vault).PoolRebalancer(self.CurrentStrategy)
+    self.CurrentStrategyByVault[vault] = self.PendingStrategyByVault[vault]
+    # Vault(self.Vault).PoolRebalancer(self.CurrentStrategyByVault)
 
-    log StrategyActivation(self.CurrentStrategy, vault)
+    log StrategyActivation(self.CurrentStrategyByVault[vault], vault)
  
 
 @external
