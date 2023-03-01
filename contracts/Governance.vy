@@ -60,6 +60,7 @@ struct Strategy:
     no_guards: uint256
     VotesEndorse: DynArray[address, MAX_GUARDS]
     VotesReject: DynArray[address, MAX_GUARDS]
+    VaultAddress: address
 
 event StrategyProposal:
     strategy: Strategy
@@ -77,8 +78,8 @@ PendingStrategy: public(Strategy)
 VotesGC: public(HashMap[address, address])
 MIN_GUARDS: constant(uint256) = 1
 NextNonce: uint256
-
 VaultList: public(DynArray[address, MAX_POOLS])
+
 
 interface Vault:
     def PoolRebalancer(currentStrategy: Strategy) -> bool: nonpayable
@@ -140,6 +141,7 @@ def submitStrategy(strategy: ProposedStrategy, vault: address) -> uint256:
     self.PendingStrategy.no_guards = len(self.LGov)
     self.PendingStrategy.VotesEndorse = empty(DynArray[address, MAX_GUARDS])
     self.PendingStrategy.VotesReject = empty(DynArray[address, MAX_GUARDS])
+    self.PendingStrategy.VaultAddress = vault
 
     log StrategyProposal(self.PendingStrategy, vault)
     return self.PendingStrategy.Nonce
