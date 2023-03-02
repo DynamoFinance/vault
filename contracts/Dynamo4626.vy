@@ -15,6 +15,11 @@ symbol: public(immutable(String[32]))
 decimals: public(immutable(uint8))
 asset: public(immutable(address))
 
+total_assets_deposited: public(uint256)
+total_assets_withdrawn: public(uint256)
+total_fees_claimed: public(uint256)
+
+
 owner: address
 
 dlending_pools : DynArray[address, MAX_POOLS]
@@ -88,6 +93,20 @@ def add_pool(_pool: address) -> bool:
     assert msg.sender == self.owner, "Only owner can add new Lending Pools."
 
     return self._add_pool(_pool)
+
+
+@external
+def _remove_pool(_pool: address) -> bool:
+    # TODO - pull out all assets, remove pool, rebalance pool.
+    pass
+
+
+@external
+def remove_pool(_pool: address) -> bool:
+    # Is this from the owner?
+    assert msg.sender == self.owner, "Only owner can remove Lending Pools."
+
+    return self._remove_pool(_pool)
 
 
 @internal
