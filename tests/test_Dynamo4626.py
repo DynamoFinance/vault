@@ -94,7 +94,6 @@ def test_add_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
 
     if is_not_hard_hat():
         pytest.skip("Not on hard hat Ethereum snapshot.")
-
     # pool_adapterA is valid & deployer is allowed to add it.
     result = dynamo4626.add_pool(pool_adapterA, sender=deployer) 
     assert result.return_value == True
@@ -254,7 +253,8 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
 
     assert dynamo4626.totalAssets() == 2000
 
-    assert dynamo4626.convertToAssets(1000) == 2000
+    # Assumes YIELD_FEE_PERCENTAGE : constant(decimal) = 10.0
+    assert dynamo4626.convertToAssets(1000) == 1000 + (1000 - (1000*0.10))
 
     assert dynamo4626.convertToShares(2000) == 1000    
 
