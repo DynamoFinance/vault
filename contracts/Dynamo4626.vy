@@ -9,11 +9,18 @@ import LPAdapter as LPAdapter
 MAX_POOLS : constant(int128) = 5
 MAX_BALTX_DEPOSIT : constant(uint8) = 2
 
+YIELD_FEE_PERCENTAGE : constant(decimal) = 10.0
+
 
 name: public(immutable(String[64]))
 symbol: public(immutable(String[32]))
 decimals: public(immutable(uint8))
 asset: public(immutable(address))
+
+total_assets_deposited: public(uint256)
+total_assets_withdrawn: public(uint256)
+total_fees_claimed: public(uint256)
+
 
 owner: address
 
@@ -91,6 +98,20 @@ def add_pool(_pool: address) -> bool:
 
 
 @internal
+def _remove_pool(_pool: address) -> bool:
+    # TODO - pull out all assets, remove pool, rebalance pool.
+    return False
+
+
+@external
+def remove_pool(_pool: address) -> bool:
+    # Is this from the owner?
+    assert msg.sender == self.owner, "Only owner can remove Lending Pools."
+
+    return self._remove_pool(_pool)
+
+
+@internal
 @view
 def _poolAssets(_pool: address) -> uint256:
     response: Bytes[32] = empty(Bytes[32])
@@ -124,13 +145,58 @@ def _totalAssets() -> uint256:
         if pool == empty(address): break
         assetQty += self._poolAssets(pool)
 
-
     return assetQty
 
 
 @external
 @view
 def totalAssets() -> uint256: return self._totalAssets()
+
+
+@internal
+@view 
+def _totalReturns(_current_assets : uint256 = 0) -> int256:
+    # Avoid having to call _totalAssets if we already know the value.
+    current_holdings : uint256 = _current_assets
+    if current_holdings == 0:
+        current_holdings = self._totalAssets()
+
+    total_returns: int256 = convert(self.total_assets_withdrawn + current_holdings, int256) - convert(self.total_assets_deposited, int256)
+    return total_returns    
+
+
+@internal
+@view 
+def _claimable_fees_available(_current_assets : uint256 = 0) -> uint256:
+    total_returns : int256 = self._totalReturns(_current_assets)
+    if total_returns < 0: return 0
+
+    dtotal_fees_available : decimal = convert(total_returns, decimal) * (YIELD_FEE_PERCENTAGE / 100.0)
+    total_fees_remaining : uint256 = convert(dtotal_fees_available, uint256) - self.total_fees_claimed
+
+    return total_fees_remaining
+
+
+@external
+def claim(_asset_amount: uint256) -> bool:
+    assert msg.sender == self.owner, "Only owner may claim fees."
+
+    total_fees_remaining : uint256 = self._claimable_fees_available()
+
+    # Do we have _asset_amount of fees available to claim?
+    if total_fees_remaining < _asset_amount: return False
+
+    # Good claim. Do we have the balance locally?
+    if ERC20(asset).balanceOf(self) < _asset_amount:
+
+        # Need to liquidate some shares to fulfill 
+        self._balanceAdapters(_asset_amount)
+
+    # Account for the claim and move the funds.
+    self.total_fees_claimed += _asset_amount
+    ERC20(asset).transfer(self.owner, _asset_amount)
+
+    return True
 
 
 @internal
@@ -159,7 +225,8 @@ def _convertToAssets(_share_amount: uint256) -> uint256:
     # return _share_amount
 
     shareQty : uint256 = self.totalSupply
-    assetQty : uint256 = self._totalAssets()
+    total_assets : uint256 = self._totalAssets()
+    assetQty : uint256 = total_assets - self._claimable_fees_available(total_assets)
 
     # If there aren't any shares yet it's going to be 1:1.
     if shareQty == 0: return _share_amount
@@ -476,6 +543,9 @@ def _deposit(_asset_amount: uint256, _receiver: address) -> uint256:
 
     #assert False, "GOT HERE!"
 
+    # Update all-time assets deposited for yield tracking.
+    self.total_assets_deposited += _asset_amount
+
     result : uint256 = _asset_amount
 
     return result
@@ -512,6 +582,9 @@ def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint
 
     # Now send assets to _receiver.
     ERC20(asset).transfer(_receiver, _asset_amount)
+
+    # Update all-time assets withdrawn for yield tracking.
+    self.total_assets_withdrawn += _asset_amount
 
     return shares
 
