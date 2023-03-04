@@ -1,7 +1,7 @@
 # @version 0.3.7
 
 from vyper.interfaces import ERC20
-from interfaces.adapter import LPAdapter
+import LPAdapter as LPAdapter
 
 interface mintableERC20:
     def mint(_receiver: address, _amount: uint256) -> uint256: nonpayable

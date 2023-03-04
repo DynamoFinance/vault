@@ -1,13 +1,11 @@
 # @version 0.3.7
 from vyper.interfaces import ERC20
-from interfaces.adapter import LPAdapter
+import LPAdapter as LPAdapter
 #This contract would only be called using delegate call, so we do
 # not use this contract's storage. Only immutable or constant.
 #If there is a strong reason for having storage, then the storage slots
 # need to be carefully co-ordinated with the upstream 4626
 
-
-#Looks like the following line does not enforce compatibility
 implements: LPAdapter
 
 #Address of AAVE lending pool
@@ -16,6 +14,8 @@ lendingPool: immutable(address)
 originalAsset: immutable(address)
 #Address of AAVE wrapped token
 wrappedAsset: immutable(address)
+#Address of the adapter logic
+adapterAddr: immutable(address)
 
 ############ Aave V2 ###########
 ACTIVE_MASK: constant(uint256) = 72057594037927936 # 1 << 56
@@ -49,16 +49,28 @@ def __init__(_lendingPool: address, _originalAsset: address, _wrappedAsset: addr
     lendingPool = _lendingPool
     originalAsset = _originalAsset
     wrappedAsset = _wrappedAsset
+    adapterAddr = self
+
+#Workaround because vyper does not allow doing delegatecall from inside view.
+#we do a static call instead, but need to fix the correct vault location for queries.
+@internal
+@view
+def vault_location() -> address:
+    if self == adapterAddr:
+        #if "self" is adapter, meaning this is not delegate call and we treat msg.sender as the vault
+        return msg.sender
+    #Otherwise we are inside DELEGATECALL, therefore self would be the 4626
+    return self
 
 
 @internal
-@view
+@pure
 def asettoatoken(asset: uint256) -> uint256:
     #aDAI and DAI are pegged to each other...
     return asset
 
 @internal
-@view
+@pure
 def atokentoaset(asset: uint256) -> uint256:
     #aDAI and DAI are pegged to each other...
     return asset
@@ -75,7 +87,7 @@ def is_active() -> bool:
 #How much asset can be withdrawn in a single transaction
 @external
 @view
-def maxWithdrawable() -> uint256:
+def maxWithdraw() -> uint256:
     # if AAVEV3(lendingPool).paused():
     #     return 0
     if not self.is_active():
@@ -87,7 +99,7 @@ def maxWithdrawable() -> uint256:
 #How much asset can be deposited in a single transaction
 @external
 @view
-def maxDepositable() -> uint256:
+def maxDeposit() -> uint256:
     # if AAVEV3(lendingPool).paused():
     #     return 0
     if not self.is_active():
@@ -98,13 +110,13 @@ def maxDepositable() -> uint256:
 #How much asset this LP is responsible for.
 @external
 @view
-def assetBalance() -> uint256:
+def totalAssets() -> uint256:
     return self._assetBalance()
 
 @internal
 @view
 def _assetBalance() -> uint256:
-    wrappedBalance: uint256 = ERC20(wrappedAsset).balanceOf(self) #aToken
+    wrappedBalance: uint256 = ERC20(wrappedAsset).balanceOf(self.vault_location()) #aToken
     unWrappedBalance: uint256 = self.atokentoaset(wrappedBalance) #asset
     return unWrappedBalance
 

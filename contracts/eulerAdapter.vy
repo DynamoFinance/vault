@@ -1,6 +1,6 @@
 # @version 0.3.7
 from vyper.interfaces import ERC20
-from interfaces.adapter import LPAdapter
+import LPAdapter as LPAdapter
 #This contract would only be called using delegate call, so we do
 # not use this contract's storage. Only immutable or constant.
 #If there is a strong reason for having storage, then the storage slots
@@ -16,6 +16,7 @@ originalAsset: immutable(address)
 wrappedAsset: immutable(address)
 #Address of euler protocal vault (needed as allowance target)
 euler: immutable(address)
+adapterAddr: immutable(address)
 
 interface EulerToken:
     #Transfer underlying tokens from sender to the Euler pool, and increase account's eTokens
@@ -43,8 +44,20 @@ def __init__(_originalAsset: address, _wrappedAsset: address, _euler: address):
     originalAsset = _originalAsset
     wrappedAsset = _wrappedAsset
     euler = _euler
+    adapterAddr = self
     assert EulerToken(_wrappedAsset).underlyingAsset() == _originalAsset, "eToken <--> asset mismatch"
 
+
+#Workaround because vyper does not allow doing delegatecall from inside view.
+#we do a static call instead, but need to fix the correct vault location for queries.
+@internal
+@view
+def vault_location() -> address:
+    if self == adapterAddr:
+        #if "self" is adapter, meaning this is not delegate call and we treat msg.sender as the vault
+        return msg.sender
+    #Otherwise we are inside DELEGATECALL, therefore self would be the 4626
+    return self
 
 @internal
 @view
@@ -60,7 +73,7 @@ def etokentoaset(wrapped: uint256) -> uint256:
 #How much asset can be withdrawn in a single transaction
 @external
 @view
-def maxWithdrawable() -> uint256:
+def maxWithdraw() -> uint256:
     #How much original asset is currently available in the e-token contract
     cash: uint256 = EulerToken(wrappedAsset).reserveBalanceUnderlying() #asset
     return min(cash, self._assetBalance())
@@ -68,20 +81,20 @@ def maxWithdrawable() -> uint256:
 #How much asset can be deposited in a single transaction
 @external
 @view
-def maxDepositable() -> uint256:
+def maxDeposit() -> uint256:
     return max_value(uint256)
 
 
 #How much asset this LP is responsible for.
 @external
 @view
-def assetBalance() -> uint256:
+def totalAssets() -> uint256:
     return self._assetBalance()
 
 @internal
 @view
 def _assetBalance() -> uint256:
-    return EulerToken(wrappedAsset).balanceOfUnderlying(self)
+    return EulerToken(wrappedAsset).balanceOfUnderlying(self.vault_location())
 
 #Deposit the asset into underlying LP
 @external

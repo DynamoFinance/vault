@@ -1,6 +1,6 @@
 # @version 0.3.7
 from vyper.interfaces import ERC20
-from interfaces.adapter import LPAdapter
+import LPAdapter as LPAdapter
 #This contract would only be called using delegate call, so we do
 # not use this contract's storage. Only immutable or constant.
 #If there is a strong reason for having storage, then the storage slots
@@ -14,6 +14,7 @@ implements: LPAdapter
 originalAsset: immutable(address)
 #Address of Compound v2 Token. we withdraw and deposit against this
 wrappedAsset: immutable(address)
+adapterAddr: immutable(address)
 
 DIVISOR: constant(uint256) = 10**18
 
@@ -38,7 +39,18 @@ interface CompoundToken:
 def __init__(_originalAsset: address, _wrappedAsset: address):
     originalAsset = _originalAsset
     wrappedAsset = _wrappedAsset
+    adapterAddr = self
 
+#Workaround because vyper does not allow doing delegatecall from inside view.
+#we do a static call instead, but need to fix the correct vault location for queries.
+@internal
+@view
+def vault_location() -> address:
+    if self == adapterAddr:
+        #if "self" is adapter, meaning this is not delegate call and we treat msg.sender as the vault
+        return msg.sender
+    #Otherwise we are inside DELEGATECALL, therefore self would be the 4626
+    return self
 
 @internal
 @view
@@ -58,7 +70,7 @@ def ctokentoaset(wrapped: uint256) -> uint256:
 #How much asset can be withdrawn in a single transaction
 @external
 @view
-def maxWithdrawable() -> uint256:
+def maxWithdraw() -> uint256:
     #How much original asset is currently available in the c-token contract
     cash: uint256 = ERC20(originalAsset).balanceOf(wrappedAsset) #asset
     return min(cash, self._assetBalance())
@@ -66,20 +78,20 @@ def maxWithdrawable() -> uint256:
 #How much asset can be deposited in a single transaction
 @external
 @view
-def maxDepositable() -> uint256:
+def maxDeposit() -> uint256:
     return MAX_UINT256
 
 
 #How much asset this LP is responsible for.
 @external
 @view
-def assetBalance() -> uint256:
+def totalAssets() -> uint256:
     return self._assetBalance()
 
 @internal
 @view
 def _assetBalance() -> uint256:
-    wrappedBalance: uint256 = ERC20(wrappedAsset).balanceOf(self) #aToken
+    wrappedBalance: uint256 = ERC20(wrappedAsset).balanceOf(self.vault_location()) #aToken
     unWrappedBalance: uint256 = self.ctokentoaset(wrappedBalance) #asset
     return unWrappedBalance
 

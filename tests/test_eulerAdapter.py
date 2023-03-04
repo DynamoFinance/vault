@@ -48,15 +48,13 @@ def dai(project, deployer, trader, ensure_hardhat):
 def euler_adapter(project, deployer, dai, ensure_hardhat):
     ca = deployer.deploy(project.eulerAdapter, dai, EDAI, EULER)
     #we run tests against interface
-    #return project.LPAdapter.at(aa)
-    #I wanted to run tests against interface, but seems vyper does not treat interface file as such?
-    return ca
+    return project.LPAdapter.at(ca)
 
 def test_euler_adapter(euler_adapter, trader, dai, edai, ensure_hardhat):
     #Dont have any state...
-    assert euler_adapter.assetBalance() == 0, "Asset balance should be 0"
-    assert euler_adapter.maxWithdrawable() == 0, "maxWithdrawable should be 0"
-    assert euler_adapter.maxDepositable() == 2**256 - 1, "maxDepositable should be MAX_UINT256"
+    assert euler_adapter.totalAssets(sender=euler_adapter) == 0, "Asset balance should be 0"
+    assert euler_adapter.maxWithdraw(sender=euler_adapter) == 0, "maxWithdraw should be 0"
+    assert euler_adapter.maxDeposit(sender=euler_adapter) == 2**256 - 1, "maxDeposit should be MAX_UINT256"
     assert edai.balanceOf(euler_adapter) == 0, "adai balance incorrect"
     #Deposit 1000,000 DAI
     #Normally this would be delegate call from 4626 that already has the funds,
@@ -64,9 +62,9 @@ def test_euler_adapter(euler_adapter, trader, dai, edai, ensure_hardhat):
     dai.transfer(euler_adapter, "10000 Ether", sender=trader)
     euler_adapter.deposit("10000 Ether", sender=trader) #Anyone can call this, its intended to be delegate
     #There is no yield yet... so everything should be a million
-    assert euler_adapter.assetBalance() == pytest.approx(10000*10**18), "Asset balance should be 0"
-    assert euler_adapter.maxWithdrawable() == pytest.approx(10000*10**18), "maxWithdrawable should be 0"
-    assert euler_adapter.maxDepositable() == 2**256 - 1, "maxDepositable should be MAX_UINT256"
+    assert euler_adapter.totalAssets(sender=euler_adapter) == pytest.approx(10000*10**18), "Asset balance should be 0"
+    assert euler_adapter.maxWithdraw(sender=euler_adapter) == pytest.approx(10000*10**18), "maxWithdraw should be 0"
+    assert euler_adapter.maxDeposit(sender=euler_adapter) == 2**256 - 1, "maxDeposit should be MAX_UINT256"
     assert edai.balanceOf(euler_adapter) == pytest.approx(9796693142892179130093), "eDAI balance incorrect"
     #cause eDAI to have a huge profit
     #mine 100000 blocks with an interval of 5 minute
@@ -75,17 +73,17 @@ def test_euler_adapter(euler_adapter, trader, dai, edai, ensure_hardhat):
     print(requests.post("http://localhost:8545/", json.dumps(set_storage_request)))
     # print(cdai.balanceOfUnderlying(compound_adapter, sender=trader).return_value)
     edai.touch(sender=trader)
-    assert euler_adapter.assetBalance() == pytest.approx(10163588570541589660921), "Asset balance should be 0"
-    assert euler_adapter.maxWithdrawable() == pytest.approx(10163588570541589660921), "maxWithdrawable should be 0"
-    assert euler_adapter.maxDepositable() == 2**256 - 1, "maxDepositable should be MAX_UINT256"
+    assert euler_adapter.totalAssets(sender=euler_adapter) == pytest.approx(10163588570541589660921), "Asset balance should be 0"
+    assert euler_adapter.maxWithdraw(sender=euler_adapter) == pytest.approx(10163588570541589660921), "maxWithdraw should be 0"
+    assert euler_adapter.maxDeposit(sender=euler_adapter) == 2**256 - 1, "maxDeposit should be MAX_UINT256"
     assert edai.balanceOf(euler_adapter) == pytest.approx(9796693142892179130093), "eDAI balance incorrect"
 
     #Withdraw everything
     trader_balance_pre = dai.balanceOf(trader)
-    euler_adapter.withdraw(euler_adapter.assetBalance(), trader, sender=trader)
+    euler_adapter.withdraw(euler_adapter.totalAssets(sender=euler_adapter), trader, sender=trader)
     trader_gotten = dai.balanceOf(trader) - trader_balance_pre
     assert trader_gotten == pytest.approx(10163588570541589660921), "trader gain balance incorrect"
-    assert euler_adapter.assetBalance() < (10**18)/1000, "Asset balance should be 0"
-    assert euler_adapter.maxWithdrawable() < (10**18)/1000, "maxWithdrawable should be 0"
-    assert euler_adapter.maxDepositable() == 2**256 - 1, "maxDepositable should be MAX_UINT256"
+    assert euler_adapter.totalAssets(sender=euler_adapter) < (10**18)/1000, "Asset balance should be 0"
+    assert euler_adapter.maxWithdraw(sender=euler_adapter) < (10**18)/1000, "maxWithdraw should be 0"
+    assert euler_adapter.maxDeposit(sender=euler_adapter) == 2**256 - 1, "maxDeposit should be MAX_UINT256"
     assert edai.balanceOf(euler_adapter) < (10**18)/1000, "adai balance incorrect"
