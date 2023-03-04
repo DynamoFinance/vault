@@ -363,13 +363,13 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
 
 
 
-    # TODO - Just going to assume one adapter for now.
-    pool : address = self.dlending_pools[0]
-    delta_tx: int256 = convert(current_local_asset_balance, int256) - convert(_target_asset_balance, int256)
-    dtx: BalanceTX = BalanceTX({Qty: delta_tx, Adapter: pool})
+    # # TODO - Just going to assume one adapter for now.
+    # pool : address = self.dlending_pools[0]
+    # delta_tx: int256 = convert(current_local_asset_balance, int256) - convert(_target_asset_balance, int256)
+    # dtx: BalanceTX = BalanceTX({Qty: delta_tx, Adapter: pool})
 
-    # result.append(dtx)
-    result[0] = dtx
+    # # result.append(dtx)
+    # result[0] = dtx
 
     return result
 
