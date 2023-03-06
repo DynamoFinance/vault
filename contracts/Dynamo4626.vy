@@ -22,6 +22,11 @@ total_assets_withdrawn: public(uint256)
 total_fees_claimed: public(uint256)
 
 
+struct AdapterStrategy:
+    adapter: address
+    ratio: uint256
+
+
 owner: address
 governance: address
 
@@ -78,6 +83,29 @@ def replaceGovernanceContract(_new_governance: address) -> bool:
 @view
 @external
 def lending_pools() -> DynArray[address, MAX_POOLS]: return self.dlending_pools
+
+
+@internal
+def _set_strategy(strategies : AdapterStrategy[MAX_POOLS]) -> bool:
+    assert msg.sender == self.governance, "Only Governance DAO may set a new strategy."
+    
+    # Clear out all existing ratio allocations.
+    for pool in self.dlending_pools:
+        self.strategy[pool] = empty(uint256)
+
+    # Now set strategies according to the new plan.
+    for strategy in strategies:
+        self.strategy[strategy.adapter] = strategy.ratio 
+
+    # Rebalance vault according to new strategy.
+    self._balanceAdapters(0, convert(MAX_POOLS, uint8))
+
+    return True
+
+
+@external
+def set_strategy(strategies : AdapterStrategy[MAX_POOLS]) -> bool:
+    return self._set_strategy(strategies)
 
 
 @internal 
