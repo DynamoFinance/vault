@@ -23,6 +23,7 @@ total_fees_claimed: public(uint256)
 
 
 owner: address
+governance: address
 
 dlending_pools : DynArray[address, MAX_POOLS]
 
@@ -44,7 +45,7 @@ event Transfer:
 
 
 @external
-def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20asset : address, _pools: DynArray[address, MAX_POOLS]):
+def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20asset : address, _pools: DynArray[address, MAX_POOLS], _governance: address):
 
     assert MAX_BALTX_DEPOSIT <= MAX_POOLS, "Invalid contract pre-conditions."
 
@@ -53,11 +54,20 @@ def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20ass
     decimals = _decimals
     asset = _erc20asset
 
+
     self.owner = msg.sender
+    self.governance = _governance
     self.totalSupply = 0
 
     for pool in _pools:
         self._add_pool(pool)        
+
+
+@external
+def replaceGovernanceContract(_new_governance: address) -> bool:
+    assert msg.sender == self.governance, "Only existing Governance contract may replace itself."
+    self.governance = _new_governance    
+    return True
 
 
 # Can't simply have a public lending_pools variable due to this Vyper issue:
