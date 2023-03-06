@@ -48,6 +48,7 @@ event Transfer:
 def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20asset : address, _pools: DynArray[address, MAX_POOLS], _governance: address):
 
     assert MAX_BALTX_DEPOSIT <= MAX_POOLS, "Invalid contract pre-conditions."
+    assert _governance != empty(address), "Governance cannot be null address."
 
     name = _name
     symbol = _symbol
@@ -66,6 +67,8 @@ def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20ass
 @external
 def replaceGovernanceContract(_new_governance: address) -> bool:
     assert msg.sender == self.governance, "Only existing Governance contract may replace itself."
+    assert _new_governance != empty(address), "Governance cannot be null address."
+
     self.governance = _new_governance    
     return True
 

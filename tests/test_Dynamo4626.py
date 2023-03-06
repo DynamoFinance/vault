@@ -47,7 +47,7 @@ def pool_adapterC(project, deployer, dai):
 
 @pytest.fixture
 def dynamo4626(project, deployer, dai, trader):
-    v = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, [])    
+    v = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, [], deployer)    
     return v
 
 
@@ -71,7 +71,7 @@ def test_basic_initialization(project, deployer, dynamo4626):
 
 def test_initial_pools_initialization(project, deployer, dai, pool_adapterA, pool_adapterB, pool_adapterC):
     pools = [pool_adapterA, pool_adapterB, pool_adapterC]
-    dynamo = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, pools)    
+    dynamo = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, pools, deployer)    
 
     # This should fail because we can't add the same pool twice!
     for pool in pools:
