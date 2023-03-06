@@ -21,11 +21,9 @@ total_assets_deposited: public(uint256)
 total_assets_withdrawn: public(uint256)
 total_fees_claimed: public(uint256)
 
-
 struct AdapterStrategy:
     adapter: address
     ratio: uint256
-
 
 owner: address
 governance: address
@@ -38,6 +36,8 @@ allowance: public(HashMap[address, HashMap[address, uint256]])
 
 # Maps adapter address (not LP address) to ratios.
 strategy: public(HashMap[address, uint256])
+proposer: address
+assets_at_proposer_start: uint256
 
 event PoolAdded:
     sender: indexed(address)
@@ -48,6 +48,9 @@ event Transfer:
     receiver: indexed(address)
     value: uint256
 
+event StrategyActivation:
+    strategy: AdapterStrategy[MAX_POOLS]
+    proposer: address
 
 @external
 def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20asset : address, _pools: DynArray[address, MAX_POOLS], _governance: address):
@@ -86,15 +89,31 @@ def lending_pools() -> DynArray[address, MAX_POOLS]: return self.dlending_pools
 
 
 @internal
-def _set_strategy(strategies : AdapterStrategy[MAX_POOLS]) -> bool:
+def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS]) -> bool:
     assert msg.sender == self.governance, "Only Governance DAO may set a new strategy."
-    
+    assert _proposer != empty(address), "Proposer can't be null address."
+
+    # Are we replacing the old proposer?
+    if self.proposer != _proposer:
+
+        current_assets : uint256 = self._totalAssets()
+
+        if self.proposer != empty(address):
+
+            # Pay prior proposer his earned fees.
+            # TODO : pay 2% fees if above minimum payment!
+            pass
+
+        self.proposer = _proposer
+        self.assets_at_proposer_start = current_assets
+
+
     # Clear out all existing ratio allocations.
     for pool in self.dlending_pools:
         self.strategy[pool] = empty(uint256)
 
     # Now set strategies according to the new plan.
-    for strategy in strategies:
+    for strategy in _strategies:
         self.strategy[strategy.adapter] = strategy.ratio 
 
     # Rebalance vault according to new strategy.
@@ -104,8 +123,8 @@ def _set_strategy(strategies : AdapterStrategy[MAX_POOLS]) -> bool:
 
 
 @external
-def set_strategy(strategies : AdapterStrategy[MAX_POOLS]) -> bool:
-    return self._set_strategy(strategies)
+def set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS]) -> bool:
+    return self._set_strategy(_proposer, _strategies)
 
 
 @internal 
@@ -355,6 +374,9 @@ struct BalanceTX:
     Adapter: address
 
 
+# TODO : make sure that a zero allocation for an adapter takes precedence over zero
+#        target balance for main pool. If all adapters have 0 allocation then main
+#        pool must take all the assets regardless of _target_asset_balance!
 @internal
 def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceTX[MAX_POOLS]: # DynArray[BalanceTX, MAX_POOLS]:
     # result : DynArray[BalanceTX, MAX_POOLS] = empty(DynArray[BalanceTX, MAX_POOLS])
