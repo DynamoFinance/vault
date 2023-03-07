@@ -93,6 +93,15 @@ def replaceGovernanceContract(_new_governance: address) -> bool:
     return True
 
 
+@external
+def replaceOwner(_new_owner: address) -> bool:
+    assert msg.sender == self.owner, "Only existing owner can replace the owner."
+    assert _new_owner != empty(address), "Owner cannot be null address."
+
+    self.owner = _new_owner
+    return True
+
+
 # Can't simply have a public lending_pools variable due to this Vyper issue:
 # https://github.com/vyperlang/vyper/issues/2897
 @view
