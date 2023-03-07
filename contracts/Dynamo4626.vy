@@ -9,7 +9,11 @@ import LPAdapter as LPAdapter
 MAX_POOLS : constant(int128) = 5
 MAX_BALTX_DEPOSIT : constant(uint8) = 2
 
+# Contract owner hold 10% of the yield.
 YIELD_FEE_PERCENTAGE : constant(decimal) = 10.0
+
+# 2% of the yield belongs to the Strategy proposer so owner ends up with 8% in all.
+PROPOSER_FEE_PERCENTAGE: constant(decimal) = 2.0
 
 
 name: public(immutable(String[64]))
@@ -38,6 +42,7 @@ allowance: public(HashMap[address, HashMap[address, uint256]])
 strategy: public(HashMap[address, uint256])
 proposer: address
 assets_at_proposer_start: uint256
+min_payout: uint256
 
 event PoolAdded:
     sender: indexed(address)
@@ -88,8 +93,11 @@ def replaceGovernanceContract(_new_governance: address) -> bool:
 def lending_pools() -> DynArray[address, MAX_POOLS]: return self.dlending_pools
 
 
+# TODO : also set a minimum fee payment which if the fees are under this amount no payment
+#        of fees will be made to the proposer.
+
 @internal
-def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS]) -> bool:
+def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], _min_payout : uint256) -> bool:
     assert msg.sender == self.governance, "Only Governance DAO may set a new strategy."
     assert _proposer != empty(address), "Proposer can't be null address."
 
@@ -123,7 +131,7 @@ def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS]) 
 
 
 @external
-def set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS]) -> bool:
+def set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], _min_payout : uint256) -> bool:
     return self._set_strategy(_proposer, _strategies)
 
 
