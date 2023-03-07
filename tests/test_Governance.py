@@ -19,7 +19,7 @@ def vault_contract_one(owner, project, accounts):
 
     owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
 
-    vcontractone = owner.deploy(project.Vault_test, owner)
+    vcontractone = owner.deploy(project.Vault_test_one, owner)
 
     return vcontractone
 
@@ -28,7 +28,7 @@ def vault_contract_two(owner, project, accounts):
 
     owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
 
-    vcontracttwo = owner.deploy(project.Vault_test, owner)
+    vcontracttwo = owner.deploy(project.Vault_test_two, owner)
 
     return vcontracttwo
 
@@ -37,7 +37,7 @@ def vault_contract_three(owner, project, accounts):
 
     owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
 
-    vcontractthree = owner.deploy(project.Vault_test, owner)
+    vcontractthree = owner.deploy(project.Vault_test_three, owner)
 
     return vcontractthree
 
@@ -46,7 +46,7 @@ def vault_contract_four(owner, project, accounts):
 
     owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
 
-    vcontractfour = owner.deploy(project.Vault_test, owner)
+    vcontractfour = owner.deploy(project.Vault_test_four, owner)
 
     return vcontractfour
 
