@@ -3,6 +3,9 @@ from dataclasses import dataclass
 
 MAX_POOLS = 5
 
+int128 = int
+uint256 = int
+uint8 = int 
 
 #@dataclass
 class PoolAdapter:
@@ -33,7 +36,7 @@ class ERC20:
 class Pool:
     dlending_pools : list[PoolAdapter] 
     derc20asset : ERC20
-    strategy : list[int]
+    strategy : list[uint256]
 
     def __eq__(self, other) -> bool:
         return self == other.self
@@ -41,7 +44,7 @@ class Pool:
     def __hash__(self) -> int:
         return hash(42)
 
-    def getBalanceTxs( self, _target_asset_balance: int, _max_txs: int) -> list[BalanceTX]:
+    def getBalanceTxs( self, _target_asset_balance: uint256, _max_txs: uint8) -> list[BalanceTX]:
         # TODO: VERY INCOMPLETE
 
         # result : DynArray[BalanceTX, MAX_POOLS] = empty(DynArray[BalanceTX, MAX_POOLS])
@@ -51,25 +54,36 @@ class Pool:
         # If there are no pools then nothing to do.
         if len(self.dlending_pools) == 0: return result
 
-        total_balance = self.derc20asset.balanceOf(self) + sum([self.derc20asset.balanceOf(pool) for pool in self.dlending_pools])
-        available_balance = total_balance - _target_asset_balance
-        total_shares = sum(self.strategy)
-        targetBalances = [0 for x in range(MAX_POOLS)]
-        currentBalances = [0 for x in range(MAX_POOLS)]
-        deltaBalances = [0 for x in range(MAX_POOLS)]
-        sum_in = 0 
-        sum_out = 0
-        for pos, pool in enumerate(self.dlending_pools):
-            targetBalances[pos] = int((self.strategy[pos]/total_shares) * available_balance)
-            currentBalances[pos] = int(self.derc20asset.balanceOf(pool))
-            deltaBalances[pos] = int(targetBalances[pos] - currentBalances[pos])
-            if deltaBalances[pos] > 0:
-                sum_out += deltaBalances[pos]
-            else:
-                sum_in += deltaBalances[pos]
+        total_balance : uint256 = self.derc20asset.balanceOf(self) # + sum([self.derc20asset.balanceOf(pool) for pool in self.dlending_pools])
+        # available_balance = total_balance - _target_asset_balance
+        total_shares : uint256 = 0 #sum(self.strategy)
+        targetBalances : list[uint256] = [0 for x in range(MAX_POOLS)]
+        currentBalances : list[uint256] = [0 for x in range(MAX_POOLS)]
+        deltaBalances : list[uint256] = [0 for x in range(MAX_POOLS)]
+        #sum_in : int128 = 0 
+        #sum_out: int128  = 0
 
-        leftover_balance = available_balance - (sum(currentBalances) + sum(deltaBalances))
-        deltaTarget = self.derc20asset.balanceOf(self) - _target_asset_balance 
+        # Determine current balances.
+        for pos, pool in enumerate(self.dlending_pools):            
+            poolBalance : uint256 = uint256(self.derc20asset.balanceOf(pool))
+            total_balance += poolBalance
+            total_shares += self.strategy[pos]
+            currentBalances[pos] = poolBalance
+            
+        available_balance : int128 = total_balance - _target_asset_balance
+
+        # Determine target balances. 
+        for pos, pool in enumerate(self.dlending_pools):               
+            targetBalances[pos] = int((self.strategy[pos]/total_shares) * available_balance)
+            deltaBalances[pos] = int(targetBalances[pos] - currentBalances[pos])
+            #if deltaBalances[pos] > 0:
+            #    sum_out += deltaBalances[pos]
+            #else:
+            #    sum_in += deltaBalances[pos]
+
+        
+        leftover_balance : int128 = available_balance - (sum(currentBalances) + sum(deltaBalances))
+        deltaTarget : int128 = self.derc20asset.balanceOf(self) - _target_asset_balance 
 
         print("\nPool Adapters: %s." % self.dlending_pools)
         print("total_balance = %s." % total_balance)            
@@ -79,14 +93,14 @@ class Pool:
         print("leftover_balance = %s." % leftover_balance)
         print("_target_asset_balance = %s." % _target_asset_balance)
         print("deltaTarget = %s." % deltaTarget)
-        print("sum_in = %s." % sum_in)
-        print("sum_out = %s." % sum_out)
+        #print("sum_in = %s." % sum_in)
+        #print("sum_out = %s." % sum_out)
 
-        tx : int = 0
+        tx : uint256 = 0
         for i in range(len(self.dlending_pools)):
             if deltaTarget < 0:
-                lowest : int = 0
-                lowest_pos : int = 0
+                lowest : int128 = 0
+                lowest_pos : uint256 = 0
                 for pos in range(len(self.dlending_pools)):
                     # Need to bring funds into the pool now.
                     if deltaBalances[pos] < lowest:
@@ -98,8 +112,8 @@ class Pool:
                 tx+=1
                 continue
             else:
-                largest : int = 0
-                largest_pos : int = 0                
+                largest : int128 = 0
+                largest_pos : uint256 = 0                
                 for pos in range(len(self.dlending_pools)):
                     # Now try for the largest abs(tx).
                     if abs(deltaBalances[pos]) > abs(largest):
@@ -121,7 +135,7 @@ class Pool:
         #             tx+=1
 
         # Make sure we meet our _target_asset_balance goal within _max_txs steps!
-        running_balance : int = self.derc20asset.balanceOf(self)
+        running_balance : uint256 = self.derc20asset.balanceOf(self)
         for pos in range(_max_txs):
             running_balance -= result[pos].Qty
 

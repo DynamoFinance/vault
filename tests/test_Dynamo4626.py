@@ -47,7 +47,7 @@ def pool_adapterC(project, deployer, dai):
 
 @pytest.fixture
 def dynamo4626(project, deployer, dai, trader):
-    v = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, [])    
+    v = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, [], deployer)    
     return v
 
 
@@ -71,7 +71,7 @@ def test_basic_initialization(project, deployer, dynamo4626):
 
 def test_initial_pools_initialization(project, deployer, dai, pool_adapterA, pool_adapterB, pool_adapterC):
     pools = [pool_adapterA, pool_adapterB, pool_adapterC]
-    dynamo = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, pools)    
+    dynamo = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, pools, deployer)    
 
     # This should fail because we can't add the same pool twice!
     for pool in pools:
@@ -94,7 +94,6 @@ def test_add_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
 
     if is_not_hard_hat():
         pytest.skip("Not on hard hat Ethereum snapshot.")
-
     # pool_adapterA is valid & deployer is allowed to add it.
     result = dynamo4626.add_pool(pool_adapterA, sender=deployer) 
     assert result.return_value == True
@@ -122,6 +121,10 @@ def test_add_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
     a = deployer.deploy(project.MockLPAdapter, dai, dai)
     with ape.reverts():
         dynamo4626.add_pool(a, sender=deployer)
+
+
+def test_remove_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
+    pytest.skip("TODO: Not implemented yet.")
 
 
 def _setup_single_adapter(_project, _dynamo4626, _deployer, _dai, _adapter):
@@ -250,7 +253,9 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
 
     assert dynamo4626.totalAssets() == 2000
 
-    assert dynamo4626.convertToAssets(1000) == 2000
+    # Assumes YIELD_FEE_PERCENTAGE : constant(decimal) = 10.0
+    #     and PROPOSER_FEE_PERCENTAGE : constant(decimal) = 1.0
+    assert dynamo4626.convertToAssets(1000) == 1000 + (1000 - (1000*0.11))
 
     assert dynamo4626.convertToShares(2000) == 1000    
 
