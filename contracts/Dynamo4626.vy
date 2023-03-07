@@ -45,8 +45,6 @@ allowance: public(HashMap[address, HashMap[address, uint256]])
 strategy: public(HashMap[address, uint256])
 
 
-
-
 event PoolAdded:
     sender: indexed(address)
     contract_addr: indexed(address)
@@ -109,11 +107,11 @@ def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], 
 
         current_assets : uint256 = self._totalAssets()
 
-        if self.current_proposer != empty(address):
-
+        # Is there enough payout to actually do a transaction?
+        if self._claimable_fees_available(current_assets, False) >= self.min_proposer_payout:
+                
             # Pay prior proposer his earned fees.
-            # TODO : pay 1% fees if above minimum payment!
-            pass
+            self._claim_fees(0, False, current_assets)
 
         self.current_proposer = _proposer
         self.min_proposer_payout = _min_proposer_payout
@@ -255,15 +253,18 @@ def _claimable_fees_available(_current_assets : uint256 = 0, _yield : bool = Tru
 
 
 @internal
-def _claim_fees(_asset_amount: uint256, _yield : bool = True) -> bool:
+def _claim_fees(_asset_amount: uint256, _yield : bool = True,_current_assets : uint256 = 0) -> uint256:
+    # If current proposer is zero address we pay no strategy fees.    
+    if _yield == False and self.current_proposer == empty(address): return 0
+
     claim_amount : uint256 = _asset_amount
 
-    total_fees_remaining : uint256 = self._claimable_fees_available(0, _yield)
+    total_fees_remaining : uint256 = self._claimable_fees_available(_current_assets, _yield)
     if _asset_amount == 0:
         claim_amount = total_fees_remaining
 
     # Do we have _asset_amount of fees available to claim?
-    if total_fees_remaining < claim_amount: return False
+    if total_fees_remaining < claim_amount: return 0
 
     # Good claim. Do we have the balance locally?
     if ERC20(asset).balanceOf(self) < claim_amount:
@@ -274,22 +275,22 @@ def _claim_fees(_asset_amount: uint256, _yield : bool = True) -> bool:
     # Account for the claim and move the funds.
     if _yield == True:
         self.total_yield_fees_claimed += claim_amount
+        ERC20(asset).transfer(self.owner, claim_amount)
     else:
         self.total_strategy_fees_claimed += claim_amount
+        ERC20(asset).transfer(self.current_proposer, claim_amount)
 
-    ERC20(asset).transfer(self.owner, claim_amount)
-
-    return True
+    return claim_amount
 
 
 @external
-def claim_yield_fees(_asset_amount: uint256 = 0) -> bool:
+def claim_yield_fees(_asset_amount: uint256 = 0) -> uint256:
     assert msg.sender == self.owner, "Only owner may claim yield fees."
     return self._claim_fees(_asset_amount, True)
 
 
 @external
-def claim_strategy_fees(_asset_amount: uint256 = 0) -> bool:
+def claim_strategy_fees(_asset_amount: uint256 = 0) -> uint256:
     assert msg.sender == self.current_proposer, "Only curent proposer may claim strategy fees."
     return self._claim_fees(_asset_amount, False)    
 
