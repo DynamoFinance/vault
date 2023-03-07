@@ -9,8 +9,8 @@ implements: ERC20
 MAX_POOLS : constant(int128) = 5
 MAX_BALTX_DEPOSIT : constant(uint8) = 2
 
-# Contract owner hold 9% of the yield.
-YIELD_FEE_PERCENTAGE : constant(decimal) = 9.0
+# Contract owner hold 10% of the yield.
+YIELD_FEE_PERCENTAGE : constant(decimal) = 10.0
 
 # 1% of the yield belongs to the Strategy proposer.
 PROPOSER_FEE_PERCENTAGE: constant(decimal) = 1.0
