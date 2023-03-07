@@ -3,7 +3,7 @@
 from vyper.interfaces import ERC20
 #from interfaces.adapter import LPAdapter
 import LPAdapter as LPAdapter
-# NOT YET! implements: ERC20
+implements: ERC20
 
 
 MAX_POOLS : constant(int128) = 5
@@ -54,9 +54,15 @@ event Transfer:
     receiver: indexed(address)
     value: uint256
 
+event Approval:
+    owner: indexed(address)
+    spender: indexed(address)
+    value: uint256    
+
 event StrategyActivation:
     strategy: AdapterStrategy[MAX_POOLS]
     proposer: address
+    
 
 @external
 def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20asset : address, _pools: DynArray[address, MAX_POOLS], _governance: address):
@@ -94,9 +100,6 @@ def replaceGovernanceContract(_new_governance: address) -> bool:
 def lending_pools() -> DynArray[address, MAX_POOLS]: return self.dlending_pools
 
 
-# TODO : also set a minimum fee payment which if the fees are under this amount no payment
-#        of fees will be made to the proposer.
-
 @internal
 def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], _min_proposer_payout : uint256) -> bool:
     assert msg.sender == self.governance, "Only Governance DAO may set a new strategy."
@@ -127,6 +130,8 @@ def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], 
 
     # Rebalance vault according to new strategy.
     self._balanceAdapters(0, convert(MAX_POOLS, uint8))
+
+    log StrategyActivation(_strategies, _proposer)
 
     return True
 
@@ -188,7 +193,7 @@ def _poolAssets(_pool: address) -> uint256:
 
     assert _pool != empty(address), "EMPTY POOL!!"    
 
-    # Shouldn't I just 'assetQty += LPAdapter(pool).totalAssets()'???
+    # TODO: Shouldn't I just 'assetQty += LPAdapter(pool).totalAssets()'???
     # assetQty += LPAdapter(pool).totalAssets()
     result_ok, response = raw_call(
         _pool,
@@ -529,17 +534,6 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
         if convert(_max_txs, uint256) < pos and btx.Qty != 0:
             btx.Qty = 0
 
-
-
-
-    # # TODO - Just going to assume one adapter for now.
-    # pool : address = self.dlending_pools[0]
-    # delta_tx: int256 = convert(current_local_asset_balance, int256) - convert(_target_asset_balance, int256)
-    # dtx: BalanceTX = BalanceTX({Qty: delta_tx, Adapter: pool})
-
-    # # result.append(dtx)
-    # result[0] = dtx
-
     return result
 
 
@@ -693,5 +687,67 @@ def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint
 @external
 def withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint256: return self._withdraw(_asset_amount,_receiver,_owner)
 
+### ERC20 functionality.
+
+@internal
+def _transfer(_from: address, _to: address, _value: uint256):
+    assert self.balanceOf[_from] >= _value, "ERC20 transfer insufficient funds."
+    self.balanceOf[_from] -= _value
+    self.balanceOf[_to] += _value
+    log Transfer(_from, _to, _value)
 
 
+@internal
+def _approve(_owner: address, _spender: address, _value: uint256):
+    self.allowance[_owner][_spender] = _value
+    log Approval(_owner, _spender, _value)
+
+
+@internal
+def _transferFrom(_operator: address, _from: address, _to:address, _value: uint256):
+    assert self.balanceOf[_from] >= _value, "ERC20 transferFrom insufficient funds."
+    self.balanceOf[_from] -= _value
+    self.balanceOf[_to] += _value
+
+    assert self.allowance[_from][_operator] >= _value, "ERC20 transfer insufficient allowance."
+
+    self.allowance[_from][_operator] -= _value
+    log Transfer(_from, _to, _value)
+
+
+@external
+def transfer(_to : address, _value : uint256) -> bool:
+    """
+    @dev Transfer token for a specified address
+    @param _to The address to transfer to.
+    @param _value The amount to be transferred.
+    """
+    self._transfer(msg.sender, _to, _value)
+    return True
+
+
+@external
+def transferFrom(_from : address, _to : address, _value : uint256) -> bool:
+    """
+     @dev Transfer tokens from one address to another.
+     @param _from address The address which you want to send tokens from
+     @param _to address The address which you want to transfer to
+     @param _value uint256 the amount of tokens to be transferred
+    """
+    self._transferFrom(msg.sender, _from, _to, _value)
+    return True
+
+
+@external
+def approve(_spender : address, _value : uint256) -> bool:
+    """
+    @dev Approve the passed address to spend the specified amount of tokens on behalf of msg.sender.
+         Beware that changing an allowance with this method brings the risk that someone may use both the old
+         and the new allowance by unfortunate transaction ordering. One possible solution to mitigate this
+         race condition is to first reduce the spender's allowance to 0 and set the desired value afterwards:
+         https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
+    @param _spender The address which will spend the funds.
+    @param _value The amount of tokens to be spent.
+    """
+    self._approve(msg.sender, _spender, _value) 
+    return True    
