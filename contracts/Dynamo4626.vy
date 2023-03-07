@@ -9,11 +9,11 @@ import LPAdapter as LPAdapter
 MAX_POOLS : constant(int128) = 5
 MAX_BALTX_DEPOSIT : constant(uint8) = 2
 
-# Contract owner hold 10% of the yield.
-YIELD_FEE_PERCENTAGE : constant(decimal) = 10.0
+# Contract owner hold 9% of the yield.
+YIELD_FEE_PERCENTAGE : constant(decimal) = 9.0
 
-# 2% of the yield belongs to the Strategy proposer so owner ends up with 8% in all.
-PROPOSER_FEE_PERCENTAGE: constant(decimal) = 2.0
+# 1% of the yield belongs to the Strategy proposer.
+PROPOSER_FEE_PERCENTAGE: constant(decimal) = 1.0
 
 
 name: public(immutable(String[64]))
@@ -23,7 +23,8 @@ asset: public(immutable(address))
 
 total_assets_deposited: public(uint256)
 total_assets_withdrawn: public(uint256)
-total_fees_claimed: public(uint256)
+total_yield_fees_claimed: public(uint256)
+total_strategy_fees_claimed: public(uint256)
 
 struct AdapterStrategy:
     adapter: address
@@ -31,6 +32,8 @@ struct AdapterStrategy:
 
 owner: address
 governance: address
+current_proposer: address
+min_proposer_payout: uint256
 
 dlending_pools : DynArray[address, MAX_POOLS]
 
@@ -40,9 +43,9 @@ allowance: public(HashMap[address, HashMap[address, uint256]])
 
 # Maps adapter address (not LP address) to ratios.
 strategy: public(HashMap[address, uint256])
-proposer: address
-assets_at_proposer_start: uint256
-min_payout: uint256
+
+
+
 
 event PoolAdded:
     sender: indexed(address)
@@ -97,23 +100,23 @@ def lending_pools() -> DynArray[address, MAX_POOLS]: return self.dlending_pools
 #        of fees will be made to the proposer.
 
 @internal
-def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], _min_payout : uint256) -> bool:
+def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], _min_proposer_payout : uint256) -> bool:
     assert msg.sender == self.governance, "Only Governance DAO may set a new strategy."
     assert _proposer != empty(address), "Proposer can't be null address."
 
     # Are we replacing the old proposer?
-    if self.proposer != _proposer:
+    if self.current_proposer != _proposer:
 
         current_assets : uint256 = self._totalAssets()
 
-        if self.proposer != empty(address):
+        if self.current_proposer != empty(address):
 
             # Pay prior proposer his earned fees.
-            # TODO : pay 2% fees if above minimum payment!
+            # TODO : pay 1% fees if above minimum payment!
             pass
 
-        self.proposer = _proposer
-        self.assets_at_proposer_start = current_assets
+        self.current_proposer = _proposer
+        self.min_proposer_payout = _min_proposer_payout
 
 
     # Clear out all existing ratio allocations.
@@ -131,8 +134,8 @@ def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], 
 
 
 @external
-def set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], _min_payout : uint256) -> bool:
-    return self._set_strategy(_proposer, _strategies)
+def set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], _min_proposer_payout : uint256) -> bool:
+    return self._set_strategy(_proposer, _strategies, _min_proposer_payout)
 
 
 @internal 
@@ -235,36 +238,60 @@ def _totalReturns(_current_assets : uint256 = 0) -> int256:
 
 @internal
 @view 
-def _claimable_fees_available(_current_assets : uint256 = 0) -> uint256:
+def _claimable_fees_available(_current_assets : uint256 = 0, _yield : bool = True) -> uint256:
     total_returns : int256 = self._totalReturns(_current_assets)
     if total_returns < 0: return 0
 
-    dtotal_fees_available : decimal = convert(total_returns, decimal) * (YIELD_FEE_PERCENTAGE / 100.0)
-    total_fees_remaining : uint256 = convert(dtotal_fees_available, uint256) - self.total_fees_claimed
+    fee_percentage: decimal = YIELD_FEE_PERCENTAGE
+    if _yield == False:
+        fee_percentage = PROPOSER_FEE_PERCENTAGE
 
-    return total_fees_remaining
+    dtotal_fees_available : decimal = convert(total_returns, decimal) * (fee_percentage / 100.0)
+
+    if _yield == True:
+        return convert(dtotal_fees_available, uint256) - self.total_yield_fees_claimed
+    else:
+        return convert(dtotal_fees_available, uint256) - self.total_strategy_fees_claimed
+
+
+@internal
+def _claim_fees(_asset_amount: uint256, _yield : bool = True) -> bool:
+    claim_amount : uint256 = _asset_amount
+
+    total_fees_remaining : uint256 = self._claimable_fees_available(0, _yield)
+    if _asset_amount == 0:
+        claim_amount = total_fees_remaining
+
+    # Do we have _asset_amount of fees available to claim?
+    if total_fees_remaining < claim_amount: return False
+
+    # Good claim. Do we have the balance locally?
+    if ERC20(asset).balanceOf(self) < claim_amount:
+
+        # Need to liquidate some shares to fulfill 
+        self._balanceAdapters(claim_amount)
+
+    # Account for the claim and move the funds.
+    if _yield == True:
+        self.total_yield_fees_claimed += claim_amount
+    else:
+        self.total_strategy_fees_claimed += claim_amount
+
+    ERC20(asset).transfer(self.owner, claim_amount)
+
+    return True
 
 
 @external
-def claim(_asset_amount: uint256) -> bool:
-    assert msg.sender == self.owner, "Only owner may claim fees."
+def claim_yield_fees(_asset_amount: uint256 = 0) -> bool:
+    assert msg.sender == self.owner, "Only owner may claim yield fees."
+    return self._claim_fees(_asset_amount, True)
 
-    total_fees_remaining : uint256 = self._claimable_fees_available()
 
-    # Do we have _asset_amount of fees available to claim?
-    if total_fees_remaining < _asset_amount: return False
-
-    # Good claim. Do we have the balance locally?
-    if ERC20(asset).balanceOf(self) < _asset_amount:
-
-        # Need to liquidate some shares to fulfill 
-        self._balanceAdapters(_asset_amount)
-
-    # Account for the claim and move the funds.
-    self.total_fees_claimed += _asset_amount
-    ERC20(asset).transfer(self.owner, _asset_amount)
-
-    return True
+@external
+def claim_strategy_fees(_asset_amount: uint256 = 0) -> bool:
+    assert msg.sender == self.current_proposer, "Only curent proposer may claim strategy fees."
+    return self._claim_fees(_asset_amount, False)    
 
 
 @internal
@@ -294,7 +321,10 @@ def _convertToAssets(_share_amount: uint256) -> uint256:
 
     shareQty : uint256 = self.totalSupply
     total_assets : uint256 = self._totalAssets()
-    assetQty : uint256 = total_assets - self._claimable_fees_available(total_assets)
+
+    # TODO - do these two calls to claimable_fees_available open us up to potential rounding errors?
+    assetQty : uint256 = total_assets - (self._claimable_fees_available(total_assets, True) + self._claimable_fees_available(total_assets, False))
+
 
     # If there aren't any shares yet it's going to be 1:1.
     if shareQty == 0: return _share_amount
