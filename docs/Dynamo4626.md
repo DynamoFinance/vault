@@ -62,12 +62,15 @@ sequenceDiagram
 
         note over a4626, asset: We must first move the funds into the contract's balance so _getBalanceTxs will know how to best re-adjust.     
         a4626->>asset: transferFrom(from=Investor, to=a4626, amt=500)
+
         Note over asset: balanceOf[Investor]-=500<br>balanceOf[d<Token>4626]+=500
         asset->>a4626: amt=500
       
-  
-        Note over a4626: Compute most efficient rebalancing limited to only 2 transactions.<br>Txs = _genBalanceTxs(maxTx=2)
-        a4626-->>a4626: _genBalanceTxs(maxTxs=2) -> Transfer[]
+        Note over a4626: Compute most efficient rebalancing limited to only 2 transactions.<br>Txs = _getBalanceTxs(maxTx=2)
+        a4626-->>a4626: _getBalanceTxs(maxTxs=2) -> Transfer[]
+        
+        a4626->lpa: _balanceAdapters
+
         loop for Tx: Transfer in Txs<br>(limited to maxTxs iterations)
             alt if Tx.Qty==0
                 note over a4626: break
@@ -81,20 +84,17 @@ sequenceDiagram
             end
         end
       
-        a4626->a4626: Assets = mintTo(dest=Investor, amt=500)
+        a4626->a4626: Shares = mintTo(dest=Investor, amt=500)
             note over a4626:d<Token>4626.balanceOf[Investor]+=500
       
-        a4626->u: return Assets
-      
-               
-  
-  
+        a4626->u: return Shares  
 ```
 #### mint (shares, destination) -> assets
 
 Deposit X assets where X is determined to be the quantity required to receive Y shares representing the new investment.  
 Shares will be credited to destination address. For DynamoUSD this would be the LinearPool which this
 contract is an AssetManager for.
+
 #### redeem (shares, destination, owner) -> assets
 
 Convert X shares controlled by owner back to Y assets to be credited to destination.
@@ -111,6 +111,7 @@ sequenceDiagram
     autonumber
     u->>a4626:redeem(shares = 500, dest = Investor)
     note over a4626: Assets, Txs = _genRedeemTxs(shares=500)<br>Redeemed: uint256 = 0
+
     a4626-->>a4626: _genRedeemTxs(shares=500) -> (AssetValue, Transfer[])
     loop for Tx: Transfer in Txs
        alt if Tx.Qty==0
@@ -146,6 +147,48 @@ sequenceDiagram
 
 Convert X shares controlled by owner where X is determined to be the quantity required to receive Y assets 
 (to be credited to destination) resulting from the share value of the investment.
+
+```mermaid
+sequenceDiagram
+    participant i as Investor
+    participant d as d(Token)4626
+    participant lp as LP Adapter
+    participant erc20 as (ERC20 Asset Token) "Asset"
+    participant eth as Ethereum Mainnet
+
+    i->>d: withdraw(asset=500, dest=investor)
+
+    d->>d: self._convertToShares(_asset_amount) -> sharesPerAsset
+    note over d: if ratio 1:1 then shares=500
+    
+    d->>d: self.balanceOf[_owner] >= shares
+    note over d: Owner has adequate shares to withdraw?
+    
+    d->>d: if msg.sender != _owner
+    note over d: Withdrawal is handled by someone other than the owner?
+    
+    d->>d: ERC20(self).burnFrom(from=Investor, qty=shares)
+    note over d: Burn the shares: qty=500 then shares=0
+    
+    d->>eth: emit event Transfer(_owner, empty(address), shares)
+    note over d, eth: owner=sender, receiver=empty(address), shares=0
+    
+    d->>lp: self._balanceAdapters( _asset_amount )
+    note over d, lp: Make sure we have enough assets to send to _receiver, asset=500
+    
+    lp->>lp: self._getBalanceTxs( _target_asset_balance, _max_txs )
+    note over lp: Make sure we have enough assets to send to _receiver, asset=500
+    
+    lp->>d: self._adapter_withdraw(dtx.Adapter, qty, self)
+    note over lp, d: Liquidate funds from lending pool's adapter, asset=500
+    
+    d->>d: ERC20(derc20asset).balanceOf(self) >= _asset_amount
+    note over d: check if 4626 has enough asset to be withdrawn: _asset_amount=500 
+    
+    d->>i: ERC20(derc20asset).transfer(_receiver, _asset_amount)
+    note over d, i: return: _receiver=investor, _asset_amount=50
+```
+
 ### Dynamo4626 Supporting Functions
 
 There may be matching preview* and max* functions for each of the deposit/mint/redeem/withdraw functions.
