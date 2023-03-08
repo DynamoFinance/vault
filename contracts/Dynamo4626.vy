@@ -80,6 +80,8 @@ def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20ass
     self.governance = _governance
     self.totalSupply = 0
 
+    assert len(self.dlending_pools)==0, "HUh?!?!?" # TODO - remove
+
     for pool in _pools:
         self._add_pool(pool)        
 
@@ -448,6 +450,7 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
     currentBalances : uint256[MAX_POOLS] = empty(uint256[MAX_POOLS])    
     pos: uint256 = 0
     for pool in self.dlending_pools:
+        assert pool != empty(address), "_getBalanceTxs EMPTYPOOL 1!"
         poolBalance : uint256 = self._poolAssets(pool)
         total_balance += poolBalance
         total_shares += self.strategy[pool]
@@ -522,6 +525,8 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
         pos = 0
         for btx in result:
             # Is there enough in the Adapter to satisfy our deficit?
+            if btx.Adapter == empty(address): continue # TODO: should we continue or break? Is a hole possible?
+            #assert btx.Adapter != empty(address), "_getBalanceTxs EMPTYADAPTER 1!"
             available_funds : int256 = convert(self._poolAssets(btx.Adapter), int256) + btx.Qty
             # TODO : Consider also checking that we aren't over the Adapter's maxWithdraw limit here.
             if available_funds >= diff:
@@ -531,6 +536,8 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
             elif available_funds > 0:
                 btx.Qty-=available_funds
                 diff+=available_funds
+
+        assert pos != 0, "NO ADAPTERS PRESENT!!"
 
         # TODO - remove this after testing.
         assert diff <= 0, "CAN'T BALANCE SOON ENOUGH!"
@@ -665,6 +672,11 @@ def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint
 
     # How many shares does it take to get the requested asset amount?
     shares: uint256 = self._convertToShares(_asset_amount)
+
+    result_str : String[103] = concat("Not 1000 shares : ", uint2str(shares))
+
+    assert _asset_amount == 1890, "Not 1890 assets."
+    assert shares == 1000, result_str
 
     # Owner has adequate shares?
     assert self.balanceOf[_owner] >= shares, "Owner has inadequate shares for this withdraw."

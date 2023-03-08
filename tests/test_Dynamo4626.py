@@ -259,5 +259,21 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
 
     assert dynamo4626.convertToShares(2000) == 1000    
 
-    
+    max_withdrawl = dynamo4626.maxWithdraw(trader, sender=trader)
+    max_redeem = dynamo4626.maxRedeem(trader, sender=trader)
+
+    shares_to_redeem = dynamo4626.convertToShares(max_withdrawl)
+    value_of_shares = dynamo4626.convertToAssets(shares_to_redeem)
+    print("max_withdrawl = %s." % max_withdrawl)
+    print("max_redeem = %s." % max_redeem)
+    print("shares_to_redeem = %s." % shares_to_redeem)
+    print("value_of_shares = %s." % value_of_shares)
+
+    assert max_withdrawl == 1000 + (1000 - (1000*0.11))
+    assert max_redeem == 1000
+
+
+
+    #assert dynamo4626.withdraw(max_withdrawl, trader, trader, sender=trader) == max_redeem
+
 
