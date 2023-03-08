@@ -7,8 +7,11 @@ import pytest
 from  pytest import raises
 
 WEIGHTS = [100, 1000]
+WEIGHTSTWO = [150, 1500]
 APYNOW = 5
+APYNOWTWO = 6
 APYPREDICTED = 10
+APYPREDICTEDTWO = 12
 BADAPYPREDICTED = 3
 NONCE = 1
 VOTE_COUNT = 6
@@ -93,7 +96,7 @@ def test_submitStrategy(governance_contract, vault_contract_one, accounts, owner
     print("Expire time %s " % datetime.fromtimestamp(int(ape.chain.pending_timestamp) + tdelay) )
 
 
-    governance_contract.PendingStrategy.Nonce = NONCE
+    governance_contract.PendingStrategy[vault_contract_one].Nonce = NONCE
 
     #Test if i can submit a strategy while there is pending strategy
     with ape.reverts():
@@ -128,7 +131,7 @@ def test_withdrawStrategy(governance_contract, vault_contract_one, accounts):
     with ape.reverts():
         ws = governance_contract.withdrawStrategy(2, vault_contract_one, sender=owner)
 
-    governance_contract.PendingStrategy.Nonce = NONCE
+    governance_contract.PendingStrategy[vault_contract_one].Nonce = NONCE
 
     #Test if i can withdraw strategy when i am not eligible
     with ape.reverts():
@@ -154,7 +157,7 @@ def test_withdrawStrategy(governance_contract, vault_contract_one, accounts):
 
     print("Current timestamp %s" % datetime.fromtimestamp(ape.chain.pending_timestamp))
 
-    governance_contract.PendingStrategy.Nonce = 2
+    governance_contract.PendingStrategy[vault_contract_one].Nonce = 2
 
     #Endorse the strategy
     es = governance_contract.endorseStrategy(2, vault_contract_one, sender=someone)
@@ -190,7 +193,7 @@ def test_endorseStrategy(governance_contract, vault_contract_one, accounts):
     with ape.reverts():
         es = governance_contract.endorseStrategy(2, vault_contract_one, sender=someone)
 
-    governance_contract.PendingStrategy.Nonce = NONCE
+    governance_contract.PendingStrategy[vault_contract_one].Nonce = NONCE
 
     #Test to see if we can vote while not being a guard
     with ape.reverts():
@@ -241,7 +244,7 @@ def test_rejectStrategy(governance_contract, vault_contract_one, accounts):
     with ape.reverts():
         rs = governance_contract.rejectStrategy(2, vault_contract_one, sender=someone)
 
-    governance_contract.PendingStrategy.Nonce = NONCE
+    governance_contract.PendingStrategy[vault_contract_one].Nonce = NONCE
 
     #Check to see if we can vote while not being a guard
     with ape.reverts():
@@ -273,7 +276,7 @@ def test_activateStrategy(governance_contract, vault_contract_one, accounts):
     logs = list(sp.decode_logs(governance_contract.StrategyProposal))
     assert len(logs) == 1
 
-    governance_contract.PendingStrategy.Nonce = NONCE
+    governance_contract.PendingStrategy[vault_contract_one].Nonce = NONCE
 
     #Endorse the strategy
     es = governance_contract.endorseStrategy(NONCE, vault_contract_one, sender=someone)
@@ -290,7 +293,7 @@ def test_activateStrategy(governance_contract, vault_contract_one, accounts):
     #Submit another Strategy
     governance_contract.submitStrategy(ProposedStrategy, vault_contract_one, sender=owner)
 
-    governance_contract.PendingStrategy.Nonce = 2
+    governance_contract.PendingStrategy[vault_contract_one].Nonce = 2
 
     #Endorse the second strategy
     es = governance_contract.endorseStrategy(2, vault_contract_one, sender=someone)
@@ -515,3 +518,50 @@ def test_swapVault(governance_contract, vault_contract_one, vault_contract_two, 
     assert len(logs) == 1
     assert logs[0].OldVaultAddress == vault_contract_one
     assert logs[0].NewVaultAddress == vault_contract_three
+
+
+def test_activateMultipleStrategies(governance_contract, vault_contract_one, vault_contract_two, accounts):
+    ProposedStrategy = (WEIGHTS, APYNOW, APYPREDICTED)
+    ProposedStrategyTwo = (WEIGHTSTWO, APYNOWTWO, APYPREDICTEDTWO)
+    owner, operator, someoneelse, someone = accounts[:4]
+
+    #Add a guard
+    governance_contract.addGuard(someone, sender=owner)
+
+    #Submit a Strategy
+    sp = governance_contract.submitStrategy(ProposedStrategy, vault_contract_one, sender=owner)
+    logs = list(sp.decode_logs(governance_contract.StrategyProposal))
+    assert len(logs) == 1
+
+    governance_contract.PendingStrategy[vault_contract_one].Nonce = NONCE
+
+    #Endorse the strategy
+    es = governance_contract.endorseStrategy(NONCE, vault_contract_one, sender=someone)
+    logs = list(es.decode_logs(governance_contract.StrategyVote))
+
+    #Activate the strategy
+    acs = governance_contract.activateStrategy(NONCE, vault_contract_one, sender=owner)
+    logs = list(acs.decode_logs(governance_contract.StrategyActivation))
+    assert len(logs) == 1
+    assert logs[0].strategy[2] == tuple(WEIGHTS)
+    assert logs[0].strategy[3] == APYNOW
+    assert logs[0].strategy[4] == APYPREDICTED
+
+    #Submit another Strategy
+    sq = governance_contract.submitStrategy(ProposedStrategyTwo, vault_contract_two, sender=owner)
+    logs = list(sq.decode_logs(governance_contract.StrategyProposal))
+    assert len(logs) == 1
+
+    governance_contract.PendingStrategy[vault_contract_two].Nonce = NONCE
+
+    #Endorse the second strategy
+    eq = governance_contract.endorseStrategy(2, vault_contract_two, sender=someone)
+    logs = list(eq.decode_logs(governance_contract.StrategyVote))
+
+    #Activate the second strategy
+    acq = governance_contract.activateStrategy(NONCE, vault_contract_two, sender=owner)
+    logs = list(acq.decode_logs(governance_contract.StrategyActivation))
+    assert len(logs) == 1
+    assert logs[0].strategy[2] == tuple(WEIGHTSTWO)
+    assert logs[0].strategy[3] == APYNOWTWO
+    assert logs[0].strategy[4] == APYPREDICTEDTWO
