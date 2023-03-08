@@ -186,7 +186,7 @@ sequenceDiagram
     note over d: check if 4626 has enough asset to be withdrawn: _asset_amount=500 
     
     d->>i: ERC20(derc20asset).transfer(_receiver, _asset_amount)
-    note over d, i: return: _receiver=investor, _asset_amount=50
+    note over d, i: return: _receiver=investor, _asset_amount=500
 ```
 
 ### Dynamo4626 Supporting Functions
