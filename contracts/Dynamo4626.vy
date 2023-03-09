@@ -271,27 +271,29 @@ def _claimable_fees_available(_current_assets : uint256 = 0, _yield : bool = Tru
     total_returns : int256 = self._totalReturns(_current_assets)
     if total_returns < 0: return 0
 
-    # fee_percentage: decimal = YIELD_FEE_PERCENTAGE
-    # if _yield == False:
-    #     fee_percentage = PROPOSER_FEE_PERCENTAGE
-
-    # dtotal_fees_available : decimal = convert(total_returns, decimal) * (fee_percentage / 100.0)
-
-    # if _yield == True:
-    #     return convert(dtotal_fees_available, uint256) - self.total_yield_fees_claimed
-    # else:
-    #     return convert(dtotal_fees_available, uint256) - self.total_strategy_fees_claimed
-    fee_percentage : uint256 = YIELD_FEE_PERCENTAGE * 100000
+    fee_percentage: decimal = convert(YIELD_FEE_PERCENTAGE, decimal)
     if _yield == False:
-         fee_percentage = PROPOSER_FEE_PERCENTAGE * 100000
+        fee_percentage = convert(PROPOSER_FEE_PERCENTAGE, decimal)
 
-    total_fees_available : uint256 = convert(total_returns, uint256) * (fee_percentage / 100)
-    total_fees_available = total_fees_available / 100000
+    dtotal_fees_available : decimal = convert(total_returns, decimal) * (fee_percentage / 100.0)
 
     if _yield == True:
-        return total_fees_available - self.total_yield_fees_claimed
+        return convert(dtotal_fees_available, uint256) - self.total_yield_fees_claimed
     else:
-        return total_fees_available - self.total_strategy_fees_claimed
+        return convert(dtotal_fees_available, uint256) - self.total_strategy_fees_claimed
+
+
+    # fee_percentage : uint256 = YIELD_FEE_PERCENTAGE * 100000
+    # if _yield == False:
+    #      fee_percentage = PROPOSER_FEE_PERCENTAGE * 100000
+
+    # total_fees_available : uint256 = convert(total_returns, uint256) * (fee_percentage / 100)
+    # total_fees_available = total_fees_available / 100000
+
+    # if _yield == True:
+    #     return total_fees_available - self.total_yield_fees_claimed
+    # else:
+    #     return total_fees_available - self.total_strategy_fees_claimed
     
 
 @internal
@@ -359,17 +361,18 @@ def _convertToShares(_asset_amount: uint256) -> uint256:
     #result_str : String[103] = concat("shareQty : ", uint2str(shareQty))
     #assert False, result_str
 
-    #sharesPerAsset : decimal = convert(shareQty, decimal) / convert(assetQty, decimal)
-    sharesPerAsset : uint256 = ((shareQty * 1000000000) / assetQty) + 1
+    sharesPerAsset : decimal = (convert(shareQty, decimal) * 10000.0 / convert(assetQty, decimal)) + 1.0
+
+    ###sharesPerAsset : uint256 = ((shareQty * 1000000000) / assetQty) + 1
 
     #result_str : String[103] = concat("sharesPerAsset : ", uint2str(sharesPerAsset))
     #assert False, result_str
 
-    result : uint256 = _asset_amount * sharesPerAsset / 1000000000
+    ###result : uint256 = _asset_amount * sharesPerAsset / 1000000000
 
-    return result
+    ###return result
 
-    #return convert(convert(_asset_amount, decimal) * sharesPerAsset, uint256)
+    return convert(convert(_asset_amount, decimal) * sharesPerAsset / 10000.0, uint256)
 
 
 @external
