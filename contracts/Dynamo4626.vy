@@ -491,6 +491,10 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
 
     current_local_asset_balance : uint256 = ERC20(asset).balanceOf(self) 
 
+    #assert current_local_asset_balance == 0, "current_local_asset_balance not zero!"
+    #assert _target_asset_balance == 1890, "_target_asset_balance not 1890!"
+
+
     # TODO - New stuff starts here!
     total_balance : uint256 = current_local_asset_balance
     total_shares : uint256 = 0 
@@ -724,7 +728,7 @@ def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint
     # How many shares does it take to get the requested asset amount?
     shares: uint256 = self._convertToShares(_asset_amount)
 
-    result_str : String[103] = concat("Not 1000 shares : ", uint2str(shares))
+    #result_str : String[103] = concat("Not 1000 shares : ", uint2str(shares))
 
     #assert _asset_amount == 1890, "Not 1890 assets."
     #assert shares == 1000, result_str
