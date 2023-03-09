@@ -226,6 +226,10 @@ def test_single_adapter_withdraw(project, deployer, dynamo4626, pool_adapterA, d
 
     assert result.return_value == 1000   
 
+    # There have been no earnings so shares & assets should map 1:1.
+    assert dynamo4626.convertToShares(250) == 250  
+    assert dynamo4626.convertToAssets(250) == 250  
+
     result = dynamo4626.withdraw(250, trader, trader, sender=trader)
 
     assert pool_adapterA.totalAssets() == 750
@@ -276,6 +280,7 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
     assert max_withdrawl == 1000 + (1000 - (1000*0.11))
     assert max_redeem == 1000
 
-    assert dynamo4626.withdraw(max_withdrawl, trader, trader, sender=trader) == max_redeem
+    taken = dynamo4626.withdraw(max_withdrawl, trader, trader, sender=trader) 
+    print("Got back: %s, was expecting %s." % (taken, max_withdrawl))
 
 

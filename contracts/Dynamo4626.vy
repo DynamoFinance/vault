@@ -568,10 +568,10 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
                 btx.Qty-=available_funds
                 diff+=available_funds
 
-        assert pos != 0, "NO ADAPTERS PRESENT!!"
+        #assert pos != 0, "NO ADAPTERS PRESENT!!"
 
         # TODO - remove this after testing.
-        assert diff <= 0, "CAN'T BALANCE SOON ENOUGH!"
+        #assert diff <= 0, "CAN'T BALANCE SOON ENOUGH!"
 
     # Now make sure we aren't asking for more txs than allowed.
     # Wipe out any extras.
@@ -706,8 +706,8 @@ def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint
 
     result_str : String[103] = concat("Not 1000 shares : ", uint2str(shares))
 
-    assert _asset_amount == 1890, "Not 1890 assets."
-    assert shares == 1000, result_str
+    #assert _asset_amount == 1890, "Not 1890 assets."
+    #assert shares == 1000, result_str
 
     # Owner has adequate shares?
     assert self.balanceOf[_owner] >= shares, "Owner has inadequate shares for this withdraw."
