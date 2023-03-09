@@ -1,9 +1,11 @@
 # @version 0.3.7
 
 from vyper.interfaces import ERC20
+from vyper.interfaces import ERC4626
 #from interfaces.adapter import LPAdapter
 import LPAdapter as LPAdapter
 implements: ERC20
+implements: ERC4626
 
 
 MAX_POOLS : constant(int128) = 5
@@ -58,6 +60,19 @@ event Approval:
     owner: indexed(address)
     spender: indexed(address)
     value: uint256    
+
+event Deposit:
+    sender: indexed(address)
+    owner: indexed(address)
+    assets: uint256
+    shares: uint256 
+
+event Withdraw:
+    sender: indexed(address)
+    receiver: indexed(address)
+    owner: indexed(address)
+    assets: uint256
+    shares: uint256 
 
 event StrategyActivation:
     strategy: AdapterStrategy[MAX_POOLS]
@@ -389,7 +404,7 @@ def convertToAssets(_share_amount: uint256) -> uint256: return self._convertToAs
 
 @external
 @view
-def maxDeposit() -> uint256:
+def maxDeposit(_spender: address) -> uint256:
     # TODO - if deposits are disabled return 0
     # Ensure this value cannot take local asset balance over max_value(128) for _getBalanceTxs math.
     return convert(max_value(int128), uint256) - ERC20(asset).balanceOf(self)
@@ -691,6 +706,8 @@ def _deposit(_asset_amount: uint256, _receiver: address) -> uint256:
 
     result : uint256 = _asset_amount
 
+    # TODO : emit Deposit event!
+
     return result
 
 
@@ -733,6 +750,8 @@ def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint
 
     # Update all-time assets withdrawn for yield tracking.
     self.total_assets_withdrawn += _asset_amount
+
+    # TODO: emit Withdrawl event!
 
     return shares
 
