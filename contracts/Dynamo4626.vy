@@ -528,13 +528,13 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
     # Is there any strategy to deal with?
     if total_strategy_ratios == 0: return result        
 
-    available_balance : int256 = convert(total_balance, int256) - convert(_target_asset_balance, int256)
+    extra_onhand_balance : int256 = convert(total_balance, int256) - convert(_target_asset_balance, int256)
 
 
     # BDM
     if current_local_asset_balance == 0:
-        result_str : String[104] = concat("!2000 available_balance : ", uint2str(convert(available_balance, uint256)))
-        assert available_balance == 2000, result_str
+        result_str : String[106] = concat("!110 extra_onhand_balance : ", uint2str(convert(extra_onhand_balance, uint256)))
+        assert extra_onhand_balance == 110, result_str
 
 
 
@@ -544,15 +544,17 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
     pos = 0
     for pool in self.dlending_pools:
         share_ratio : decimal = convert(self.strategy[pool], decimal) / convert(total_strategy_ratios, decimal)
-        targetBalances[pos] = convert(convert(available_balance, decimal) * share_ratio, uint256)
+        targetBalances[pos] = convert(convert(extra_onhand_balance, decimal) * share_ratio, uint256)
         deltaBalances[pos] = convert(targetBalances[pos],int256) - convert(currentBalances[pos], int256)
 
     # How far off are we from our target asset balance?
     deltaTarget : int256 = convert(current_local_asset_balance, int256) - convert(_target_asset_balance, int256)
 
     # BDM
-    if current_local_asset_balance == 0:
-        assert deltaTarget == 1890, "deltaTarget not 1890!"
+    if current_local_asset_balance == 0:        
+        result_str : String[106] = concat("deltaTarget not 1890 : ", uint2str(convert(deltaTarget, uint256)))
+        assert deltaTarget == 1890, result_str
+        #assert extra_onhand_balance == 110, result_str
 
     # Prioritize and allocate transactions.    
     pos = 0
