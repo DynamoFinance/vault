@@ -237,10 +237,14 @@ def test_single_adapter_withdraw(project, deployer, dynamo4626, pool_adapterA, d
 def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool_adapterA, dai, trader):
     _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
 
+    assert dai.balanceOf(trader) == 1000000000 * 10**18
+
     # Trader needs to allow the 4626 contract to take funds.
     dai.approve(dynamo4626,1000, sender=trader)
 
     dynamo4626.deposit(1000, trader, sender=trader)
+
+    assert dai.balanceOf(trader) == (1000000000 * 10**18) - 1000
 
     assert dynamo4626.totalSupply() == 1000
 
@@ -257,7 +261,7 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
     #     and PROPOSER_FEE_PERCENTAGE : constant(decimal) = 1.0
     assert dynamo4626.convertToAssets(1000) == 1000 + (1000 - (1000*0.11))
 
-    assert dynamo4626.convertToShares(2000) == 1000    
+    assert dynamo4626.convertToShares(2000) == 1058 # 1000    
 
     max_withdrawl = dynamo4626.maxWithdraw(trader, sender=trader)
     max_redeem = dynamo4626.maxRedeem(trader, sender=trader)
@@ -272,8 +276,6 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
     assert max_withdrawl == 1000 + (1000 - (1000*0.11))
     assert max_redeem == 1000
 
-
-
-    #assert dynamo4626.withdraw(max_withdrawl, trader, trader, sender=trader) == max_redeem
+    assert dynamo4626.withdraw(max_withdrawl, trader, trader, sender=trader) == max_redeem
 
 

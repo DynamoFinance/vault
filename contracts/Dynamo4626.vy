@@ -10,10 +10,10 @@ MAX_POOLS : constant(int128) = 5
 MAX_BALTX_DEPOSIT : constant(uint8) = 2
 
 # Contract owner hold 10% of the yield.
-YIELD_FEE_PERCENTAGE : constant(decimal) = 10.0
+YIELD_FEE_PERCENTAGE : constant(uint256) = 10
 
 # 1% of the yield belongs to the Strategy proposer.
-PROPOSER_FEE_PERCENTAGE: constant(decimal) = 1.0
+PROPOSER_FEE_PERCENTAGE: constant(uint256) = 1
 
 
 name: public(immutable(String[64]))
@@ -256,17 +256,28 @@ def _claimable_fees_available(_current_assets : uint256 = 0, _yield : bool = Tru
     total_returns : int256 = self._totalReturns(_current_assets)
     if total_returns < 0: return 0
 
-    fee_percentage: decimal = YIELD_FEE_PERCENTAGE
-    if _yield == False:
-        fee_percentage = PROPOSER_FEE_PERCENTAGE
+    # fee_percentage: decimal = YIELD_FEE_PERCENTAGE
+    # if _yield == False:
+    #     fee_percentage = PROPOSER_FEE_PERCENTAGE
 
-    dtotal_fees_available : decimal = convert(total_returns, decimal) * (fee_percentage / 100.0)
+    # dtotal_fees_available : decimal = convert(total_returns, decimal) * (fee_percentage / 100.0)
+
+    # if _yield == True:
+    #     return convert(dtotal_fees_available, uint256) - self.total_yield_fees_claimed
+    # else:
+    #     return convert(dtotal_fees_available, uint256) - self.total_strategy_fees_claimed
+    fee_percentage : uint256 = YIELD_FEE_PERCENTAGE * 100000
+    if _yield == False:
+         fee_percentage = PROPOSER_FEE_PERCENTAGE * 100000
+
+    total_fees_available : uint256 = convert(total_returns, uint256) * (fee_percentage / 100)
+    total_fees_available = total_fees_available / 100000
 
     if _yield == True:
-        return convert(dtotal_fees_available, uint256) - self.total_yield_fees_claimed
+        return total_fees_available - self.total_yield_fees_claimed
     else:
-        return convert(dtotal_fees_available, uint256) - self.total_strategy_fees_claimed
-
+        return total_fees_available - self.total_strategy_fees_claimed
+    
 
 @internal
 def _claim_fees(_asset_amount: uint256, _yield : bool = True,_current_assets : uint256 = 0) -> uint256:
@@ -315,15 +326,35 @@ def claim_strategy_fees(_asset_amount: uint256 = 0) -> uint256:
 @view
 def _convertToShares(_asset_amount: uint256) -> uint256:
     shareQty : uint256 = self.totalSupply
-    assetQty : uint256 = self._totalAssets()
+    grossAssets : uint256 = self._totalAssets()
+    assetQty : uint256 = grossAssets
+    claimable_earnings : uint256 = self._claimable_fees_available(grossAssets, True)
+    claimable_strategy : uint256 = self._claimable_fees_available(grossAssets, False)
+    # Less fees
+    assetQty -= self._claimable_fees_available(grossAssets, True)
+    assetQty -= self._claimable_fees_available(grossAssets, False)
 
     # If there aren't any shares/assets yet it's going to be 1:1.
     if shareQty == 0 : return _asset_amount
     if assetQty == 0 : return _asset_amount
 
-    sharesPerAsset : decimal = convert(shareQty, decimal) / convert(assetQty, decimal)
+    #result_str : String[103] = concat("totalfees : ", uint2str(claimable_earnings+claimable_strategy))
+    #assert False, result_str
 
-    return convert(convert(_asset_amount, decimal) * sharesPerAsset, uint256)
+    #result_str : String[103] = concat("shareQty : ", uint2str(shareQty))
+    #assert False, result_str
+
+    #sharesPerAsset : decimal = convert(shareQty, decimal) / convert(assetQty, decimal)
+    sharesPerAsset : uint256 = ((shareQty * 1000000000) / assetQty) + 1
+
+    #result_str : String[103] = concat("sharesPerAsset : ", uint2str(sharesPerAsset))
+    #assert False, result_str
+
+    result : uint256 = _asset_amount * sharesPerAsset / 1000000000
+
+    return result
+
+    #return convert(convert(_asset_amount, decimal) * sharesPerAsset, uint256)
 
 
 @external
