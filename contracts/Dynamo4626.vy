@@ -492,40 +492,67 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
     current_local_asset_balance : uint256 = ERC20(asset).balanceOf(self) 
 
     #assert current_local_asset_balance == 0, "current_local_asset_balance not zero!"
-    #assert _target_asset_balance == 1890, "_target_asset_balance not 1890!"
 
+
+    # BDM
+    if current_local_asset_balance == 0:
+        assert _target_asset_balance == 1890, "_target_asset_balance not 1890!"
+
+
+    #assert _target_asset_balance == 0 or current_local_asset_balance == 0, "One balance is not zero!"
 
     # TODO - New stuff starts here!
     total_balance : uint256 = current_local_asset_balance
-    total_shares : uint256 = 0 
+    total_strategy_ratios : uint256 = 0 
 
     # Determine current balances.
     currentBalances : uint256[MAX_POOLS] = empty(uint256[MAX_POOLS])    
     pos: uint256 = 0
     for pool in self.dlending_pools:
+
+        # BDM - shouldn't be possible with a DynArray.
         assert pool != empty(address), "_getBalanceTxs EMPTYPOOL 1!"
+
         poolBalance : uint256 = self._poolAssets(pool)
         total_balance += poolBalance
-        total_shares += self.strategy[pool]
+        total_strategy_ratios += self.strategy[pool]
         currentBalances[pos] = poolBalance
         pos += 1
 
+
+    # BDM
+    if current_local_asset_balance == 0:
+        assert total_balance == 2000, "total_balance not 2000!"
+        assert total_strategy_ratios == 1, "total_strategy_ratios not 1!"
+
     # Is there any strategy to deal with?
-    if total_shares == 0: return result        
+    if total_strategy_ratios == 0: return result        
 
     available_balance : int256 = convert(total_balance, int256) - convert(_target_asset_balance, int256)
+
+
+    # BDM
+    if current_local_asset_balance == 0:
+        result_str : String[104] = concat("!2000 available_balance : ", uint2str(convert(available_balance, uint256)))
+        assert available_balance == 2000, result_str
+
+
 
     # Determine target balances.
     targetBalances : uint256[MAX_POOLS] = empty(uint256[MAX_POOLS])    
     deltaBalances : int256[MAX_POOLS] = empty(int256[MAX_POOLS])    
     pos = 0
     for pool in self.dlending_pools:
-        share_ratio : decimal = convert(self.strategy[pool], decimal) / convert(total_shares, decimal)
+        share_ratio : decimal = convert(self.strategy[pool], decimal) / convert(total_strategy_ratios, decimal)
         targetBalances[pos] = convert(convert(available_balance, decimal) * share_ratio, uint256)
         deltaBalances[pos] = convert(targetBalances[pos],int256) - convert(currentBalances[pos], int256)
 
     # How far off are we from our target asset balance?
     deltaTarget : int256 = convert(current_local_asset_balance, int256) - convert(_target_asset_balance, int256)
+
+    # BDM
+    if current_local_asset_balance == 0:
+        assert deltaTarget == 1890, "deltaTarget not 1890!"
 
     # Prioritize and allocate transactions.    
     pos = 0

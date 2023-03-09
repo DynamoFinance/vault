@@ -20,7 +20,7 @@ def trader(accounts):
 def dai(project, deployer, trader):
     ua = deployer.deploy(project.ERC20, "DAI", "DAI", 18, 0, deployer)
     #Transfer some to trader.
-    ua.mint(trader, '1000000000 Ether', sender=deployer)
+    ua.mint(trader, 1000000000, sender=deployer)
     return ua
 
 
@@ -241,14 +241,18 @@ def test_single_adapter_withdraw(project, deployer, dynamo4626, pool_adapterA, d
 def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool_adapterA, dai, trader):
     _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
 
-    assert dai.balanceOf(trader) == 1000000000 * 10**18
+    assert dai.balanceOf(trader) == 1000000000 
 
     # Trader needs to allow the 4626 contract to take funds.
     dai.approve(dynamo4626,1000, sender=trader)
 
+    assert dai.balanceOf(dynamo4626) == 0
+
     dynamo4626.deposit(1000, trader, sender=trader)
 
-    assert dai.balanceOf(trader) == (1000000000 * 10**18) - 1000
+    assert dai.balanceOf(dynamo4626) == 0
+
+    assert dai.balanceOf(trader) == 1000000000 - 1000
 
     assert dynamo4626.totalSupply() == 1000
 
