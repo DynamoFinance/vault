@@ -224,7 +224,9 @@ def test_single_adapter_withdraw(project, deployer, dynamo4626, pool_adapterA, d
     if is_not_hard_hat():
         pytest.skip("Not on hard hat Ethereum snapshot.")
 
+    print("dynamo4626.deposit(1000, trader, sender=trader) = %s." % result.return_value)
     assert result.return_value == 1000   
+
 
     # There have been no earnings so shares & assets should map 1:1.
     assert dynamo4626.convertToShares(250) == 250  

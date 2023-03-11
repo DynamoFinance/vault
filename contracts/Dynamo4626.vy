@@ -219,8 +219,8 @@ def _poolAssets(_pool: address) -> uint256:
 
     assert _pool != empty(address), "EMPTY POOL!!"    
 
-    # TODO: Shouldn't I just 'assetQty += LPAdapter(pool).totalAssets()'???
-    # assetQty += LPAdapter(pool).totalAssets()
+    # TODO: Shouldn't I just 'assetqty += LPAdapter(pool).totalAssets()'???
+    # assetqty += LPAdapter(pool).totalAssets()
     result_ok, response = raw_call(
         _pool,
         method_id("totalAssets()"),
@@ -240,12 +240,12 @@ def _poolAssets(_pool: address) -> uint256:
 @internal
 @view
 def _totalAssets() -> uint256:
-    assetQty : uint256 = ERC20(asset).balanceOf(self)
+    assetqty : uint256 = ERC20(asset).balanceOf(self)
     for pool in self.dlending_pools:
         if pool == empty(address): break
-        assetQty += self._poolAssets(pool)
+        assetqty += self._poolAssets(pool)
 
-    return assetQty
+    return assetqty
 
 
 @external
@@ -342,28 +342,28 @@ def claim_strategy_fees(_asset_amount: uint256 = 0) -> uint256:
 @internal
 @view
 def _convertToShares(_asset_amount: uint256) -> uint256:
-    shareQty : uint256 = self.totalSupply
+    shareqty : uint256 = self.totalSupply
     grossAssets : uint256 = self._totalAssets()
-    assetQty : uint256 = grossAssets
+    assetqty : uint256 = grossAssets
     claimable_earnings : uint256 = self._claimable_fees_available(grossAssets, True)
     claimable_strategy : uint256 = self._claimable_fees_available(grossAssets, False)
     # Less fees
-    assetQty -= self._claimable_fees_available(grossAssets, True)
-    assetQty -= self._claimable_fees_available(grossAssets, False)
+    assetqty -= self._claimable_fees_available(grossAssets, True)
+    assetqty -= self._claimable_fees_available(grossAssets, False)
 
     # If there aren't any shares/assets yet it's going to be 1:1.
-    if shareQty == 0 : return _asset_amount
-    if assetQty == 0 : return _asset_amount
+    if shareqty == 0 : return _asset_amount
+    if assetqty == 0 : return _asset_amount
 
     #result_str : String[103] = concat("totalfees : ", uint2str(claimable_earnings+claimable_strategy))
     #assert False, result_str
 
-    #result_str : String[103] = concat("shareQty : ", uint2str(shareQty))
+    #result_str : String[103] = concat("shareqty : ", uint2str(shareqty))
     #assert False, result_str
 
-    sharesPerAsset : decimal = (convert(shareQty, decimal) * 10000.0 / convert(assetQty, decimal)) + 1.0
+    sharesPerAsset : decimal = (convert(shareqty, decimal) * 10000.0 / convert(assetqty, decimal)) + 1.0
 
-    ###sharesPerAsset : uint256 = ((shareQty * 1000000000) / assetQty) + 1
+    ###sharesPerAsset : uint256 = ((shareqty * 1000000000) / assetqty) + 1
 
     #result_str : String[103] = concat("sharesPerAsset : ", uint2str(sharesPerAsset))
     #assert False, result_str
@@ -385,17 +385,17 @@ def convertToShares(_asset_amount: uint256) -> uint256: return self._convertToSh
 def _convertToAssets(_share_amount: uint256) -> uint256:
     # return _share_amount
 
-    shareQty : uint256 = self.totalSupply
+    shareqty : uint256 = self.totalSupply
     total_assets : uint256 = self._totalAssets()
 
     # TODO - do these two calls to claimable_fees_available open us up to potential rounding errors?
-    assetQty : uint256 = total_assets - (self._claimable_fees_available(total_assets, True) + self._claimable_fees_available(total_assets, False))
+    assetqty : uint256 = total_assets - (self._claimable_fees_available(total_assets, True) + self._claimable_fees_available(total_assets, False))
 
 
     # If there aren't any shares yet it's going to be 1:1.
-    if shareQty == 0: return _share_amount
+    if shareqty == 0: return _share_amount
 
-    assetsPerShare : decimal = convert(assetQty, decimal) / convert(shareQty, decimal)
+    assetsPerShare : decimal = convert(assetqty, decimal) / convert(shareqty, decimal)
 
     return convert(convert(_share_amount, decimal) * assetsPerShare, uint256)
 
@@ -435,8 +435,8 @@ def previewMint(_share_amount: uint256) -> uint256:
 
 @external
 def mint(_share_amount: uint256, _receiver: address) -> uint256:
-    assetQty : uint256 = self._convertToAssets(_share_amount)
-    return self._deposit(assetQty, _receiver)
+    assetqty : uint256 = self._convertToAssets(_share_amount)
+    return self._deposit(assetqty, _receiver)
 
 
 @external
@@ -469,25 +469,85 @@ def previewRedeem(_share_amount: uint256) -> uint256:
 
 @external
 def redeem(_share_amount: uint256, _receiver: address, _owner: address) -> uint256:
-    assetQty: uint256 = self._convertToAssets(_share_amount)
-    return self._withdraw(assetQty, _receiver, _owner)
+    assetqty: uint256 = self._convertToAssets(_share_amount)
+    return self._withdraw(assetqty, _receiver, _owner)
 
 
 struct BalanceTX:
-    Qty: int256
-    Adapter: address
+    qty: int256
+    adapter: address
 
+
+struct BalancePool:
+    adapter: address
+    current: uint256
+    ratio: uint256
+    target: uint256
+    delta: int256
+
+
+# Returns current 4626 asset balance, first 3 parts of BalancePools, total Assets, & total ratios of Strategy.
+@internal
+@view 
+def _getCurrentBalances() -> (uint256, BalancePool[MAX_POOLS], uint256, uint256):
+    current_local_asset_balance : uint256 = ERC20(asset).balanceOf(self)
+
+    pool_balances: BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
+
+    # If there are no pools then nothing to do.
+    if len(self.dlending_pools) == 0: return current_local_asset_balance, pool_balances, current_local_asset_balance, 0
+
+    total_balance: uint256 = current_local_asset_balance
+    total_ratios: uint256 = 0
+    pos: uint256 = 0
+
+    for pool in self.dlending_pools:
+        pool_balances[pos].adapter = pool
+        pool_balances[pos].current = self._poolAssets(pool)
+        pool_balances[pos].ratio = self.strategy[pool]
+        total_balance += pool_balances[pos].current
+        total_ratios += pool_balances[pos].ratio
+        pos += 1
+
+    return current_local_asset_balance, pool_balances, total_balance, total_ratios
+
+@external
+@view 
+def getCurrentBalances() -> (uint256, BalancePool[MAX_POOLS], uint256, uint256): return self._getCurrentBalances()
+
+
+@internal
+def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceTX[MAX_POOLS]: 
+    result : BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
+
+    # If there are no pools then nothing to do.
+    if len(self.dlending_pools) == 0: return result
+
+    d4626_assets: uint256 = 0
+    pool_states: BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
+    total_assets: uint256 = 0
+    total_ratios: uint256 = 0
+    d4626_assets, pool_states, total_assets, total_ratios = self._getCurrentBalances()
+
+
+    return result
 
 # TODO : make sure that a zero allocation for an adapter takes precedence over zero
 #        target balance for main pool. If all adapters have 0 allocation then main
 #        pool must take all the assets regardless of _target_asset_balance!
 @internal
-def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceTX[MAX_POOLS]: # DynArray[BalanceTX, MAX_POOLS]:
-    # result : DynArray[BalanceTX, MAX_POOLS] = empty(DynArray[BalanceTX, MAX_POOLS])
+def _XXXgetBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceTX[MAX_POOLS]: 
     result : BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
 
     # If there are no pools then nothing to do.
     if len(self.dlending_pools) == 0: return result
+
+    # d4626_assets: uint256 = 0
+    # pool_states: BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
+    # total_assets: uint256 = 0
+    # total_ratios: uint256 = 0
+    # d4626_assets, pool_states, total_assets, total_ratio = self._getCurrentBalances()
+
 
     current_local_asset_balance : uint256 = ERC20(asset).balanceOf(self) 
 
@@ -496,7 +556,7 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
 
     # BDM
     if current_local_asset_balance == 0:
-        assert _target_asset_balance == 1890, "_target_asset_balance not 1890!"
+        assert _target_asset_balance == 250, "_target_asset_balance not 250!"
 
 
     #assert _target_asset_balance == 0 or current_local_asset_balance == 0, "One balance is not zero!"
@@ -522,7 +582,7 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
 
     # BDM
     if current_local_asset_balance == 0:
-        assert total_balance == 2000, "total_balance not 2000!"
+        assert total_balance == 1000, "total_balance not 1000!"
         assert total_strategy_ratios == 1, "total_strategy_ratios not 1!"
 
     # Is there any strategy to deal with?
@@ -533,8 +593,8 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
 
     # BDM
     if current_local_asset_balance == 0:
-        result_str : String[106] = concat("!110 extra_onhand_balance : ", uint2str(convert(extra_onhand_balance, uint256)))
-        assert extra_onhand_balance == 110, result_str
+        result_str : String[106] = concat("!750 extra_onhand_balance : ", uint2str(convert(extra_onhand_balance, uint256)))
+        assert extra_onhand_balance == 750, result_str
 
 
 
@@ -552,8 +612,8 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
 
     # BDM
     if current_local_asset_balance == 0:        
-        result_str : String[106] = concat("deltaTarget not 1890 : ", uint2str(convert(deltaTarget, uint256)))
-        assert deltaTarget == 1890, result_str
+        result_str : String[106] = concat("deltaTarget not 250 : ", uint2str(convert(deltaTarget, uint256)))
+        assert deltaTarget == 250, result_str
         #assert extra_onhand_balance == 110, result_str
 
     # Prioritize and allocate transactions.    
@@ -572,9 +632,9 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
                     lowest = low_candidate
                     lowest_pos = pos 
                 i+=1
-            result[pos] = BalanceTX({Qty: lowest, Adapter:self.dlending_pools[lowest_pos]})
+            result[pos] = BalanceTX({qty: lowest, adapter:self.dlending_pools[lowest_pos]})
             deltaBalances[lowest_pos] = 0
-            deltaTarget -= lowest                        
+            deltaTarget -= lowest
         else:
             # Prioritize the tx that will have the highest impact on the balances.
             largest : int256 = 0
@@ -588,7 +648,7 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
                     largest = deltaBalances[i]
                     largest_pos = i
                 i+=1
-            result[pos] = BalanceTX({Qty: largest, Adapter:self.dlending_pools[largest_pos]})
+            result[pos] = BalanceTX({qty: largest, adapter:self.dlending_pools[largest_pos]})
             deltaBalances[largest_pos] = 0
             deltaTarget += largest
             
@@ -598,8 +658,8 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
     assert current_local_asset_balance <= max_value(int128) and convert(current_local_asset_balance, int256) >= min_value(int128), "BUSTED!" # TODO remove
     running_balance : int256 = convert(current_local_asset_balance, int256)
     for btx in result:        
-        if btx.Qty == 0: break
-        running_balance += btx.Qty
+        if btx.qty == 0: break
+        running_balance += btx.qty
 
 
     if running_balance < convert(_target_asset_balance, int256):
@@ -607,16 +667,16 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
         pos = 0
         for btx in result:
             # Is there enough in the Adapter to satisfy our deficit?
-            if btx.Adapter == empty(address): continue # TODO: should we continue or break? Is a hole possible?
-            #assert btx.Adapter != empty(address), "_getBalanceTxs EMPTYADAPTER 1!"
-            available_funds : int256 = convert(self._poolAssets(btx.Adapter), int256) + btx.Qty
+            if btx.adapter == empty(address): continue # TODO: should we continue or break? Is a hole possible?
+            #assert btx.adapter != empty(address), "_getBalanceTxs EMPTYADAPTER 1!"
+            available_funds : int256 = convert(self._poolAssets(btx.adapter), int256) + btx.qty
             # TODO : Consider also checking that we aren't over the Adapter's maxWithdraw limit here.
             if available_funds >= diff:
-                btx.Qty-= diff
+                btx.qty-= diff
                 diff = 0 
                 break
             elif available_funds > 0:
-                btx.Qty-=available_funds
+                btx.qty-=available_funds
                 diff+=available_funds
 
         #assert pos != 0, "NO ADAPTERS PRESENT!!"
@@ -628,9 +688,9 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
     # Wipe out any extras.
     pos = 0
     for btx in result:
-        if btx.Qty != 0: pos+=1
-        if convert(_max_txs, uint256) < pos and btx.Qty != 0:
-            btx.Qty = 0
+        if btx.qty != 0: pos+=1
+        if convert(_max_txs, uint256) < pos and btx.qty != 0:
+            btx.qty = 0
 
     return result
 
@@ -645,21 +705,21 @@ def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALT
 
     # Move the funds in/out of Lending Pools as required.
     for dtx in txs:
-        if dtx.Qty > 0:
+        if dtx.qty > 0:
             # Move funds into the lending pool's adapter.
-            assert ERC20(asset).balanceOf(self) >= convert(dtx.Qty, uint256), "_balanceAdapters insufficient assets!"
+            assert ERC20(asset).balanceOf(self) >= convert(dtx.qty, uint256), "_balanceAdapters insufficient assets!"
             # TODO : check for deposit failure. If it's due to going beyond
             #        the adapter's maxDeposit() limit, try again with lower limit.
-            self._adapter_deposit(dtx.Adapter, convert(dtx.Qty, uint256))
+            self._adapter_deposit(dtx.adapter, convert(dtx.qty, uint256))
 
-        elif dtx.Qty < 0:
+        elif dtx.qty < 0:
             # Liquidate funds from lending pool's adapter.
-            qty: uint256 = convert(dtx.Qty * -1, uint256)
+            qty: uint256 = convert(dtx.qty * -1, uint256)
             # TODO : check for withdraw failure. If it's due to going beyond
             #        the adapter's maxWithdraw limit then try again with lower limit.
             # TODO:  We also have to check to see if we short the 4626 balance, where
             #        the necessary funds will come from! Otherwise this may need to revert.
-            self._adapter_withdraw(dtx.Adapter, qty, self)
+            self._adapter_withdraw(dtx.adapter, qty, self)
 
 
 @internal
