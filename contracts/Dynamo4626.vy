@@ -517,17 +517,34 @@ def getCurrentBalances() -> (uint256, BalancePool[MAX_POOLS], uint256, uint256):
 
 
 @internal
+@view 
+def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS]) -> (uint256, BalancePool[MAX_POOLS]):
+    return _d4626_asset_target, _pool_balances
+
+
+@external
+@view 
+def getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS]) -> (uint256, BalancePool[MAX_POOLS]): return self._getTargetBalances(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances)
+
+
+@internal
 def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceTX[MAX_POOLS]: 
     result : BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
 
     # If there are no pools then nothing to do.
     if len(self.dlending_pools) == 0: return result
 
+    # Setup current state of vault & pools & strategy.
     d4626_assets: uint256 = 0
     pool_states: BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
     total_assets: uint256 = 0
     total_ratios: uint256 = 0
     d4626_assets, pool_states, total_assets, total_ratios = self._getCurrentBalances()
+
+    # What's the optimal outcome for our vault/pools?
+    d4626_target : uint256 = _target_asset_balance
+    d4626_target, pool_states = self._getTargetBalances(d4626_target, total_assets, total_ratios, pool_states)
+
 
 
     return result

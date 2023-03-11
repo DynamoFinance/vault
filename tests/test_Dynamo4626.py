@@ -207,17 +207,52 @@ def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, da
     assert LP_end_DAI - LP_start_DAI == 900
 
 
+CURRENT = 1
+RATIO = 2
+
+def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai, trader):
+    _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
+
+    assert pool_adapterA.totalAssets() == 0
+    assert dynamo4626.totalAssets() == 0
+
+    d4626_assets, pool_states, total_assets, total_ratios = dynamo4626.getCurrentBalances()
+
+    assert d4626_assets == 0
+    assert pool_states[0][CURRENT] == 0    
+    assert pool_states[0][RATIO] == 1 
+    assert total_assets == 0
+    assert total_ratios == 1
+
+
+    # Trader needs to allow the 4626 contract to take funds.
+    dai.approve(dynamo4626,1000, sender=trader)
+
+    result = dynamo4626.deposit(1000, trader, sender=trader)
+
+    d4626_assets, pool_states, total_assets, total_ratios = dynamo4626.getCurrentBalances()
+
+    assert d4626_assets == 1000
+    assert pool_states[0][CURRENT] == 0    
+    assert pool_states[0][RATIO] == 1 
+    assert total_assets == 1000
+    assert total_ratios == 1    
+
+    print("pool_states = %s." % pool_states)
+
+
 def test_single_adapter_withdraw(project, deployer, dynamo4626, pool_adapterA, dai, trader):
     _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
 
     assert pool_adapterA.totalAssets() == 0
     assert dynamo4626.totalAssets() == 0
 
+
     # Trader needs to allow the 4626 contract to take funds.
     dai.approve(dynamo4626,1000, sender=trader)
 
     result = dynamo4626.deposit(1000, trader, sender=trader)
-     
+
     assert pool_adapterA.totalAssets() == 1000
     assert dynamo4626.totalAssets() == 1000
 
