@@ -544,40 +544,69 @@ def test_activateMultipleStrategies(governance_contract, vault_contract_one, vau
     ProposedStrategyTwo = (WEIGHTSTWO, APYNOWTWO, APYPREDICTEDTWO)
     owner, operator, someoneelse, someone = accounts[:4]
 
+    assert vault_contract_one != vault_contract_two, "Vaults seem to be the same."
+
     #Add a guard
     governance_contract.addGuard(someone, sender=owner)
 
     governance_contract.addVault(vault_contract_one, sender=owner)
+    governance_contract.addVault(vault_contract_two, sender=owner)    
 
     #Submit a Strategy
     sp = governance_contract.submitStrategy(ProposedStrategy, vault_contract_one, sender=owner)
+
+    print("Got here 1!")
+
     logs = list(sp.decode_logs(governance_contract.StrategyProposal))
     assert len(logs) == 1
+
+    print("Got here 2!")
 
     # governance_contract.PendingStrategyByVault[vault_contract_one].Nonce = NONCE
 
     #Endorse the strategy
     es = governance_contract.endorseStrategy(NONCE, vault_contract_one, sender=someone)
+
+    print("Got here 3!")
+
     logs = list(es.decode_logs(governance_contract.StrategyVote))
+
+    print("Got here 4!")
 
     #Activate the strategy
     acs = governance_contract.activateStrategy(NONCE, vault_contract_one, sender=owner)
+
+    print("Got here 5!")
+
     logs = list(acs.decode_logs(governance_contract.StrategyActivation))
     assert len(logs) == 1
     assert logs[0].strategy[2] == tuple(WEIGHTS)
     assert logs[0].strategy[3] == APYNOW
     assert logs[0].strategy[4] == APYPREDICTED
 
+    print("Got here 6!")
+
     #Submit another Strategy
     sq = governance_contract.submitStrategy(ProposedStrategyTwo, vault_contract_two, sender=owner)
+
+    print("Got here 7!")    
+
     logs = list(sq.decode_logs(governance_contract.StrategyProposal))
     assert len(logs) == 1
+
+    print("Got here 8!")
 
     # governance_contract.PendingStrategyByVault[vault_contract_two].Nonce = NONCE
 
     #Endorse the second strategy
     eq = governance_contract.endorseStrategy(2, vault_contract_two, sender=someone)
+
+    print("Got here 9!")    
+
+
     logs = list(eq.decode_logs(governance_contract.StrategyVote))
+
+    print("Got here 10!")
 
     #Activate the second strategy
     acq = governance_contract.activateStrategy(NONCE, vault_contract_two, sender=owner)

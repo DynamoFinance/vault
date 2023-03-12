@@ -43,10 +43,26 @@ event VaultSwap:
     OldVaultAddress: indexed(address)
     NewVaultAddress: indexed(address)
 
+
+
+
 struct ProposedStrategy:
     Weights: DynArray[uint256, MAX_POOLS]
     APYNow: uint256
-    APYPredicted: uint256
+    APYPredicted: uint256    
+
+event StrategyProposal:
+    strategy : Strategy
+    #ProposerAddress: address
+    #Weights: uint256[MAX_POOLS]
+    vault: address
+
+    #strategy: Strategy
+    #Weights: DynArray[uint256, MAX_POOLS]
+
+
+
+
 
 struct Strategy:
     Nonce: uint256
@@ -61,10 +77,6 @@ struct Strategy:
     VotesEndorse: DynArray[address, MAX_GUARDS]
     VotesReject: DynArray[address, MAX_GUARDS]
     VaultAddress: address
-
-event StrategyProposal:
-    strategy: Strategy
-    vault: address
     
 # Contract assigned storage 
 contractOwner: public(address)
@@ -106,13 +118,9 @@ def submitStrategy(strategy: ProposedStrategy, vault: address) -> uint256:
     # No using a Strategy function without a vault
     assert len(self.VaultList) > 0, "Cannot call Strategy function with no vault"
 
-    #Run through list of vaults and make sure the vault is in vault list
-    current_vault: uint256 = 0
-    for vault_addr in self.VaultList:
-        if vault_addr == vault: break
-        current_vault += 1
+    assert vault in self.VaultList, "vault not in vault list!"        
 
-    assert vault == self.VaultList[current_vault], "vault not on vault list." 
+    pending_strat: Strategy = self.PendingStrategyByVault[vault]
 
     # Confirm there's no currently pending strategy for this vault so we can replace the old one.
 
@@ -120,11 +128,11 @@ def submitStrategy(strategy: ProposedStrategy, vault: address) -> uint256:
             # Otherwise has it been withdrawn? 
             # Otherwise, has it been short circuited down voted? 
             # Has the period of protection from being replaced expired already?         
-    assert  (self.CurrentStrategyByVault[vault].Nonce == self.PendingStrategyByVault[vault].Nonce) or \
-            (self.PendingStrategyByVault[vault].Withdrawn == True) or \
-            len(self.PendingStrategyByVault[vault].VotesReject) > 0 and \
-            (len(self.PendingStrategyByVault[vault].VotesReject) >= self.PendingStrategyByVault[vault].no_guards/2) or \
-            (convert(block.timestamp, decimal) > (convert(self.PendingStrategyByVault[vault].TSubmitted, decimal)+(convert(self.TDelay, decimal) * 1.25)))
+    assert  (self.CurrentStrategyByVault[vault].Nonce == pending_strat.Nonce) or \
+            (pending_strat.Withdrawn == True) or \
+            len(pending_strat.VotesReject) > 0 and \
+            (len(pending_strat.VotesReject) >= pending_strat.no_guards/2) or \
+            (convert(block.timestamp, decimal) > (convert(pending_strat.TSubmitted, decimal)+(convert(self.TDelay, decimal) * 1.25))), "Invalid proposed strategy!"
 
     # Confirm msg.sender Eligibility
     # Confirm msg.sender is not blacklisted
@@ -132,22 +140,28 @@ def submitStrategy(strategy: ProposedStrategy, vault: address) -> uint256:
     # Confirm strategy meets financial goal improvements.
     assert strategy.APYPredicted - strategy.APYNow > 0, "Cannot Submit Strategy without APY Increase"
 
-    self.PendingStrategyByVault[vault].Nonce = self.NextNonceByVault[vault]
-    self.NextNonceByVault[vault] += 1
-    self.PendingStrategyByVault[vault].ProposerAddress = msg.sender
-    self.PendingStrategyByVault[vault].Weights = strategy.Weights
-    self.PendingStrategyByVault[vault].APYNow = strategy.APYNow
-    self.PendingStrategyByVault[vault].APYPredicted = strategy.APYPredicted
-    self.PendingStrategyByVault[vault].TSubmitted = block.timestamp
-    self.PendingStrategyByVault[vault].TActivated = 0    
-    self.PendingStrategyByVault[vault].Withdrawn = False
-    self.PendingStrategyByVault[vault].no_guards = len(self.LGov)
-    self.PendingStrategyByVault[vault].VotesEndorse = empty(DynArray[address, MAX_GUARDS])
-    self.PendingStrategyByVault[vault].VotesReject = empty(DynArray[address, MAX_GUARDS])
-    self.PendingStrategyByVault[vault].VaultAddress = vault
+    strat : Strategy = empty(Strategy)
 
-    log StrategyProposal(self.PendingStrategyByVault[vault], vault)
-    return self.PendingStrategyByVault[vault].Nonce
+    strat.Nonce = self.NextNonceByVault[vault]
+    self.NextNonceByVault[vault] += 1
+
+    strat.ProposerAddress = msg.sender
+    strat.Weights = strategy.Weights
+    strat.APYNow = strategy.APYNow
+    strat.APYPredicted = strategy.APYPredicted
+    strat.TSubmitted = block.timestamp
+    strat.TActivated = 0    
+    strat.Withdrawn = False
+    strat.no_guards = len(self.LGov)
+    strat.VotesEndorse = empty(DynArray[address, MAX_GUARDS])
+    strat.VotesReject = empty(DynArray[address, MAX_GUARDS])
+    strat.VaultAddress = vault
+
+    self.PendingStrategyByVault[vault] = strat
+
+    log StrategyProposal(strat, vault)
+
+    return strat.Nonce
 
 
 @external
