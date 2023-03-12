@@ -246,9 +246,10 @@ def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai,
 
     pools = [x for x in pool_states]
 
-    pool_asset_allocation, d4626_delta, pool_states = dynamo4626.getTargetBalances(0, total_assets, total_ratios, pools)
+    pool_asset_allocation, d4626_delta, tx_count, pool_states = dynamo4626.getTargetBalances(0, total_assets, total_ratios, pools)
     assert pool_asset_allocation == 1000    
     assert d4626_delta == -1000
+    assert tx_count == 1
     assert pool_states[0][CURRENT] == 0    
     assert pool_states[0][RATIO] == 1 
     assert pool_states[0][TARGET] == 1000

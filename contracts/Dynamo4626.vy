@@ -519,12 +519,14 @@ def getCurrentBalances() -> (uint256, BalancePool[MAX_POOLS], uint256, uint256):
 
 @internal
 @pure
-def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS]) -> (uint256, int256, BalancePool[MAX_POOLS]):
+def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS]) -> (uint256, int256, uint256, BalancePool[MAX_POOLS]):
     """
     @dev    Returns 1) the total asset allocation across all pools 
             (less _d4626_asset_target),
             2) the total delta of local d4626 assets that would be moved across
-            all transactions, plus the updated list of transactions required to
+            all transactions, 
+            3) the total number of planned txs to achieve these targets,
+            4) plus the updated list of transactions required to
             meet the target goals sorted in ascending order of BalancePool.delta.
 
     @param  _d4626_asset_target minimum asset target goal to be made available
@@ -545,6 +547,7 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
 
     pool_assets_allocated : uint256 = 0 
     d4626_delta : int256 = 0
+    tx_count: uint256 = 0
 
     # We have to copy from the old list into a new one to update values. (NOT THE MOST EFFICIENT OPTION.)
     pools : BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
@@ -567,6 +570,7 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
             pool_assets_allocated += convert(pool_result, uint256)
 
         d4626_delta += pool.delta * -1
+        if pool.delta != 0: tx_count += 1
 
         # Do an insertion sort keeping in order of lowest pool.delta value.
         if pos == 0:
@@ -588,12 +592,12 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
 
     # Check to make sure we hit our _d4626_asset_target in the end!
 
-    return pool_assets_allocated, d4626_delta, pools
+    return pool_assets_allocated, d4626_delta, tx_count, pools
 
 
 @external
 @pure 
-def getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS]) -> (uint256, int256, BalancePool[MAX_POOLS]): return self._getTargetBalances(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances)
+def getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS]) -> (uint256, int256, uint256, BalancePool[MAX_POOLS]): return self._getTargetBalances(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances)
 
 
 @internal
@@ -613,7 +617,8 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
     # What's the optimal outcome for our vault/pools?
     pool_assets_allocated : uint256 = 0
     d4626_delta : int256 = 0
-    pool_assets_allocated, d4626_delta, pool_states = self._getTargetBalances(_target_asset_balance, total_assets, total_ratios, pool_states)
+    tx_count : uint256 = 0
+    pool_assets_allocated, d4626_delta, tx_count, pool_states = self._getTargetBalances(_target_asset_balance, total_assets, total_ratios, pool_states)
 
 
 
