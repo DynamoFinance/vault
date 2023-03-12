@@ -206,9 +206,11 @@ def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, da
     LP_end_DAI = dai.balanceOf(pool_adapterA)
     assert LP_end_DAI - LP_start_DAI == 900
 
-
+ADAPTER = 0
 CURRENT = 1
 RATIO = 2
+TARGET = 3
+DELTA = 4
 
 def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai, trader):
     _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
@@ -235,11 +237,24 @@ def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai,
     assert d4626_assets == 1000
     assert pool_states[0][CURRENT] == 0    
     assert pool_states[0][RATIO] == 1 
+    assert pool_states[0][TARGET] == 0
+    assert pool_states[0][DELTA] == 0
     assert total_assets == 1000
     assert total_ratios == 1    
 
-    print("pool_states = %s." % pool_states)
+    print("pool_states = %s." % [x for x in pool_states])
 
+    pools = [x for x in pool_states]
+
+    pool_asset_allocation, d4626_delta, pool_states = dynamo4626.getTargetBalances(0, total_assets, total_ratios, pools)
+    assert pool_asset_allocation == 1000    
+    assert d4626_delta == -1000
+    assert pool_states[0][CURRENT] == 0    
+    assert pool_states[0][RATIO] == 1 
+    assert pool_states[0][TARGET] == 1000
+    assert pool_states[0][DELTA] == 1000
+
+    print("pool_states = %s." % [x for x in pool_states])
 
 def test_single_adapter_withdraw(project, deployer, dynamo4626, pool_adapterA, dai, trader):
     _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
