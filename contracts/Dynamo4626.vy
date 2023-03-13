@@ -626,34 +626,34 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
 
     pos : uint256 = 0
     scheduled : uint256 = 0
-    for tx in pool_states:
-        if tx.adapter == empty(address): break
-        if tx.target == 0 and tx.delta < 0:
+    for _tx in pool_states:
+        if _tx.adapter == empty(address): break
+        if _tx.target == 0 and _tx.delta < 0:
             # This is a non-optional tx as it is emptying a pool adapter.
-            d4626_assets -= tx.delta
-            result[pos]=tx    
+            d4626_assets = convert(convert(d4626_assets,int256) - _tx.delta, uint256)
+            result[pos]= BalanceTX( {qty: _tx.delta, adapter : _tx.adapter} )
             pos += 1
             scheduled += 1
             continue
 
-        if pos >= _max_txs and d4626_assets >= _target_asset_balance:
+        if pos >= convert(_max_txs, uint256) and d4626_assets >= _target_asset_balance:
             # We've met our d4626 target and already have our max desired tx count.
             # Defer this tx.
-            if tx.delta > 0:
+            if _tx.delta > 0:
                 optional_outbound.append(pos)
             else:
                 optional_inbound.append(pos)
             pos += 1
             continue
 
-        if d4626_assets - tx.delta < _target_asset_balance:
+        if convert(convert(d4626_assets,int256) - _tx.delta, uint256) < _target_asset_balance:
             # We can take this tx and still meet our d4626 assets target.
-            result[pos]=tx
+            result[pos]= BalanceTX( {qty: _tx.delta, adapter : _tx.adapter} )
             scheduled += 1 
-        elif tx.delta < 0:
+        elif _tx.delta < 0:
                 # This tx moves funds to our d4626. Take it.
-                d4626_assets -= tx.delta
-                result[pos]=tx                 
+                d4626_assets = convert(convert(d4626_assets,int256) - _tx.delta, uint256)
+                result[pos]= BalanceTX( {qty: _tx.delta, adapter : _tx.adapter} )             
                 scheduled += 1
         else:
                 # Defer this tx.
@@ -661,7 +661,7 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
         pos += 1
 
     # Are we good to go now?
-    if d4626_assets >= _target_asset_balance and (scheduled >= _max_txs or scheduled == tx_count): return result
+    if d4626_assets >= _target_asset_balance and (scheduled >= convert(_max_txs, uint256) or scheduled == tx_count): return result
 
     # Walk over our pending txs and grab what we need most.
     in_pos : uint256 = 0
@@ -670,8 +670,9 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
             # We need more funds!
             if in_pos < len(optional_inbound):
                 # There's still a pending inbound tx we can get funds from. Take it.
-                result[pos]=pool_states[optional_inbound[in_pos]]
-                d4626_assets -= result[pos].delta
+                pool : BalancePool = pool_states[optional_inbound[in_pos]]
+                result[pos]= BalanceTX({qty : pool.delta, adapter : pool.adapter})
+                d4626_assets = convert(convert(d4626_assets,int256) - result[pos].qty, uint256)                
                 in_pos += 1
                 pos += 1
                 scheduled += 1
@@ -682,24 +683,27 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
             # Try to take the maximum transfer into an adapter pool.
             considered : DynArray[uint256,MAX_POOLS] = empty(DynArray[uint256,MAX_POOLS])
             selected : uint256 = 0
-            tx : BalancePool = empty(BalancePool)
+            candidate_tx : BalancePool = empty(BalancePool)
             for tx_pos in optional_outbound:
-                 if pool_states.adapter != empty(address) and pool_states[tx_pos].delta > tx.delta and d4626_assets - tx.delta >= _target_asset_balance:
+                 if pool_states[tx_pos].adapter != empty(address) and pool_states[tx_pos].delta > candidate_tx.delta \
+                    and convert(convert(d4626_assets, int256) - candidate_tx.delta, uint256) >= _target_asset_balance:
                     # We can accept this one.
                     selected = tx_pos
-                    tx = pool_states[tx_pos]
+                    candidate_tx = pool_states[tx_pos]
                     
-            if tx.adapter != empty(address):
-                result[pos]=tx
-                d4626_assets -= result[pos].delta
+            if candidate_tx.adapter != empty(address):
+                result[pos]= BalanceTX({qty : candidate_tx.delta, adapter : candidate_tx.adapter})  
+                d4626_assets = convert(convert(d4626_assets,int256) - result[pos].qty, uint256)
                 pool_states[selected].adapter = empty(address)
                 pos +=1
                 scheduled += 1
 
         elif in_pos < len(optional_inbound):
             # Take the pending inbound tx and continue.
-            result[pos]=pool_states[optional_inbound[in_pos]]
-            d4626_assets -= result[pos].delta
+            pool : BalancePool = pool_states[optional_inbound[in_pos]]
+            result[pos]= BalanceTX({qty : pool.delta, adapter : pool.adapter})
+
+            d4626_assets = convert(convert(d4626_assets,int256) - result[pos].qty, uint256)
             in_pos += 1
             pos += 1
             scheduled += 1
