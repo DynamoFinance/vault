@@ -599,7 +599,7 @@ def test_activateMultipleStrategies(governance_contract, vault_contract_one, vau
     # governance_contract.PendingStrategyByVault[vault_contract_two].Nonce = NONCE
 
     #Endorse the second strategy
-    eq = governance_contract.endorseStrategy(2, vault_contract_two, sender=someone)
+    eq = governance_contract.endorseStrategy(NONCE, vault_contract_two, sender=someone)
 
     print("Got here 9!")    
 
@@ -616,6 +616,10 @@ def test_activateMultipleStrategies(governance_contract, vault_contract_one, vau
     assert logs[0].strategy[3] == APYNOWTWO
     assert logs[0].strategy[4] == APYPREDICTEDTWO
     
-    #Check to see if strategies have correct weights
-    assert governance_contract.CurrentStrategyByVault[vault_contract_one].Weights == WEIGHTS
-    assert governance_contract.CurrentStrategyByVault[vault_contract_two].Weights == WEIGHTSTWO
+    #Check to see if strategies have correct values
+    assert governance_contract.CurrentStrategyByVault(vault_contract_one).Weights == WEIGHTS
+    assert governance_contract.CurrentStrategyByVault(vault_contract_one).APYNow == APYNOW
+    assert governance_contract.CurrentStrategyByVault(vault_contract_one).APYPredicted == APYPREDICTED
+    assert governance_contract.CurrentStrategyByVault(vault_contract_two).Weights == WEIGHTSTWO
+    assert governance_contract.CurrentStrategyByVault(vault_contract_two).APYNow == APYNOWTWO
+    assert governance_contract.CurrentStrategyByVault(vault_contract_two).APYPredicted == APYPREDICTEDTWO

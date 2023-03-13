@@ -43,9 +43,6 @@ event VaultSwap:
     OldVaultAddress: indexed(address)
     NewVaultAddress: indexed(address)
 
-
-
-
 struct ProposedStrategy:
     Weights: DynArray[uint256, MAX_POOLS]
     APYNow: uint256
@@ -59,10 +56,6 @@ event StrategyProposal:
 
     #strategy: Strategy
     #Weights: DynArray[uint256, MAX_POOLS]
-
-
-
-
 
 struct Strategy:
     Nonce: uint256
@@ -169,13 +162,8 @@ def withdrawStrategy(Nonce: uint256, vault: address):
     # No using a Strategy function without a vault
     assert len(self.VaultList) > 0, "Cannot call Strategy function with no vault"
 
-    #Run through list of vaults and make sure the vault is in vault list
-    current_vault: uint256 = 0
-    for vault_addr in self.VaultList:
-        if vault_addr == vault: break
-        current_vault += 1
-
-    assert vault == self.VaultList[current_vault], "vault not on vault list." 
+    #Check to see if vault is in vault list
+    assert vault in self.VaultList, "vault not in vault list!"  
 
     #Check to see that the pending strategy is not the current strategy
     assert (self.CurrentStrategyByVault[vault].Nonce != self.PendingStrategyByVault[vault].Nonce), "Cannot withdraw Current Strategy"
@@ -197,13 +185,8 @@ def endorseStrategy(Nonce: uint256, vault: address):
     # No using a Strategy function without a vault
     assert len(self.VaultList) > 0, "Cannot call Strategy function with no vault"
 
-    #Run through list of vaults and make sure the vault is in vault list
-    current_vault: uint256 = 0
-    for vault_addr in self.VaultList:
-        if vault_addr == vault: break
-        current_vault += 1
-
-    assert vault == self.VaultList[current_vault], "vault not on vault list." 
+    #Check to see if vault is in vault list
+    assert vault in self.VaultList, "vault not in vault list!"  
 
     #Check to see that the pending strategy is not the current strategy
     assert self.CurrentStrategyByVault[vault].Nonce != self.PendingStrategyByVault[vault].Nonce, "Cannot Endorse Strategy thats already  Strategy"
@@ -229,13 +212,8 @@ def rejectStrategy(Nonce: uint256, vault: address):
     # No using a Strategy function without a vault
     assert len(self.VaultList) > 0, "Cannot call Strategy function with no vault"
 
-    #Run through list of vaults and make sure the vault is in vault list
-    current_vault: uint256 = 0
-    for vault_addr in self.VaultList:
-        if vault_addr == vault: break
-        current_vault += 1
-
-    assert vault == self.VaultList[current_vault], "vault not on vault list." 
+    #Check to see if vault is in vault list
+    assert vault in self.VaultList, "vault not in vault list!"  
 
     #Check to see that the pending strategy is not the current strategy
     assert self.CurrentStrategyByVault[vault].Nonce != self.PendingStrategyByVault[vault].Nonce, "Cannot Reject Strategy thats already Current Strategy"
@@ -261,13 +239,8 @@ def activateStrategy(Nonce: uint256, vault: address):
     # No using a Strategy function without a vault
     assert len(self.VaultList) > 0, "Cannot call Strategy function with no vault"
 
-    #Run through list of vaults and make sure the vault is in vault list
-    current_vault: uint256 = 0
-    for vault_addr in self.VaultList:
-        if vault_addr == vault: break
-        current_vault += 1
-
-    assert vault == self.VaultList[current_vault], "vault not on vault list." 
+    #Check to see if vault is in vault list
+    assert vault in self.VaultList, "vault not in vault list!"  
 
     #Confirm there is a currently pending strategy
     assert (self.CurrentStrategyByVault[vault].Nonce != self.PendingStrategyByVault[vault].Nonce)
@@ -372,13 +345,8 @@ def replaceGovernance(NewGovernance: address, vault: address):
     # No using function without a vault
     assert len(self.VaultList) > 0, "Cannot call Strategy function with no vault"
 
-    #Run through list of vaults and make sure the vault is in vault list
-    current_vault: uint256 = 0
-    for vault_addr in self.VaultList:
-        if vault_addr == vault: break
-        current_vault += 1
-    
-    assert vault == self.VaultList[current_vault], "vault not on vault list."
+    #Check to see if vault is in vault list
+    assert vault in self.VaultList, "vault not in vault list!"  
 
     #Check if there are enough guards to change governance
     assert len(self.LGov) >= MIN_GUARDS
@@ -386,7 +354,7 @@ def replaceGovernance(NewGovernance: address, vault: address):
     #Check if sender is a guard
     assert msg.sender in self.LGov
 
-    #Check if new contract address is not the current)
+    #Check if new contract address is not the current
     assert NewGovernance != self
 
     #Check if new contract address is valid address
