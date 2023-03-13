@@ -159,7 +159,6 @@ def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, da
     assert dynamo4626.convertToAssets(75) == 75
     assert dynamo4626.convertToShares(55) == 55
 
-
     result = dynamo4626.deposit(500, trader, sender=trader)
 
     assert dynamo4626.totalAssets() == 500   
@@ -226,6 +225,22 @@ def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai,
     assert total_assets == 0
     assert total_ratios == 1
 
+    print("pool_states = %s." % [x for x in pool_states])
+
+    pools = [x for x in pool_states]
+
+    total_assets = 1000
+    pool_asset_allocation, d4626_delta, tx_count, pool_states = dynamo4626.getTargetBalances(0, total_assets, total_ratios, pools)
+    assert pool_asset_allocation == 1000    
+    assert d4626_delta == -1000
+    assert tx_count == 1
+    assert pool_states[0][CURRENT] == 0    
+    assert pool_states[0][RATIO] == 1 
+    assert pool_states[0][TARGET] == 1000
+    assert pool_states[0][DELTA] == 1000
+
+    print("pool_states = %s." % [x for x in pool_states])    
+
 
     # Trader needs to allow the 4626 contract to take funds.
     dai.approve(dynamo4626,1000, sender=trader)
@@ -234,8 +249,8 @@ def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai,
 
     d4626_assets, pool_states, total_assets, total_ratios = dynamo4626.getCurrentBalances()
 
-    assert d4626_assets == 1000
-    assert pool_states[0][CURRENT] == 0    
+    assert d4626_assets == 0
+    assert pool_states[0][CURRENT] == 1000
     assert pool_states[0][RATIO] == 1 
     assert pool_states[0][TARGET] == 0
     assert pool_states[0][DELTA] == 0
@@ -246,14 +261,14 @@ def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai,
 
     pools = [x for x in pool_states]
 
-    pool_asset_allocation, d4626_delta, tx_count, pool_states = dynamo4626.getTargetBalances(0, total_assets, total_ratios, pools)
-    assert pool_asset_allocation == 1000    
-    assert d4626_delta == -1000
+    pool_asset_allocation, d4626_delta, tx_count, pool_states = dynamo4626.getTargetBalances(250, total_assets, total_ratios, pools)
+    assert pool_asset_allocation == 750
+    assert d4626_delta == 250
     assert tx_count == 1
-    assert pool_states[0][CURRENT] == 0    
+    assert pool_states[0][CURRENT] == 1000    
     assert pool_states[0][RATIO] == 1 
-    assert pool_states[0][TARGET] == 1000
-    assert pool_states[0][DELTA] == 1000
+    assert pool_states[0][TARGET] == 750
+    assert pool_states[0][DELTA] == -250
 
     print("pool_states = %s." % [x for x in pool_states])
 
@@ -337,7 +352,20 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
     assert max_withdrawl == 1000 + (1000 - (1000*0.11))
     assert max_redeem == 1000
 
-    taken = dynamo4626.withdraw(max_withdrawl, trader, trader, sender=trader) 
-    print("Got back: %s, was expecting %s." % (taken, max_withdrawl))
+    print("Got here #1.")
+
+    pools = dynamo4626.getBalanceTxs(max_withdrawl, 5, sender=trader)   
+
+    print("pools = %s." % [x for x in pools])
+
+    print("dai.balance_of(pool_adapterA) = %s." % dai.balanceOf(pool_adapterA))
+
+    dynamo4626.balanceAdapters(1889, sender=trader)
+
+
+    print("Got here #2.")
+
+    #taken = dynamo4626.withdraw(max_withdrawl, trader, trader, sender=trader) 
+    #print("Got back: %s, was expecting %s." % (taken, max_withdrawl))
 
 
