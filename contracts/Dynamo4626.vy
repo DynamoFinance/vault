@@ -620,6 +620,94 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
     tx_count : uint256 = 0
     pool_assets_allocated, d4626_delta, tx_count, pool_states = self._getTargetBalances(_target_asset_balance, total_assets, total_ratios, pool_states)
 
+    # Schedule the tx order while trying to stay within the _max_tx count limit.
+    optional_inbound : DynArray[uint256,MAX_POOLS] = empty(DynArray[uint256,MAX_POOLS])
+    optional_outbound : DynArray[uint256,MAX_POOLS] = empty(DynArray[uint256,MAX_POOLS])
+
+    pos : uint256 = 0
+    scheduled : uint256 = 0
+    for tx in pool_states:
+        if tx.adapter == empty(address): break
+        if tx.target == 0 and tx.delta < 0:
+            # This is a non-optional tx as it is emptying a pool adapter.
+            d4626_assets -= tx.delta
+            result[pos]=tx    
+            pos += 1
+            scheduled += 1
+            continue
+
+        if pos >= _max_txs and d4626_assets >= _target_asset_balance:
+            # We've met our d4626 target and already have our max desired tx count.
+            # Defer this tx.
+            if tx.delta > 0:
+                optional_outbound.append(pos)
+            else:
+                optional_inbound.append(pos)
+            pos += 1
+            continue
+
+        if d4626_assets - tx.delta < _target_asset_balance:
+            # We can take this tx and still meet our d4626 assets target.
+            result[pos]=tx
+            scheduled += 1 
+        elif tx.delta < 0:
+                # This tx moves funds to our d4626. Take it.
+                d4626_assets -= tx.delta
+                result[pos]=tx                 
+                scheduled += 1
+        else:
+                # Defer this tx.
+                optional_outbound.append(pos)            
+        pos += 1
+
+    # Are we good to go now?
+    if d4626_assets >= _target_asset_balance and (scheduled >= _max_txs or scheduled == tx_count): return result
+
+    # Walk over our pending txs and grab what we need most.
+    in_pos : uint256 = 0
+    for npos in range(MAX_POOLS):
+        if d4626_assets < _target_asset_balance:
+            # We need more funds!
+            if in_pos < len(optional_inbound):
+                # There's still a pending inbound tx we can get funds from. Take it.
+                result[pos]=pool_states[optional_inbound[in_pos]]
+                d4626_assets -= result[pos].delta
+                in_pos += 1
+                pos += 1
+                scheduled += 1
+            else:
+                # We have to go back and steal more funds!
+                pass
+        elif len(optional_outbound) > 0:
+            # Try to take the maximum transfer into an adapter pool.
+            considered : DynArray[uint256,MAX_POOLS] = empty(DynArray[uint256,MAX_POOLS])
+            selected : uint256 = 0
+            tx : BalancePool = empty(BalancePool)
+            for tx_pos in optional_outbound:
+                 if pool_states.adapter != empty(address) and pool_states[tx_pos].delta > tx.delta and d4626_assets - tx.delta >= _target_asset_balance:
+                    # We can accept this one.
+                    selected = tx_pos
+                    tx = pool_states[tx_pos]
+                    
+            if tx.adapter != empty(address):
+                result[pos]=tx
+                d4626_assets -= result[pos].delta
+                pool_states[selected].adapter = empty(address)
+                pos +=1
+                scheduled += 1
+
+        elif in_pos < len(optional_inbound):
+            # Take the pending inbound tx and continue.
+            result[pos]=pool_states[optional_inbound[in_pos]]
+            d4626_assets -= result[pos].delta
+            in_pos += 1
+            pos += 1
+            scheduled += 1
+
+
+
+
+
 
 
 
