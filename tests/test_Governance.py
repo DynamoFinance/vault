@@ -23,42 +23,6 @@ ERC20ASSET = "0x0000000000000000000000000000000000000123"
 POOLS = [] 
 
 @pytest.fixture
-def vault_contract_one(owner, project, accounts):
-
-    owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
-
-    vcontractone = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, ERC20ASSET, POOLS)
-
-    return vcontractone
-
-@pytest.fixture
-def vault_contract_two(owner, project, accounts):
-
-    owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
-
-    vcontracttwo = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, ERC20ASSET, POOLS)
-
-    return vcontracttwo
-
-@pytest.fixture
-def vault_contract_three(owner, project, accounts):
-
-    owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
-
-    vcontractthree = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, ERC20ASSET, POOLS)
-
-    return vcontractthree
-
-@pytest.fixture
-def vault_contract_four(owner, project, accounts):
-
-    owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
-
-    vcontractfour = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, ERC20ASSET, POOLS)
-
-    return vcontractfour
-
-@pytest.fixture
 def governance_contract(owner, project, accounts):
 
     owner, operator, someoneelse, someone, newcontract, currentvault = accounts[:6]
@@ -68,6 +32,42 @@ def governance_contract(owner, project, accounts):
     gcontract = owner.deploy(project.Governance, owner, 21600)
 
     return gcontract  
+
+@pytest.fixture
+def vault_contract_one(governance_contract, owner, project, accounts):
+
+    owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
+
+    vcontractone = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, ERC20ASSET, POOLS, governance_contract)
+
+    return vcontractone
+
+@pytest.fixture
+def vault_contract_two(governance_contract, owner, project, accounts):
+
+    owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
+
+    vcontracttwo = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, ERC20ASSET, POOLS, governance_contract)
+
+    return vcontracttwo
+
+@pytest.fixture
+def vault_contract_three(governance_contract, owner, project, accounts):
+
+    owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
+
+    vcontractthree = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, ERC20ASSET, POOLS, governance_contract)
+
+    return vcontractthree
+
+@pytest.fixture
+def vault_contract_four(governance_contract, owner, project, accounts):
+
+    owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
+
+    vcontractfour = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, ERC20ASSET, POOLS, governance_contract)
+
+    return vcontractfour
 
 
 

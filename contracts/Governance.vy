@@ -10,10 +10,6 @@ event StrategyVote:
     GuardAddress: indexed(address)
     Endorse: bool
 
-event StrategyActivation:
-    strategy: Strategy
-    vault: address
-
 event NewGuard:
     GuardAddress: indexed(address)
 
@@ -50,12 +46,15 @@ struct ProposedStrategy:
 
 event StrategyProposal:
     strategy : Strategy
-    #ProposerAddress: address
-    #Weights: uint256[MAX_POOLS]
+    ProposerAddress: address
+    Weights: DynArray[uint256, MAX_POOLS]
     vault: address
 
-    #strategy: Strategy
-    #Weights: DynArray[uint256, MAX_POOLS]
+event StrategyActivation:
+    strategy: Strategy
+    ProposerAddress: address
+    Weights: DynArray[uint256, MAX_POOLS]
+    vault: address
 
 struct Strategy:
     Nonce: uint256
@@ -76,6 +75,7 @@ contractOwner: public(address)
 MAX_GUARDS: constant(uint256) = 2
 MAX_POOLS: constant(uint256) = 10
 MAX_VAULTS: constant(uint256) = 3
+MIN_PROPOSER_PAYOUT: constant(uint256) = 1
 LGov: public(DynArray[address, MAX_GUARDS])
 TDelay: public(uint256)
 no_guards: public(uint256)
@@ -87,8 +87,8 @@ NextNonceByVault: public(HashMap[address, uint256])
 VaultList: public(DynArray[address, MAX_VAULTS])
 
 
-interface Vault:
-    def PoolRebalancer(CurrentStrategy: Strategy) -> bool: nonpayable
+interface DynamoVault:
+    def set_strategy(Proposer: address, Strategies: DynArray[uint256, MAX_POOLS], min_proposer_payout: uint256) -> bool: nonpayable
     def replaceGovernanceContract(NewGovernance: address) -> bool: nonpayable
 
 
@@ -152,7 +152,7 @@ def submitStrategy(strategy: ProposedStrategy, vault: address) -> uint256:
 
     self.PendingStrategyByVault[vault] = strat
 
-    log StrategyProposal(strat, vault)
+    log StrategyProposal(strat, msg.sender, strat.Weights, vault)
 
     return strat.Nonce
 
@@ -256,9 +256,10 @@ def activateStrategy(Nonce: uint256, vault: address):
 
     #Make Current Strategy and Activate Strategy
     self.CurrentStrategyByVault[vault] = self.PendingStrategyByVault[vault]
-    # Vault(self.Vault).PoolRebalancer(self.CurrentStrategyByVault)
 
-    log StrategyActivation(self.CurrentStrategyByVault[vault], vault)
+    # DynamoVault(vault).set_strategy(self.CurrentStrategyByVault[vault].ProposerAddress, self.CurrentStrategyByVault[vault].Weights, MIN_PROPOSER_PAYOUT)
+
+    log StrategyActivation(self.CurrentStrategyByVault[vault], self.CurrentStrategyByVault[vault].ProposerAddress, self.CurrentStrategyByVault[vault].Weights, vault)
  
 
 @external
