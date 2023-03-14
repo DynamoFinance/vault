@@ -78,9 +78,9 @@ struct Strategy:
 # Contract assigned storage 
 contractOwner: public(address)
 MAX_GUARDS: constant(uint256) = 2
-MAX_POOLS: constant(uint256) = 10
+MAX_POOLS: constant(uint256) = 5
 MAX_VAULTS: constant(uint256) = 3
-MIN_PROPOSER_PAYOUT: constant(uint256) = 1
+MIN_PROPOSER_PAYOUT: constant(uint256) = 0
 LGov: public(DynArray[address, MAX_GUARDS])
 TDelay: public(uint256)
 no_guards: public(uint256)
@@ -263,6 +263,8 @@ def activateStrategy(Nonce: uint256, vault: address):
     self.CurrentStrategyByVault[vault] = self.PendingStrategyByVault[vault]
 
     DynamoVault(vault).set_strategy(self.CurrentStrategyByVault[vault].ProposerAddress, self.CurrentStrategyByVault[vault].Weights, MIN_PROPOSER_PAYOUT)
+
+    assert False, "failed here"
 
     log StrategyActivation(self.CurrentStrategyByVault[vault], self.CurrentStrategyByVault[vault].ProposerAddress, self.CurrentStrategyByVault[vault].Weights, vault)
  
