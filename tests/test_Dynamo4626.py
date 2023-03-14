@@ -319,6 +319,7 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
     dynamo4626.deposit(1000, trader, sender=trader)
 
     assert dai.balanceOf(dynamo4626) == 0
+    assert dai.balanceOf(pool_adapterA) == 1000
 
     assert dai.balanceOf(trader) == 1000000000 - 1000
 
@@ -328,6 +329,8 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
 
     # Increase assets in adapter so its assets will double.
     dai.mint(pool_adapterA, 1000, sender=deployer)
+
+    assert dai.balanceOf(pool_adapterA) == 2000    
 
     assert dynamo4626.totalSupply() == 1000
 
@@ -360,12 +363,12 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
 
     print("dai.balance_of(pool_adapterA) = %s." % dai.balanceOf(pool_adapterA))
 
-    dynamo4626.balanceAdapters(1889, sender=trader)
+    #dynamo4626.balanceAdapters(1889, sender=trader)
 
 
     print("Got here #2.")
 
-    #taken = dynamo4626.withdraw(max_withdrawl, trader, trader, sender=trader) 
-    #print("Got back: %s, was expecting %s." % (taken, max_withdrawl))
+    taken = dynamo4626.withdraw(1890, trader, trader, sender=trader) 
+    print("Got back: %s, was expecting %s." % (taken.result, max_withdrawl))
 
 

@@ -966,10 +966,13 @@ def _adapter_deposit(_adapter: address, _asset_amount: uint256):
 
 @internal
 def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: address):
+    current_balance : uint256 = ERC20(asset).balanceOf(_adapter)
     balbefore : uint256 = ERC20(asset).balanceOf(_withdraw_to)
     response: Bytes[32] = empty(Bytes[32])
     result_ok: bool = False
 
+    result_str : String[278] = concat("Not enough assets. Adapter: ", uint2str(convert(_adapter, uint256)), " Have : ", uint2str(current_balance), " need : ", uint2str(_asset_amount))
+    assert current_balance >= _asset_amount, result_str
 
     result_ok, response = raw_call(
         _adapter,
@@ -979,11 +982,11 @@ def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: a
         revert_on_failure=False
         )
 
-    if _asset_amount == 1889:
-        assert False, "Here we are!"    
-
     # TODO - interpret response as revert msg in case this assertion fails.
     assert result_ok == True, convert(response, String[32])
+
+    if _asset_amount == 1889:
+        assert False, "Here we are!"       
 
     balafter : uint256 = ERC20(asset).balanceOf(_withdraw_to)
     assert balafter != balbefore, "NOTHING CHANGED!"
@@ -1035,8 +1038,8 @@ def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint
     # How many shares does it take to get the requested asset amount?
     shares: uint256 = self._convertToShares(_asset_amount)
 
-    result_str : String[103] = concat("Not 1890 assets : ", uint2str(_asset_amount))
-    assert _asset_amount == 1890, result_str
+    #result_str : String[103] = concat("Not 1890 assets : ", uint2str(_asset_amount))
+    #assert _asset_amount == 1890, result_str
 
     #assert shares == 1000, result_str
 
@@ -1059,7 +1062,7 @@ def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint
     # Make sure we have enough assets to send to _receiver.
     self._balanceAdapters( _asset_amount )
 
-    assert False, "Got here!"    
+    #assert False, "Got here!"    
 
     assert ERC20(asset).balanceOf(self) >= _asset_amount, "ERROR - 4626 DOESN'T HAVE ENOUGH BALANCE TO WITHDRAW!"
 
