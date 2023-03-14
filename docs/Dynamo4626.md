@@ -43,7 +43,7 @@ destination - the address of the contract or wallet to receive the value of the 
 owner   - the address of the contract that holds the assets in question.
 
 Transfer - struct for transaction definition containing a signed qty and Adapter addr.
-#### deposit (assets, destination) -> shares
+#### [deposit (assets, destination) -> shares]
 
 Deposit fixed number of X assets for destination to receive Y shares representing the new investment.
 Shares will be credited to destination address. 
@@ -69,7 +69,7 @@ sequenceDiagram
         Note over a4626: Compute most efficient rebalancing limited to only 2 transactions.<br>Txs = _getBalanceTxs(maxTx=2)
         a4626-->>a4626: _getBalanceTxs(maxTxs=2) -> Transfer[]
         
-        a4626->lpa: _balanceAdapters
+        a4626->lpa: self._balanceAdapters(_asset_amount)
 
         loop for Tx: Transfer in Txs<br>(limited to maxTxs iterations)
             alt if Tx.Qty==0
@@ -84,18 +84,18 @@ sequenceDiagram
             end
         end
       
-        a4626->a4626: Shares = mintTo(dest=Investor, amt=500)
+        a4626->a4626: Shares = _mint(dest=Investor, amt=500)
             note over a4626:d<Token>4626.balanceOf[Investor]+=500
       
         a4626->u: return Shares  
 ```
-#### mint (shares, destination) -> assets
+#### [mint (shares, destination) -> assets]
 
 Deposit X assets where X is determined to be the quantity required to receive Y shares representing the new investment.  
 Shares will be credited to destination address. For DynamoUSD this would be the LinearPool which this
 contract is an AssetManager for.
 
-#### redeem (shares, destination, owner) -> assets
+#### [redeem (shares, destination, owner) -> assets]
 
 Convert X shares controlled by owner back to Y assets to be credited to destination.
 ```mermaid
@@ -143,7 +143,7 @@ sequenceDiagram
    
    a4626->>u: return Assets
 ```
-#### withdraw (assets, destination, owner) -> shares
+#### [withdraw (assets, destination, owner) -> shares]
 
 Convert X shares controlled by owner where X is determined to be the quantity required to receive Y assets 
 (to be credited to destination) resulting from the share value of the investment.
@@ -195,12 +195,13 @@ There may be matching preview* and max* functions for each of the deposit/mint/r
 These simply provide read-only outcome 'previews' or maximum values possible given current balances respectively.
 ### Dynamo4626 Configuration/Deployment Use Cases
 
-#### activateStrategy()
+#### [activateStrategy()]
 
 Checks to see if the Governance contract has a new strategy ready to activate. 
 If so, makes it the new current strategy then calls rebalance to put it into effect.
 This function may be called by anyone.
-#### rebalance(max_gas = 0)
+
+#### [  rebalance(max_gas = 0)]
 
 Compares the current cash & asset values across the lending platforms, computes an
 optimum set of transactions necessary to best meet the current Strategy's desired 
