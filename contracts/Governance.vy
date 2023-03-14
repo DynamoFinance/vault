@@ -39,27 +39,32 @@ event VaultSwap:
     OldVaultAddress: indexed(address)
     NewVaultAddress: indexed(address)
 
+#Weights
+struct AdapterStrategy:
+    adapter: address
+    ratio: uint256
+
 struct ProposedStrategy:
-    Weights: DynArray[uint256, MAX_POOLS]
+    Weights: AdapterStrategy[MAX_POOLS]
     APYNow: uint256
     APYPredicted: uint256    
 
 event StrategyProposal:
     strategy : Strategy
     ProposerAddress: address
-    Weights: DynArray[uint256, MAX_POOLS]
+    Weights: AdapterStrategy[MAX_POOLS]
     vault: address
 
 event StrategyActivation:
     strategy: Strategy
     ProposerAddress: address
-    Weights: DynArray[uint256, MAX_POOLS]
+    Weights: AdapterStrategy[MAX_POOLS]
     vault: address
 
 struct Strategy:
     Nonce: uint256
     ProposerAddress: address
-    Weights: DynArray[uint256, MAX_POOLS]
+    Weights: AdapterStrategy[MAX_POOLS]
     APYNow: uint256
     APYPredicted: uint256
     TSubmitted: uint256
@@ -88,7 +93,7 @@ VaultList: public(DynArray[address, MAX_VAULTS])
 
 
 interface DynamoVault:
-    def set_strategy(Proposer: address, Strategies: DynArray[uint256, MAX_POOLS], min_proposer_payout: uint256) -> bool: nonpayable
+    def set_strategy(Proposer: address, Strategies: AdapterStrategy[MAX_POOLS], min_proposer_payout: uint256) -> bool: nonpayable
     def replaceGovernanceContract(NewGovernance: address) -> bool: nonpayable
 
 
@@ -257,7 +262,7 @@ def activateStrategy(Nonce: uint256, vault: address):
     #Make Current Strategy and Activate Strategy
     self.CurrentStrategyByVault[vault] = self.PendingStrategyByVault[vault]
 
-    # DynamoVault(vault).set_strategy(self.CurrentStrategyByVault[vault].ProposerAddress, self.CurrentStrategyByVault[vault].Weights, MIN_PROPOSER_PAYOUT)
+    DynamoVault(vault).set_strategy(self.CurrentStrategyByVault[vault].ProposerAddress, self.CurrentStrategyByVault[vault].Weights, MIN_PROPOSER_PAYOUT)
 
     log StrategyActivation(self.CurrentStrategyByVault[vault], self.CurrentStrategyByVault[vault].ProposerAddress, self.CurrentStrategyByVault[vault].Weights, vault)
  
