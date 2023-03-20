@@ -809,8 +809,8 @@ def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: a
     response: Bytes[32] = empty(Bytes[32])
     result_ok: bool = False
 
-    result_str : String[278] = concat("Not enough assets. Adapter: ", uint2str(convert(_adapter, uint256)), " Have : ", uint2str(current_balance), " need : ", uint2str(_asset_amount))
-    assert current_balance >= _asset_amount, result_str
+    #result_str : String[278] = concat("Not enough assets. Adapter: ", uint2str(convert(_adapter, uint256)), " Have : ", uint2str(current_balance), " need : ", uint2str(_asset_amount))
+    #assert current_balance >= _asset_amount, result_str
 
     result_ok, response = raw_call(
         _adapter,
