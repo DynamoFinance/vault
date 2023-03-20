@@ -717,168 +717,6 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
 
     return result
 
-# TODO : make sure that a zero allocation for an adapter takes precedence over zero
-#        target balance for main pool. If all adapters have 0 allocation then main
-#        pool must take all the assets regardless of _target_asset_balance!
-@internal
-def _XXXgetBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceTX[MAX_POOLS]: 
-    result : BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
-
-    # If there are no pools then nothing to do.
-    if len(self.dlending_pools) == 0: return result
-
-    # d4626_assets: uint256 = 0
-    # pool_states: BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
-    # total_assets: uint256 = 0
-    # total_ratios: uint256 = 0
-    # d4626_assets, pool_states, total_assets, total_ratio = self._getCurrentBalances()
-
-
-    current_local_asset_balance : uint256 = ERC20(asset).balanceOf(self) 
-
-    #assert current_local_asset_balance == 0, "current_local_asset_balance not zero!"
-
-
-    # BDM
-    if current_local_asset_balance == 0:
-        assert _target_asset_balance == 250, "_target_asset_balance not 250!"
-
-
-    #assert _target_asset_balance == 0 or current_local_asset_balance == 0, "One balance is not zero!"
-
-    # TODO - New stuff starts here!
-    total_balance : uint256 = current_local_asset_balance
-    total_strategy_ratios : uint256 = 0 
-
-    # Determine current balances.
-    currentBalances : uint256[MAX_POOLS] = empty(uint256[MAX_POOLS])    
-    pos: uint256 = 0
-    for pool in self.dlending_pools:
-
-        # BDM - shouldn't be possible with a DynArray.
-        assert pool != empty(address), "_getBalanceTxs EMPTYPOOL 1!"
-
-        poolBalance : uint256 = self._poolAssets(pool)
-        total_balance += poolBalance
-        total_strategy_ratios += self.strategy[pool]
-        currentBalances[pos] = poolBalance
-        pos += 1
-
-
-    # BDM
-    if current_local_asset_balance == 0:
-        assert total_balance == 1000, "total_balance not 1000!"
-        assert total_strategy_ratios == 1, "total_strategy_ratios not 1!"
-
-    # Is there any strategy to deal with?
-    if total_strategy_ratios == 0: return result        
-
-    extra_onhand_balance : int256 = convert(total_balance, int256) - convert(_target_asset_balance, int256)
-
-
-    # BDM
-    if current_local_asset_balance == 0:
-        result_str : String[106] = concat("!750 extra_onhand_balance : ", uint2str(convert(extra_onhand_balance, uint256)))
-        assert extra_onhand_balance == 750, result_str
-
-
-
-    # Determine target balances.
-    targetBalances : uint256[MAX_POOLS] = empty(uint256[MAX_POOLS])    
-    deltaBalances : int256[MAX_POOLS] = empty(int256[MAX_POOLS])    
-    pos = 0
-    for pool in self.dlending_pools:
-        share_ratio : decimal = convert(self.strategy[pool], decimal) / convert(total_strategy_ratios, decimal)
-        targetBalances[pos] = convert(convert(extra_onhand_balance, decimal) * share_ratio, uint256)
-        deltaBalances[pos] = convert(targetBalances[pos],int256) - convert(currentBalances[pos], int256)
-
-    # How far off are we from our target asset balance?
-    deltaTarget : int256 = convert(current_local_asset_balance, int256) - convert(_target_asset_balance, int256)
-
-    # BDM
-    if current_local_asset_balance == 0:        
-        result_str : String[106] = concat("deltaTarget not 250 : ", uint2str(convert(deltaTarget, uint256)))
-        assert deltaTarget == 250, result_str
-        #assert extra_onhand_balance == 110, result_str
-
-    # Prioritize and allocate transactions.    
-    pos = 0
-    for pool in self.dlending_pools:
-        # Is the 4626 pool short on its requirements?
-        if deltaTarget < 0:
-            lowest : int256 = 0
-            lowest_pos : uint256 = 0 
-
-            # Find the tx that will bring the most money into the 4626 pool.
-            i : uint256 = 0
-            for ip in self.dlending_pools:                
-                low_candidate : int256 = deltaBalances[pos]
-                if low_candidate < lowest:
-                    lowest = low_candidate
-                    lowest_pos = pos 
-                i+=1
-            result[pos] = BalanceTX({qty: lowest, adapter:self.dlending_pools[lowest_pos]})
-            deltaBalances[lowest_pos] = 0
-            deltaTarget -= lowest
-        else:
-            # Prioritize the tx that will have the highest impact on the balances.
-            largest : int256 = 0
-            largest_pos : uint256 = 0
-
-            i : uint256 = 0
-            for ip in self.dlending_pools: 
-                if abs(deltaBalances[i]) > abs(largest):
-                    # Ensure we don't let our 4626 pool fall short of its requirements.
-                    if deltaTarget + deltaBalances[i] < 0: continue
-                    largest = deltaBalances[i]
-                    largest_pos = i
-                i+=1
-            result[pos] = BalanceTX({qty: largest, adapter:self.dlending_pools[largest_pos]})
-            deltaBalances[largest_pos] = 0
-            deltaTarget += largest
-            
-        pos += 1
-
-    # Make sure we meet our _target_asset_balance goal within _max_txs steps!
-    assert current_local_asset_balance <= max_value(int128) and convert(current_local_asset_balance, int256) >= min_value(int128), "BUSTED!" # TODO remove
-    running_balance : int256 = convert(current_local_asset_balance, int256)
-    for btx in result:        
-        if btx.qty == 0: break
-        running_balance += btx.qty
-
-
-    if running_balance < convert(_target_asset_balance, int256):
-        diff : int256 = convert(_target_asset_balance, int256) - running_balance
-        pos = 0
-        for btx in result:
-            # Is there enough in the Adapter to satisfy our deficit?
-            if btx.adapter == empty(address): continue # TODO: should we continue or break? Is a hole possible?
-            #assert btx.adapter != empty(address), "_getBalanceTxs EMPTYADAPTER 1!"
-            available_funds : int256 = convert(self._poolAssets(btx.adapter), int256) + btx.qty
-            # TODO : Consider also checking that we aren't over the Adapter's maxWithdraw limit here.
-            if available_funds >= diff:
-                btx.qty-= diff
-                diff = 0 
-                break
-            elif available_funds > 0:
-                btx.qty-=available_funds
-                diff+=available_funds
-
-        #assert pos != 0, "NO ADAPTERS PRESENT!!"
-
-        # TODO - remove this after testing.
-        #assert diff <= 0, "CAN'T BALANCE SOON ENOUGH!"
-
-    # Now make sure we aren't asking for more txs than allowed.
-    # Wipe out any extras.
-    pos = 0
-    for btx in result:
-        if btx.qty != 0: pos+=1
-        if convert(_max_txs, uint256) < pos and btx.qty != 0:
-            btx.qty = 0
-
-    return result
-
 
 @external
 @view
@@ -894,12 +732,12 @@ def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALT
     txs: BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
     txs = self._getBalanceTxs( _target_asset_balance, _max_txs )
 
-    if _target_asset_balance == 1890:
-        result_str : String[103] = concat("Not 1890 qty : ", uint2str(convert(txs[0].qty, uint256)))
-        assert txs[0].qty == 1890, result_str   
-        assert False, result_str
+    # if _target_asset_balance == 1890:
+    #     result_str : String[103] = concat("Not 1890 qty : ", uint2str(convert(txs[0].qty, uint256)))
+    #     assert txs[0].qty == 1890, result_str   
+    #     assert False, result_str
 
-    assert _target_asset_balance != 1890, "_balanceAdapters 1890!"
+    # assert _target_asset_balance != 1890, "_balanceAdapters 1890!"
 
     # Move the funds in/out of Lending Pools as required.
     for dtx in txs:
