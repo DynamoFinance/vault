@@ -368,7 +368,8 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
 
     print("Got here #2.")
 
-    taken = dynamo4626.withdraw(1890, trader, trader, sender=trader) 
-    print("Got back: %s, was expecting %s." % (taken.result, max_withdrawl))
+    #taken = dynamo4626.withdraw(1890, trader, trader, sender=trader) 
+    taken = dynamo4626.withdraw(10, trader, trader, sender=trader) 
+    print("Got back: %s, was expecting %s." % (taken.return_value, max_withdrawl))
 
 
