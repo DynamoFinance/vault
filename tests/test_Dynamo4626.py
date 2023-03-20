@@ -362,14 +362,15 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
     print("pools = %s." % [x for x in pools])
 
     print("dai.balance_of(pool_adapterA) = %s." % dai.balanceOf(pool_adapterA))
+    print("dynamo4626.balance_of(trader) = %s." % dynamo4626.balanceOf(trader))    
 
     #dynamo4626.balanceAdapters(1889, sender=trader)
 
 
     print("Got here #2.")
 
-    #taken = dynamo4626.withdraw(1890, trader, trader, sender=trader) 
-    taken = dynamo4626.withdraw(10, trader, trader, sender=trader) 
-    print("Got back: %s, was expecting %s." % (taken.return_value, max_withdrawl))
+    taken = dynamo4626.withdraw(1890, trader, trader, sender=trader) 
+    #taken = dynamo4626.withdraw(1000, trader, trader, sender=trader) 
+    print("Got back: %s shares, was expecting %s." % (taken.return_value, max_withdrawl))
 
 
