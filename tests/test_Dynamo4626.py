@@ -371,6 +371,11 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
 
     taken = dynamo4626.withdraw(1890, trader, trader, sender=trader) 
     #taken = dynamo4626.withdraw(1000, trader, trader, sender=trader) 
-    print("Got back: %s shares, was expecting %s." % (taken.return_value, max_withdrawl))
+    print("Got back: %s shares, was expecting %s." % (taken.return_value, max_redeem))
 
+    max_withdrawl = dynamo4626.maxWithdraw(trader, sender=trader)
+    max_redeem = dynamo4626.maxRedeem(trader, sender=trader)
+
+    assert max_withdrawl == 0, "Still got %s assets left to withdraw!" % max_withdrawl
+    assert max_redeem == 0, "Still got %s shares left to redeem!" % max_redeem
 

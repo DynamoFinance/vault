@@ -32,5 +32,4 @@ def deposit(asset_amount: uint256):
 # Withdraw the asset from the LP to an arbitary address. 
 @external
 def withdraw(asset_amount: uint256 , withdraw_to: address):
-    assert False, "Empty LPAdapter.vy withdraw interface!"
-    #pass
+    pass

@@ -736,18 +736,18 @@ def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALT
 
     assert txs[0].qty != 0, "No resulting txs!"
 
-    if _target_asset_balance == 1890:
+    # if _target_asset_balance == 1890:
 
-        tx_qty : uint256 = 0
-        if txs[0].qty > 0:
-            tx_qty = convert(txs[0].qty, uint256)
-        else:
-            tx_qty = convert(txs[0].qty*-1, uint256)
-        # 
-        result_str : String[103] = concat("Not 1890 qty : ", uint2str(tx_qty))
+    #     tx_qty : uint256 = 0
+    #     if txs[0].qty > 0:
+    #         tx_qty = convert(txs[0].qty, uint256)
+    #     else:
+    #         tx_qty = convert(txs[0].qty*-1, uint256)
+    #     # 
+    #     result_str : String[103] = concat("Not 1890 qty : ", uint2str(tx_qty))
        
-        assert txs[0].qty != 1890, result_str   
-        #assert False, result_str
+    #     assert txs[0].qty != 1890, result_str   
+    #     #assert False, result_str
 
     #assert _target_asset_balance != 1890, "_balanceAdapters 1890!"
 
@@ -756,8 +756,6 @@ def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALT
         if dtx.adapter == empty(address): break
         if dtx.qty == 0: continue
         if dtx.qty > 0:
-            if _target_asset_balance == 1890:
-                assert False, "Got here 760!"
             # Move funds into the lending pool's adapter.
             assert ERC20(asset).balanceOf(self) >= convert(dtx.qty, uint256), "_balanceAdapters d4626 insufficient assets!"
             # TODO : check for deposit failure. If it's due to going beyond
@@ -773,8 +771,7 @@ def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALT
             # TODO:  We also have to check to see if we short the 4626 balance, where
             #        the necessary funds will come from! Otherwise this may need to revert.
             assert ERC20(asset).balanceOf(dtx.adapter) >= qty, "_balanceAdapters adapter insufficient assets!"
-            
-            #assert False, "_balanceAdapters qty < 0!"            
+                 
             self._adapter_withdraw(dtx.adapter, qty, self)
 
 
@@ -823,8 +820,8 @@ def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: a
     response: Bytes[32] = empty(Bytes[32])
     result_ok: bool = False
 
-    result_str : String[278] = concat("Not enough assets. Adapter: ", uint2str(convert(_adapter, uint256)), " Have : ", uint2str(current_balance), " need : ", uint2str(_asset_amount))
-    assert current_balance >= _asset_amount, result_str
+    #result_str : String[278] = concat("Not enough assets. Adapter: ", uint2str(convert(_adapter, uint256)), " Have : ", uint2str(current_balance), " need : ", uint2str(_asset_amount))
+    #assert current_balance >= _asset_amount, result_str
 
     assert _adapter != empty(address), "EMPTY ADAPTER!"
     assert _withdraw_to != empty(address), "EMPTY WITHDRAW_TO!"
@@ -841,12 +838,14 @@ def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: a
     #    assert False, "Got here 841!"       
 
     # TODO - interpret response as revert msg in case this assertion fails.
-    if result_ok != True:
-        res : String[32] = convert(response, String[32])
-        assert False, concat("res = ", res)
+    #if result_ok != True:
+    #    res : String[32] = convert(response, String[32])
+    #    assert False, concat("res = ", res)
 
-    if _asset_amount == 1890:
-        assert False, "Here we are 849!"       
+    assert result_ok == True, "withdraw raw_call failed!"
+
+    #if _asset_amount == 1890:
+    #    assert False, "Here we are 849!"       
 
     balafter : uint256 = ERC20(asset).balanceOf(_withdraw_to)
     assert balafter != balbefore, "NOTHING CHANGED!"
