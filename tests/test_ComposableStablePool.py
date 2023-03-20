@@ -197,6 +197,63 @@ def tokendiff(user, tokens, prev={}):
         prev[token] = bal
     return prev
 
+def test_composable_protocol_fee(trader, vault, dai, frax, gho, dDAI, dFRAX, dGHO, dUSD, ddai4626, dfrax4626, dgho4626, ensure_hardhat):
+    fee_collector = dUSD.getProtocolFeesCollector()
+    tokens = {
+        "DAI": dai,
+        "dDAI": dDAI,
+        "dFRAX": dFRAX,
+        "dGHO": dGHO,
+        "dUSD": dUSD
+    }
+    dUSD_pool_id = dUSD.getPoolId()
+    print(fee_collector)
+    bal = tokendiff(fee_collector, tokens)
+    vault.joinPool(
+        dUSD_pool_id,
+        trader, #sender
+        trader, #recipient
+        (
+            [dDAI, dFRAX, dGHO, dUSD], #assets
+            ["1 Ether", "1 Ether", "1 Ether", 5192296858534827628530496329000000], #maxAmountsIn
+            encode(['uint256', 'uint256[]'], [
+                0, #JoinKind.INIT
+                (
+                    1000000000000000000,
+                    1000000000000000000,
+                    1000000000000000000,
+                    5192296858534827628530496329000000
+                )
+            ]  ), #bytes userData
+            False #fromInternalBalance
+        ),
+        sender=trader
+    )
+    bal = tokendiff(fee_collector, tokens, bal)
+    traderbal_pre = dUSD.balanceOf(trader)
+    vault.joinPool(
+        dUSD_pool_id,
+        trader, #sender
+        trader, #recipient
+        (
+            [dDAI, dFRAX, dGHO, dUSD], #assets
+            ["500 Ether", "0 Ether", "0 Ether", '200 Ether'], #maxAmountsIn
+            encode(['uint256', 'uint256[]', 'uint256'], [
+                1, #JoinKind.EXACT_TOKENS_IN_FOR_BPT_OUT
+                (
+                    500*10**18, #dDAI
+                    0*10**18, #dFRAX
+                    0*10**18 #dGHO
+                ), #amountsIn
+                200*10**18 #minimumBPT
+            ]  ), #bytes userData
+            False #fromInternalBalance
+        ),
+        sender=trader
+    )
+    bal = tokendiff(fee_collector, tokens, bal)
+    print("trader got", (dUSD.balanceOf(trader)-  traderbal_pre )/ 10**18)
+
 def test_composable(trader, vault, dai, frax, gho, dDAI, dFRAX, dGHO, dUSD, ddai4626, dfrax4626, dgho4626, ensure_hardhat):
     #ensure oracle of each d-token returns 1 (since no yield yet)
     assert dDAI.getRate() == 10**18, "rate is not 1"
