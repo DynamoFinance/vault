@@ -396,7 +396,7 @@ def _convertToShares(_asset_amount: uint256) -> uint256:
     #result_str : String[103] = concat("shareqty : ", uint2str(shareqty))
     #assert False, result_str
 
-    sharesPerAsset : decimal = (convert(shareqty, decimal) * 10000.0 / convert(assetqty, decimal)) + 1.0
+    sharesPerAsset : decimal = (convert(shareqty, decimal) * 10000.0 / convert(assetqty, decimal)) # BDM + 1.0
 
     ###sharesPerAsset : uint256 = ((shareqty * 1000000000) / assetqty) + 1
 
@@ -406,8 +406,10 @@ def _convertToShares(_asset_amount: uint256) -> uint256:
     ###result : uint256 = _asset_amount * sharesPerAsset / 1000000000
 
     ###return result
+    rounder : decimal = convert(_asset_amount, decimal) * sharesPerAsset / 10000.0
+    return convert(ceil(rounder), uint256)
 
-    return convert(convert(_asset_amount, decimal) * sharesPerAsset / 10000.0, uint256)
+    #return convert( rounder / 10000.0, uint256)
 
 
 @external
@@ -432,7 +434,7 @@ def _convertToAssets(_share_amount: uint256) -> uint256:
     if shareqty == 0: return _share_amount    
     if assetqty == 0 : return _share_amount    
 
-    assetsPerShare : decimal = convert(assetqty, decimal) * 10000.0 / convert(shareqty, decimal) + 1.0
+    assetsPerShare : decimal = convert(assetqty, decimal) * 10000.0 / convert(shareqty, decimal) # + 1.0
 
     return convert(convert(_share_amount, decimal) * assetsPerShare / 10000.0, uint256)
 
