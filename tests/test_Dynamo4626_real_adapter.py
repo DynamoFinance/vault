@@ -139,10 +139,14 @@ def test_single_adapter_aave(project, deployer, dynamo4626, aave_adapter, dai, t
     assert dynamo4626.maxRedeem(trader) == 100000 * 10**18
     assert dynamo4626.maxWithdraw(trader) == pytest.approx(available_balance)
 
-
+    print("aave thinks dynamo4626 has: ", adai.balanceOf(dynamo4626))
+    print("dynamo4626 thinks it has: ", dynamo4626.getCurrentBalances())
+    print("adapter thinks it has: ", aave_adapter.totalAssets(sender=dynamo4626))
+    print("Traders maxWithdraw", dynamo4626.maxWithdraw(trader))
+    print("Traders convertToAssets(shares)", dynamo4626.convertToAssets(dynamo4626.balanceOf(trader)))
     #Lets withdraw it all...
 
-    # dynamo4626.redeem(100000 * 10**18 , trader, trader, sender=trader)
+    dynamo4626.redeem(100000 * 10**18 , trader, trader, sender=trader)
 
     # assert dynamo4626.balanceOf(trader) == 0
     # assert dynamo4626.totalAssets() == pytest.approx(yielded_balance - available_balance)
