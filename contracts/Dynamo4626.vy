@@ -898,8 +898,6 @@ def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: a
 
     assert result_ok == True, "withdraw raw_call failed!"
 
-    assert False, "Here at 901."
-
     #if _asset_amount == 1890:
 
     #assert False, "Here we are 902!"
