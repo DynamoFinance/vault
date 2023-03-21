@@ -147,13 +147,19 @@ def test_single_adapter_aave(project, deployer, dynamo4626, aave_adapter, dai, t
     #Lets withdraw it all...
 
     t_shares = dynamo4626.maxRedeem(trader)
-    req_assets = dynamo4626.convertToAssets(t_shares)
+    req_assets = int(dynamo4626.convertToAssets(t_shares))
     returns = dynamo4626.totalReturns()
-    remaining_assets = dynamo4626.totalAssets() - returns
+    claimable_fees = dynamo4626.claimable_all_fees_available()    
+    claim_yield_fees = dynamo4626.claimable_yield_fees_available()
+    claim_strat_fees = dynamo4626.claimable_strategy_fees_available()
+    remaining_assets = dynamo4626.totalAssets() - claimable_fees
     print("Trader shares are : %s." % t_shares)
     print("Requires assets for those shares are: %s." % req_assets)
     print("Estimated available_balance is %s." % available_balance)
-    print("There are %s assets reserved for returns for fees." % returns)
+    print("There are %s assets as returns." % returns)
+    print("There are %s assets reserved as claimable fees." % claimable_fees)
+    print("\t%s are yield fees\n\t%s are strategy fees." % (claim_yield_fees,claim_strat_fees))
+    print("\tDifference due to rounding is %s." % (claimable_fees - (claim_yield_fees+claim_strat_fees)))
     print("There are %s assets remaining to withdraw overall." % remaining_assets)
     #if req_assets > remaining_assets:
     print("Shortage is %s." % (int(req_assets) - int(remaining_assets)))

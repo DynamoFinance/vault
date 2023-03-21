@@ -302,11 +302,23 @@ def _claimable_fees_available(_yield : FeeType, _current_assets : uint256 = 0) -
 
     return result
 
+
 @external
 @view    
-def claimable_fees_available(_yield : FeeType, _current_assets : uint256 = 0) -> uint256:
-    return self._claimable_fees_available(_yield, _current_assets)    
+def claimable_yield_fees_available(_current_assets : uint256 = 0) -> uint256:
+    return self._claimable_fees_available(FeeType.YIELD, _current_assets)    
 
+
+@external
+@view    
+def claimable_strategy_fees_available(_current_assets : uint256 = 0) -> uint256:
+    return self._claimable_fees_available(FeeType.PROPOSER, _current_assets)  
+
+
+@external
+@view    
+def claimable_all_fees_available(_current_assets : uint256 = 0) -> uint256:
+    return self._claimable_fees_available(FeeType.BOTH, _current_assets)      
 
 
     # fee_percentage : uint256 = YIELD_FEE_PERCENTAGE * 100000
