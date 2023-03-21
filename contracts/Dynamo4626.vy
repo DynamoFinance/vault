@@ -182,6 +182,7 @@ def _add_pool(_pool: address) -> bool:
 
     result_ok, response = raw_call(_pool, method_id("maxDeposit()"), max_outsize=32, is_static_call=True, revert_on_failure=False)
     assert (response != empty(Bytes[32])), "Doesn't appear to be an LPAdapter."
+    # TODO : should we check the result_ok result instead or in addition to?
 
     self.dlending_pools.append(_pool)
 
@@ -259,14 +260,15 @@ def totalAssets() -> uint256: return self._totalAssets()
 
 @internal
 @view 
-def _totalReturns(_current_assets : uint256 = 0) -> int256:
+def _totalReturns(_current_assets : uint256) -> int256:
     # Avoid having to call _totalAssets if we already know the value.
     current_holdings : uint256 = _current_assets
-    if current_holdings == 0:
-        current_holdings = self._totalAssets()
+    # if current_holdings == 0:
+    #     current_holdings = self._totalAssets()
 
     total_returns: int256 = convert(self.total_assets_withdrawn + current_holdings, int256) - convert(self.total_assets_deposited, int256)
     return total_returns    
+
 
 @external
 @view 
@@ -320,19 +322,6 @@ def claimable_strategy_fees_available(_current_assets : uint256 = 0) -> uint256:
 def claimable_all_fees_available(_current_assets : uint256 = 0) -> uint256:
     return self._claimable_fees_available(FeeType.BOTH, _current_assets)      
 
-
-    # fee_percentage : uint256 = YIELD_FEE_PERCENTAGE * 100000
-    # if _yield == False:
-    #      fee_percentage = PROPOSER_FEE_PERCENTAGE * 100000
-
-    # total_fees_available : uint256 = convert(total_returns, uint256) * (fee_percentage / 100)
-    # total_fees_available = total_fees_available / 100000
-
-    # if _yield == True:
-    #     return total_fees_available - self.total_yield_fees_claimed
-    # else:
-    #     return total_fees_available - self.total_strategy_fees_claimed
-    
 
 @internal
 def _claim_fees(_yield : FeeType, _asset_amount: uint256, _current_assets : uint256 = 0) -> uint256:
@@ -391,11 +380,11 @@ def claim_all_fees(_asset_amount: uint256 = 0) -> uint256:
 def _convertToShares(_asset_amount: uint256) -> uint256:
     shareqty : uint256 = self.totalSupply
     grossAssets : uint256 = self._totalAssets()
-    assetqty : uint256 = grossAssets
+
     claimable_fees : uint256 = self._claimable_fees_available(FeeType.BOTH, grossAssets)
     
     # Less fees
-    # BDM assetqty -= claimable_fees    
+    assetqty : uint256 = grossAssets - claimable_fees    
 
     # If there aren't any shares/assets yet it's going to be 1:1.
     if shareqty == 0 : return _asset_amount
@@ -435,7 +424,8 @@ def _convertToAssets(_share_amount: uint256) -> uint256:
     total_assets : uint256 = self._totalAssets()
 
     # TODO - does this call to claimable_fees_available open us up to potential rounding errors?
-    assetqty : uint256 = total_assets - self._claimable_fees_available(FeeType.BOTH, total_assets)
+    claimable_fees : uint256 = self._claimable_fees_available(FeeType.BOTH, total_assets)
+    assetqty : uint256 = total_assets - claimable_fees
 
 
     # If there aren't any shares yet it's going to be 1:1.
@@ -834,7 +824,6 @@ def balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALTX
     self._balanceAdapters(_target_asset_balance, _max_txs)
 
 
-
 @internal
 def _mint(_receiver: address, _share_amount: uint256) -> uint256:
     """
@@ -852,9 +841,12 @@ def _mint(_receiver: address, _share_amount: uint256) -> uint256:
 
 
 @internal
-def _adapter_deposit(_adapter: address, _asset_amount: uint256):
+def _adapter_deposit(_adapter: address, _asset_amount: uint256):    
     response: Bytes[32] = empty(Bytes[32])
     result_ok: bool = False
+
+    starting_assets : uint256 = self._poolAssets(_adapter)
+
     result_ok, response = raw_call(
         _adapter,
         _abi_encode(_asset_amount, method_id=method_id("deposit(uint256)")),
@@ -865,6 +857,9 @@ def _adapter_deposit(_adapter: address, _asset_amount: uint256):
 
     # TODO - interpret response as revert msg in case this assertion fails.
     assert result_ok == True, convert(response, String[32]) #"_adapter_deposit raw_call failed"
+
+    new_assets : uint256 = self._poolAssets(_adapter)
+    assert _asset_amount + starting_assets == new_assets, "Didn't move the assets into our adapter!"
 
 
 @internal

@@ -12,14 +12,14 @@ implements: LPAdapter
 
 aoriginalAsset: immutable(address)
 awrappedAsset: immutable(address)
-#adapterLPAddr: immutable(address)
+adapterLPAddr: immutable(address)
 
 
 @external
 def __init__(_originalAsset: address, _wrappedAsset: address):
     aoriginalAsset = _originalAsset
     awrappedAsset = _wrappedAsset
-    #adapterLPAddr = self
+    adapterLPAddr = self
 
 
 @external
@@ -87,7 +87,7 @@ def maxDeposit() -> uint256:
 @external
 @view
 def totalAssets() -> uint256:
-    return ERC20(aoriginalAsset).balanceOf(msg.sender)
+    return ERC20(aoriginalAsset).balanceOf(adapterLPAddr)
 
 
 # Deposit the asset into underlying LP. The tokens must be present inside the 4626 vault.
@@ -95,7 +95,7 @@ def totalAssets() -> uint256:
 @nonpayable
 def deposit(asset_amount: uint256):
     # Move funds into the LP.
-    ERC20(aoriginalAsset).transfer(msg.sender, asset_amount)
+    ERC20(aoriginalAsset).transfer(adapterLPAddr, asset_amount)
 
     # Return LP wrapped assets to 4626 vault.
     # TODO : Ignore wrapped asset for now!
@@ -116,8 +116,8 @@ def withdraw(asset_amount: uint256 , withdraw_to: address):
 
     #mintableERC20(awrappedAsset).burn(shares_to_burn)
 
-    assert ERC20(aoriginalAsset).balanceOf(msg.sender) >= asset_amount, "INSUFFICIENT FUNDS!"
-    # BDM assert ERC20(aoriginalAsset).allowance(adapterLPAddr, self) >= asset_amount, "NO APPROVAL!"
+    assert ERC20(aoriginalAsset).balanceOf(adapterLPAddr) >= asset_amount, "INSUFFICIENT FUNDS!"
+    assert ERC20(aoriginalAsset).allowance(adapterLPAddr, self) >= asset_amount, "NO APPROVAL!"
 
     # Move funds into the destination accout.
-    ERC20(aoriginalAsset).transferFrom(msg.sender, withdraw_to, asset_amount)
+    ERC20(aoriginalAsset).transferFrom(adapterLPAddr, withdraw_to, asset_amount)
