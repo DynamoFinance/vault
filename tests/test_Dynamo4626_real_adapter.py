@@ -152,7 +152,7 @@ def test_single_adapter_aave(project, deployer, dynamo4626, aave_adapter, dai, t
     claimable_fees = dynamo4626.claimable_all_fees_available()    
     claim_yield_fees = dynamo4626.claimable_yield_fees_available()
     claim_strat_fees = dynamo4626.claimable_strategy_fees_available()
-    remaining_assets = dynamo4626.totalAssets() - claimable_fees
+    remaining_assets = int(dynamo4626.totalAssets() - claimable_fees)
     print("Trader shares are : %s." % t_shares)
     print("Requires assets for those shares are: %s." % req_assets)
     print("Estimated available_balance is %s." % available_balance)
@@ -161,8 +161,10 @@ def test_single_adapter_aave(project, deployer, dynamo4626, aave_adapter, dai, t
     print("\t%s are yield fees\n\t%s are strategy fees." % (claim_yield_fees,claim_strat_fees))
     print("\tDifference due to rounding is %s." % (claimable_fees - (claim_yield_fees+claim_strat_fees)))
     print("There are %s assets remaining to withdraw overall." % remaining_assets)
-    #if req_assets > remaining_assets:
-    print("Shortage is %s." % (int(req_assets) - int(remaining_assets)))
+    if req_assets > remaining_assets:
+        print("Shortage is %s." % (remaining_assets - req_assets))
+    else:
+        print("Overage is %s." % (remaining_assets - req_assets))               
     assert t_shares >= 100000 * 10**18 , "trader has insufficient shares."
     assert req_assets <= remaining_assets, "vault doesn't have enough free assets for trader withdraw"
 
