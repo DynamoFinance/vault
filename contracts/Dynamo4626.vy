@@ -264,6 +264,12 @@ def _totalReturns(_current_assets : uint256 = 0) -> int256:
     total_returns: int256 = convert(self.total_assets_withdrawn + current_holdings, int256) - convert(self.total_assets_deposited, int256)
     return total_returns    
 
+@external
+@view 
+def totalReturns() -> int256:
+    assets : uint256 = self._totalAssets()
+    return self._totalReturns(assets)    
+
 
 @internal
 @view 
@@ -470,6 +476,8 @@ def previewRedeem(_share_amount: uint256) -> uint256:
 @external
 def redeem(_share_amount: uint256, _receiver: address, _owner: address) -> uint256:
     assetqty: uint256 = self._convertToAssets(_share_amount)
+    if assetqty == 100911382350000000000000:
+        assert False, "Matches!"
     return self._withdraw(assetqty, _receiver, _owner)
 
 
@@ -897,13 +905,24 @@ def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint
     # How many shares does it take to get the requested asset amount?
     shares: uint256 = self._convertToShares(_asset_amount)
 
-    #result_str : String[103] = concat("Not 1890 assets : ", uint2str(_asset_amount))
-    #assert _asset_amount == 1890, result_str
+    result_str : String[103] = concat("Not 1890 assets : ", uint2str(_asset_amount))
+    assert False, result_str
 
     #assert shares == 1000, result_str
 
+    xcbal : uint256 = self.balanceOf[_owner]
+
     # Owner has adequate shares?
     assert self.balanceOf[_owner] >= shares, "Owner has inadequate shares for this withdraw."
+    if self.balanceOf[_owner] >= shares:
+        assert False, "Got here."
+        # xcbal : uint256 = self.balanceOf[_owner]
+        # assert False, "Got here."
+        # cbal: String[78] = uint2str(xcbal)
+        # assert False, "Got here."
+        # xmsg : String[169] = concat("has: ", uint2str(self.balanceOf[_owner]), " needs: ", uint2str(shares))
+        # assert False, xmsg
+
 
     # Withdrawl is handled by someone other than the owner?
     if msg.sender != _owner:
