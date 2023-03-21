@@ -152,6 +152,7 @@ def test_single_adapter_aave(project, deployer, dynamo4626, aave_adapter, dai, t
     remaining_assets = dynamo4626.totalAssets() - returns
     print("Trader shares are : %s." % t_shares)
     print("Requires assets for those shares are: %s." % req_assets)
+    print("There are %s assets reserved for returns for fees." % returns)
     print("There are %s assets remaining to withdraw overall." % remaining_assets)
     assert t_shares >= 100000 * 10**18 , "trader has insufficient shares."
     assert req_assets < remaining_assets, "vault doesn't have enough free assets for trader withdraw"
