@@ -17,6 +17,10 @@ YIELD_FEE_PERCENTAGE : constant(uint256) = 10
 # 1% of the yield belongs to the Strategy proposer.
 PROPOSER_FEE_PERCENTAGE: constant(uint256) = 1
 
+enum FeeType:
+    BOTH
+    YIELD
+    PROPOSER
 
 name: public(immutable(String[64]))
 symbol: public(immutable(String[32]))
@@ -137,10 +141,10 @@ def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], 
         current_assets : uint256 = self._totalAssets()
 
         # Is there enough payout to actually do a transaction?
-        if self._claimable_fees_available(current_assets, False) >= self.min_proposer_payout:
+        if self._claimable_fees_available(FeeType.PROPOSER, current_assets) >= self.min_proposer_payout:
                 
             # Pay prior proposer his earned fees.
-            self._claim_fees(0, False, current_assets)
+            self._claim_fees(FeeType.PROPOSER, 0, current_assets)
 
         self.current_proposer = _proposer
         self.min_proposer_payout = _min_proposer_payout
@@ -273,20 +277,36 @@ def totalReturns() -> int256:
 
 @internal
 @view 
-def _claimable_fees_available(_current_assets : uint256 = 0, _yield : bool = True) -> uint256:
+def _claimable_fees_available(_yield : FeeType, _current_assets : uint256 = 0) -> uint256:
     total_returns : int256 = self._totalReturns(_current_assets)
     if total_returns < 0: return 0
 
+    # Assume FeeType.YIELD
     fee_percentage: decimal = convert(YIELD_FEE_PERCENTAGE, decimal)
-    if _yield == False:
+    if _yield == FeeType.PROPOSER:
         fee_percentage = convert(PROPOSER_FEE_PERCENTAGE, decimal)
+    elif _yield == FeeType.BOTH:
+        fee_percentage += convert(PROPOSER_FEE_PERCENTAGE, decimal)
 
     dtotal_fees_available : decimal = convert(total_returns, decimal) * (fee_percentage / 100.0)
 
-    if _yield == True:
-        return convert(dtotal_fees_available, uint256) - self.total_yield_fees_claimed
+    result : uint256 = 0
+    if _yield == FeeType.YIELD or _yield == FeeType.BOTH:
+        result = convert(dtotal_fees_available, uint256) - self.total_yield_fees_claimed
+    elif _yield == FeeType.PROPOSER:
+        result = convert(dtotal_fees_available, uint256) - self.total_strategy_fees_claimed
+    elif _yield == FeeType.BOTH:
+        result += convert(dtotal_fees_available, uint256) - self.total_strategy_fees_claimed
     else:
-        return convert(dtotal_fees_available, uint256) - self.total_strategy_fees_claimed
+        assert False, "Invalid FeeType!"
+
+    return result
+
+@external
+@view    
+def claimable_fees_available(_yield : FeeType, _current_assets : uint256 = 0) -> uint256:
+    return self._claimable_fees_available(_yield, _current_assets)    
+
 
 
     # fee_percentage : uint256 = YIELD_FEE_PERCENTAGE * 100000
@@ -303,13 +323,13 @@ def _claimable_fees_available(_current_assets : uint256 = 0, _yield : bool = Tru
     
 
 @internal
-def _claim_fees(_asset_amount: uint256, _yield : bool = True,_current_assets : uint256 = 0) -> uint256:
+def _claim_fees(_yield : FeeType, _asset_amount: uint256, _current_assets : uint256 = 0) -> uint256:
     # If current proposer is zero address we pay no strategy fees.    
-    if _yield == False and self.current_proposer == empty(address): return 0
+    if _yield != FeeType.YIELD and self.current_proposer == empty(address): return 0
 
     claim_amount : uint256 = _asset_amount
 
-    total_fees_remaining : uint256 = self._claimable_fees_available(_current_assets, _yield)
+    total_fees_remaining : uint256 = self._claimable_fees_available(_yield, _current_assets)
     if _asset_amount == 0:
         claim_amount = total_fees_remaining
 
@@ -323,12 +343,15 @@ def _claim_fees(_asset_amount: uint256, _yield : bool = True,_current_assets : u
         self._balanceAdapters(claim_amount)
 
     # Account for the claim and move the funds.
-    if _yield == True:
-        self.total_yield_fees_claimed += claim_amount
-        ERC20(asset).transfer(self.owner, claim_amount)
-    else:
-        self.total_strategy_fees_claimed += claim_amount
-        ERC20(asset).transfer(self.current_proposer, claim_amount)
+    if _yield == FeeType.YIELD:
+        self.total_yield_fees_claimed += claim_amount    
+    elif _yield == FeeType.PROPOSER:
+        self.total_strategy_fees_claimed += claim_amount        
+    elif _yield == FeeType.BOTH:
+        prop_fee : uint256 = self._claimable_fees_available(FeeType.PROPOSER, _current_assets)
+        self.total_yield_fees_claimed += claim_amount - prop_fee
+        self.total_strategy_fees_claimed += prop_fee
+    ERC20(asset).transfer(msg.sender, claim_amount)
 
     return claim_amount
 
@@ -336,13 +359,19 @@ def _claim_fees(_asset_amount: uint256, _yield : bool = True,_current_assets : u
 @external
 def claim_yield_fees(_asset_amount: uint256 = 0) -> uint256:
     assert msg.sender == self.owner, "Only owner may claim yield fees."
-    return self._claim_fees(_asset_amount, True)
+    return self._claim_fees(FeeType.YIELD, _asset_amount)
 
 
 @external
 def claim_strategy_fees(_asset_amount: uint256 = 0) -> uint256:
     assert msg.sender == self.current_proposer, "Only curent proposer may claim strategy fees."
-    return self._claim_fees(_asset_amount, False)    
+    return self._claim_fees(FeeType.PROPOSER, _asset_amount)    
+
+
+@external
+def claim_all_fees(_asset_amount: uint256 = 0) -> uint256:
+    assert msg.sender == self.owner and msg.sender == self.current_proposer, "Must be both owner and current proposer to claim all fees."
+    return self._claim_fees(FeeType.BOTH, _asset_amount)
 
 
 @internal
@@ -351,11 +380,10 @@ def _convertToShares(_asset_amount: uint256) -> uint256:
     shareqty : uint256 = self.totalSupply
     grossAssets : uint256 = self._totalAssets()
     assetqty : uint256 = grossAssets
-    claimable_earnings : uint256 = self._claimable_fees_available(grossAssets, True)
-    claimable_strategy : uint256 = self._claimable_fees_available(grossAssets, False)
+    claimable_fees : uint256 = self._claimable_fees_available(FeeType.BOTH, grossAssets)
+    
     # Less fees
-    assetqty -= self._claimable_fees_available(grossAssets, True)
-    assetqty -= self._claimable_fees_available(grossAssets, False)
+    assetqty -= claimable_fees    
 
     # If there aren't any shares/assets yet it's going to be 1:1.
     if shareqty == 0 : return _asset_amount
@@ -394,8 +422,8 @@ def _convertToAssets(_share_amount: uint256) -> uint256:
     shareqty : uint256 = self.totalSupply
     total_assets : uint256 = self._totalAssets()
 
-    # TODO - do these two calls to claimable_fees_available open us up to potential rounding errors?
-    assetqty : uint256 = total_assets - (self._claimable_fees_available(total_assets, True) + self._claimable_fees_available(total_assets, False))
+    # TODO - does this call to claimable_fees_available open us up to potential rounding errors?
+    assetqty : uint256 = total_assets - self._claimable_fees_available(FeeType.BOTH, total_assets)
 
 
     # If there aren't any shares yet it's going to be 1:1.
@@ -905,8 +933,8 @@ def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint
     # How many shares does it take to get the requested asset amount?
     shares: uint256 = self._convertToShares(_asset_amount)
 
-    result_str : String[103] = concat("Not 1890 assets : ", uint2str(_asset_amount))
-    assert False, result_str
+    #result_str : String[103] = concat("Not 1890 assets : ", uint2str(_asset_amount))
+    #assert False, result_str
 
     #assert shares == 1000, result_str
 
@@ -914,8 +942,8 @@ def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint
 
     # Owner has adequate shares?
     assert self.balanceOf[_owner] >= shares, "Owner has inadequate shares for this withdraw."
-    if self.balanceOf[_owner] >= shares:
-        assert False, "Got here."
+    #if self.balanceOf[_owner] >= shares:
+    #    assert False, "Got here."
         # xcbal : uint256 = self.balanceOf[_owner]
         # assert False, "Got here."
         # cbal: String[78] = uint2str(xcbal)
