@@ -395,7 +395,7 @@ def _convertToShares(_asset_amount: uint256) -> uint256:
     claimable_fees : uint256 = self._claimable_fees_available(FeeType.BOTH, grossAssets)
     
     # Less fees
-    assetqty -= claimable_fees    
+    # BDM assetqty -= claimable_fees    
 
     # If there aren't any shares/assets yet it's going to be 1:1.
     if shareqty == 0 : return _asset_amount
@@ -516,8 +516,8 @@ def previewRedeem(_share_amount: uint256) -> uint256:
 @external
 def redeem(_share_amount: uint256, _receiver: address, _owner: address) -> uint256:
     assetqty: uint256 = self._convertToAssets(_share_amount)
-    if assetqty == 100911382350000000000000:
-        assert False, "Matches!"
+    #if assetqty == 100911382350000000000000:
+    #    assert False, "Matches!"
     return self._withdraw(assetqty, _receiver, _owner)
 
 
@@ -818,7 +818,13 @@ def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALT
             #        the adapter's maxWithdraw limit then try again with lower limit.
             # TODO:  We also have to check to see if we short the 4626 balance, where
             #        the necessary funds will come from! Otherwise this may need to revert.
-            assert ERC20(asset).balanceOf(dtx.adapter) >= qty, "_balanceAdapters adapter insufficient assets!"
+            #assert ERC20(asset).balanceOf(dtx.adapter) >= qty, "_balanceAdapters adapter insufficient assets!"
+
+            # BDM
+            #if ERC20(asset).balanceOf(dtx.adapter) < qty:
+            #    missing: uint256 = qty - ERC20(asset).balanceOf(dtx.adapter)                 
+            #    xmsg: String[274] = concat("Missing ", uint2str(missing), " assets to do ", uint2str(qty), " from ", uint2str(ERC20(asset).balanceOf(dtx.adapter)), " adapter tx.")
+            #    assert False, xmsg
                  
             self._adapter_withdraw(dtx.adapter, qty, self)
 
@@ -892,8 +898,11 @@ def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: a
 
     assert result_ok == True, "withdraw raw_call failed!"
 
+    assert False, "Here at 901."
+
     #if _asset_amount == 1890:
-    #    assert False, "Here we are 849!"       
+
+    #assert False, "Here we are 902!"
 
     balafter : uint256 = ERC20(asset).balanceOf(_withdraw_to)
     assert balafter != balbefore, "NOTHING CHANGED!"
