@@ -421,19 +421,20 @@ def _convertToAssets(_share_amount: uint256) -> uint256:
     # return _share_amount
 
     shareqty : uint256 = self.totalSupply
-    total_assets : uint256 = self._totalAssets()
+    assetqty : uint256 = self._totalAssets()
 
-    # TODO - does this call to claimable_fees_available open us up to potential rounding errors?
-    claimable_fees : uint256 = self._claimable_fees_available(FeeType.BOTH, total_assets)
-    assetqty : uint256 = total_assets - claimable_fees
-
+    claimable_fees : uint256 = self._claimable_fees_available(FeeType.BOTH, assetqty)
+    
+    # Less fees
+    assetqty -= claimable_fees     
 
     # If there aren't any shares yet it's going to be 1:1.
-    if shareqty == 0: return _share_amount
+    if shareqty == 0: return _share_amount    
+    if assetqty == 0 : return _share_amount    
 
-    assetsPerShare : decimal = convert(assetqty, decimal) / convert(shareqty, decimal)
+    assetsPerShare : decimal = convert(assetqty, decimal) * 10000.0 / convert(shareqty, decimal) + 1.0
 
-    return convert(convert(_share_amount, decimal) * assetsPerShare, uint256)
+    return convert(convert(_share_amount, decimal) * assetsPerShare / 10000.0, uint256)
 
 
 @external
@@ -954,17 +955,20 @@ def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint
 
     xcbal : uint256 = self.balanceOf[_owner]
 
+    #xxmsg : String[275] = concat("Owner has ", uint2str(xcbal), " shares but needs ", uint2str(shares), ".")
+
     # Owner has adequate shares?
     assert self.balanceOf[_owner] >= shares, "Owner has inadequate shares for this withdraw."
-    #if self.balanceOf[_owner] >= shares:
-    #    assert False, "Got here."
-        # xcbal : uint256 = self.balanceOf[_owner]
-        # assert False, "Got here."
-        # cbal: String[78] = uint2str(xcbal)
-        # assert False, "Got here."
-        # xmsg : String[169] = concat("has: ", uint2str(self.balanceOf[_owner]), " needs: ", uint2str(shares))
-        # assert False, xmsg
-
+    #assert xcbal >= shares, xxmsg
+    # if xcbal >= shares:
+    # #    assert False, "Got here."
+    #     #xcbal : uint256 = self.balanceOf[_owner]
+    #     assert False, "EHERE!"
+    #     assert False, "Got here."
+    #     cbal: String[78] = uint2str(xcbal)
+    #     #assert False, "Got here."
+    #     xmsg : String[169] = concat("has: ", uint2str(self.balanceOf[_owner]), " needs: ", uint2str(shares))
+    #     assert False, xmsg
 
     # Withdrawl is handled by someone other than the owner?
     if msg.sender != _owner:
@@ -973,11 +977,10 @@ def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint
         self.allowance[_owner][msg.sender] -= shares
 
     # Burn the shares.
-    self.balanceOf[_owner] -= shares
+    self.balanceOf[_owner] -= shares    
+
     self.totalSupply -= shares
     log Transfer(_owner, empty(address), shares)
-
-
 
     # Make sure we have enough assets to send to _receiver.
     self._balanceAdapters( _asset_amount )
