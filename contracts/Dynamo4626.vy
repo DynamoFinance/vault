@@ -113,12 +113,12 @@ def lending_pools() -> DynArray[address, MAX_POOLS]: return self.dlending_pools
 def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], _min_proposer_payout : uint256) -> bool:
     assert msg.sender == self.governance, "Only Governance DAO may set a new strategy."
     assert _proposer != empty(address), "Proposer can't be null address."
-
+    # assert False, "failed here"
     # Are we replacing the old proposer?
     if self.current_proposer != _proposer:
 
         current_assets : uint256 = self._totalAssets()
-
+        assert False, "failed here"
         # Is there enough payout to actually do a transaction?
         if self._claimable_fees_available(current_assets, False) >= self.min_proposer_payout:
                 
