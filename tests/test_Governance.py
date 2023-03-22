@@ -27,14 +27,14 @@ ERC20ASSET = "0x0000000000000000000000000000000000000123"
 POOLS = [] 
 
 
-# @pytest.fixture
-# def owner(project, accounts):
-#     owner = accounts[0]
+@pytest.fixture
+def owner(project, accounts):
+    owner = accounts[0]
 
-# @pytest.fixture
-# def dai(project, owner, accounts):
-#     ua = owner.deploy(project.ERC20, "DAI", "DAI", 18, 0, owner)
-#     return ua
+@pytest.fixture
+def dai(project, owner, accounts):
+    ua = owner.deploy(project.ERC20, "DAI", "DAI", 18, 0, owner)
+    return ua
 
 # @pytest.fixture
 # def pool_adapterA(project, owner, dai):
@@ -80,11 +80,11 @@ def governance_contract(owner, project, accounts):
 
 
 @pytest.fixture
-def vault_contract_one(governance_contract, owner, project, accounts):
+def vault_contract_one(governance_contract, owner, project, accounts, dai):
 
     owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
 
-    vcontractone = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, ERC20ASSET, POOLS, governance_contract)
+    vcontractone = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, dai, POOLS, governance_contract)
 
     return vcontractone
 
