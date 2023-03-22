@@ -94,6 +94,37 @@ sequenceDiagram
 Deposit X assets where X is determined to be the quantity required to receive Y shares representing the new investment.  
 Shares will be credited to destination address. For DynamoUSD this would be the LinearPool which this
 contract is an AssetManager for.
+```mermaid
+sequenceDiagram
+    participant u as Investor
+    participant a4626 as d<Token>4626
+    participant
+```
+
+#### [test (shares, destination) -> assets]
+```mermaid
+sequenceDiagram
+    participant Object
+    participant Vault1
+    participant Vault2
+    participant FinalApproval
+
+    Object->>Vault1: Request Approval
+    activate Vault1
+    Vault1->>Vault2: Approve
+    activate Vault2
+    Vault2-->>Vault1: Request additional information
+    Vault1->>Vault2: Provide additional information
+    Vault2->>FinalApproval: Approve
+    activate FinalApproval
+    FinalApproval-->>Object: Allow Passage
+    deactivate Vault1
+    deactivate Vault2
+    deactivate FinalApproval
+
+    Note over Vault1: Check for\nvalidity of\nrequest
+    Note over Vault2: Check for\nsufficient funds
+```
 
 #### [redeem (shares, destination, owner) -> assets]
 
