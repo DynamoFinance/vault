@@ -20,10 +20,17 @@ interface Dynamo4626:
     def getCurrentBalances() -> (uint256, BalancePool[MAX_POOLS], uint256, uint256): view
 
 
+
 @external
 def __init__():
 
     self.owner = msg.sender
+
+
+@external
+def addDynamoVault(_dynamoVault: address):
+
+    self.dynamoVault = _dynamoVault
 
 
 @internal
