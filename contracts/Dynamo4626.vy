@@ -263,8 +263,8 @@ def totalAssets() -> uint256: return self._totalAssets()
 def _totalReturns(_current_assets : uint256) -> int256:
     # Avoid having to call _totalAssets if we already know the value.
     current_holdings : uint256 = _current_assets
-    # if current_holdings == 0:
-    #     current_holdings = self._totalAssets()
+    if current_holdings == 0:
+        current_holdings = self._totalAssets()
 
     total_returns: int256 = convert(self.total_assets_withdrawn + current_holdings, int256) - convert(self.total_assets_deposited, int256)
     return total_returns    
