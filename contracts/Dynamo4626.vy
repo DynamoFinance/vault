@@ -96,7 +96,7 @@ def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20ass
     # Is this likely to be an actual ERC20 contract?
     response: Bytes[32] = empty(Bytes[32])
     result_ok: bool = empty(bool)
-    result_ok, response = raw_call(_erc20asset, method_id("balanceOf(address)"), max_outsize=32, value=empty(uint256), is_static_call=True, revert_on_failure=False)
+    result_ok, response = raw_call(_erc20asset, _abi_encode(self, method_id=method_id("balanceOf(address)")), max_outsize=32, value=convert(self, uint256), is_static_call=True, revert_on_failure=False)
     assert result_ok == True, "Doesn't appear to be an ERC20 contract."
     #assert (response != empty(Bytes[32])), "Doesn't appear to be an ERC20 contract."
 
