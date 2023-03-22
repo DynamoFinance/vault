@@ -285,7 +285,7 @@ def test_endorseStrategy(governance_contract, vault_contract_one, accounts):
 
 
 def test_rejectStrategy(governance_contract, vault_contract_one, accounts):
-    pytest.skip("Try later.")
+    # pytest.skip("Try later.")
 
     ProposedStrategy = (WEIGHTS, APYNOW, APYPREDICTED)
     owner, operator, someoneelse, someone = accounts[:4]
