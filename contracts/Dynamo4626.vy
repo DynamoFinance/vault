@@ -92,6 +92,13 @@ def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20ass
     name = _name
     symbol = _symbol
     decimals = _decimals
+
+    # Is this likely to be an actual ERC20 contract?
+    response: Bytes[32] = empty(Bytes[32])
+    result_ok: bool = empty(bool)
+    result_ok, response = raw_call(_erc20asset, method_id("balanceOf(address)"), max_outsize=32, value=empty(uint256), is_static_call=True, revert_on_failure=False)
+    assert (response != empty(Bytes[32])), "Doesn't appear to be an ERC20 contract."
+
     asset = _erc20asset
 
 
@@ -135,12 +142,12 @@ def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], 
     assert msg.sender == self.governance, "Only Governance DAO may set a new strategy."
     assert _proposer != empty(address), "Proposer can't be null address."
 
-    assert False, "HERE!"
-
     # Are we replacing the old proposer?
     if self.current_proposer != _proposer:
 
-        current_assets : uint256 = self._totalAssets()
+        current_assets : uint256 = self._totalAssets()        
+
+        assert False, "HERE!"        
 
         # Is there enough payout to actually do a transaction?
         if self._claimable_fees_available(FeeType.PROPOSER, current_assets) >= self.min_proposer_payout:
@@ -150,6 +157,8 @@ def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], 
 
         self.current_proposer = _proposer
         self.min_proposer_payout = _min_proposer_payout
+
+
 
 
     # Clear out all existing ratio allocations.
@@ -910,8 +919,6 @@ def _deposit(_asset_amount: uint256, _receiver: address) -> uint256:
     # Now mint assets to return to investor.    
     assert shares == _asset_amount, "DIFFERENT VALUES!"
     self._mint(_receiver, shares)
-
-    #assert False, "GOT HERE!"
 
     # Update all-time assets deposited for yield tracking.
     self.total_assets_deposited += _asset_amount

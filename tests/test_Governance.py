@@ -6,8 +6,12 @@ import ape
 import pytest
 from  pytest import raises
 
-WEIGHTS = [100, 1000]
-WEIGHTSTWO = [150, 1500]
+ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+ADAPTER_A_ADDRESS = "0x000000000000000000000000000000000000000A"
+ADAPTER_B_ADDRESS = "0x000000000000000000000000000000000000000B"
+
+WEIGHTS = [(ADAPTER_A_ADDRESS, 100),(ADAPTER_B_ADDRESS, 1000), [ZERO_ADDRESS,0], [ZERO_ADDRESS,0], [ZERO_ADDRESS,0]]
+WEIGHTSTWO = [(ADAPTER_A_ADDRESS, 150),(ADAPTER_B_ADDRESS, 1500), [ZERO_ADDRESS,0], [ZERO_ADDRESS,0], [ZERO_ADDRESS,0]]
 APYNOW = 5
 APYNOWTWO = 6
 APYPREDICTED = 10
@@ -15,7 +19,7 @@ APYPREDICTEDTWO = 12
 BADAPYPREDICTED = 3
 NONCE = 1
 VOTE_COUNT = 6
-ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+
 NAME = "Biglab"
 SYMBOL = "BL"
 DECIMALS = 32
@@ -76,7 +80,7 @@ def governance_contract(owner, project, accounts):
 
 
 @pytest.fixture
-def vault_contract_one(governance_contract, owner, project, accounts, pools):
+def vault_contract_one(governance_contract, owner, project, accounts):
 
     owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
 
