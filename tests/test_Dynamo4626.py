@@ -20,7 +20,7 @@ def trader(accounts):
 def dai(project, deployer, trader):
     ua = deployer.deploy(project.ERC20, "DAI", "DAI", 18, 0, deployer)
     #Transfer some to trader.
-    ua.mint(trader, '1000000000 Ether', sender=deployer)
+    ua.mint(trader, 1000000000, sender=deployer)
     return ua
 
 
@@ -159,7 +159,6 @@ def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, da
     assert dynamo4626.convertToAssets(75) == 75
     assert dynamo4626.convertToShares(55) == 55
 
-
     result = dynamo4626.deposit(500, trader, sender=trader)
 
     assert dynamo4626.totalAssets() == 500   
@@ -206,6 +205,72 @@ def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, da
     LP_end_DAI = dai.balanceOf(pool_adapterA)
     assert LP_end_DAI - LP_start_DAI == 900
 
+ADAPTER = 0
+CURRENT = 1
+RATIO = 2
+TARGET = 3
+DELTA = 4
+
+def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai, trader):
+    _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
+
+    assert pool_adapterA.totalAssets() == 0
+    assert dynamo4626.totalAssets() == 0
+
+    d4626_assets, pool_states, total_assets, total_ratios = dynamo4626.getCurrentBalances()
+
+    assert d4626_assets == 0
+    assert pool_states[0][CURRENT] == 0    
+    assert pool_states[0][RATIO] == 1 
+    assert total_assets == 0
+    assert total_ratios == 1
+
+    print("pool_states = %s." % [x for x in pool_states])
+
+    pools = [x for x in pool_states]
+
+    total_assets = 1000
+    pool_asset_allocation, d4626_delta, tx_count, pool_states = dynamo4626.getTargetBalances(0, total_assets, total_ratios, pools)
+    assert pool_asset_allocation == 1000    
+    assert d4626_delta == -1000
+    assert tx_count == 1
+    assert pool_states[0][CURRENT] == 0    
+    assert pool_states[0][RATIO] == 1 
+    assert pool_states[0][TARGET] == 1000
+    assert pool_states[0][DELTA] == 1000
+
+    print("pool_states = %s." % [x for x in pool_states])    
+
+
+    # Trader needs to allow the 4626 contract to take funds.
+    dai.approve(dynamo4626,1000, sender=trader)
+
+    result = dynamo4626.deposit(1000, trader, sender=trader)
+
+    d4626_assets, pool_states, total_assets, total_ratios = dynamo4626.getCurrentBalances()
+
+    assert d4626_assets == 0
+    assert pool_states[0][CURRENT] == 1000
+    assert pool_states[0][RATIO] == 1 
+    assert pool_states[0][TARGET] == 0
+    assert pool_states[0][DELTA] == 0
+    assert total_assets == 1000
+    assert total_ratios == 1    
+
+    print("pool_states = %s." % [x for x in pool_states])
+
+    pools = [x for x in pool_states]
+
+    pool_asset_allocation, d4626_delta, tx_count, pool_states = dynamo4626.getTargetBalances(250, total_assets, total_ratios, pools)
+    assert pool_asset_allocation == 750
+    assert d4626_delta == 250
+    assert tx_count == 1
+    assert pool_states[0][CURRENT] == 1000    
+    assert pool_states[0][RATIO] == 1 
+    assert pool_states[0][TARGET] == 750
+    assert pool_states[0][DELTA] == -250
+
+    print("pool_states = %s." % [x for x in pool_states])
 
 def test_single_adapter_withdraw(project, deployer, dynamo4626, pool_adapterA, dai, trader):
     _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
@@ -213,18 +278,25 @@ def test_single_adapter_withdraw(project, deployer, dynamo4626, pool_adapterA, d
     assert pool_adapterA.totalAssets() == 0
     assert dynamo4626.totalAssets() == 0
 
+
     # Trader needs to allow the 4626 contract to take funds.
     dai.approve(dynamo4626,1000, sender=trader)
 
     result = dynamo4626.deposit(1000, trader, sender=trader)
-     
+
     assert pool_adapterA.totalAssets() == 1000
     assert dynamo4626.totalAssets() == 1000
 
     if is_not_hard_hat():
         pytest.skip("Not on hard hat Ethereum snapshot.")
 
+    print("dynamo4626.deposit(1000, trader, sender=trader) = %s." % result.return_value)
     assert result.return_value == 1000   
+
+
+    # There have been no earnings so shares & assets should map 1:1.
+    assert dynamo4626.convertToShares(250) == 250  
+    assert dynamo4626.convertToAssets(250) == 250  
 
     result = dynamo4626.withdraw(250, trader, trader, sender=trader)
 
@@ -237,10 +309,19 @@ def test_single_adapter_withdraw(project, deployer, dynamo4626, pool_adapterA, d
 def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool_adapterA, dai, trader):
     _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
 
+    assert dai.balanceOf(trader) == 1000000000 
+
     # Trader needs to allow the 4626 contract to take funds.
     dai.approve(dynamo4626,1000, sender=trader)
 
+    assert dai.balanceOf(dynamo4626) == 0
+
     dynamo4626.deposit(1000, trader, sender=trader)
+
+    assert dai.balanceOf(dynamo4626) == 0
+    assert dai.balanceOf(pool_adapterA) == 1000
+
+    assert dai.balanceOf(trader) == 1000000000 - 1000
 
     assert dynamo4626.totalSupply() == 1000
 
@@ -248,6 +329,8 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
 
     # Increase assets in adapter so its assets will double.
     dai.mint(pool_adapterA, 1000, sender=deployer)
+
+    assert dai.balanceOf(pool_adapterA) == 2000    
 
     assert dynamo4626.totalSupply() == 1000
 
@@ -257,7 +340,42 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
     #     and PROPOSER_FEE_PERCENTAGE : constant(decimal) = 1.0
     assert dynamo4626.convertToAssets(1000) == 1000 + (1000 - (1000*0.11))
 
-    assert dynamo4626.convertToShares(2000) == 1000    
+    assert dynamo4626.convertToShares(2000) == 1058 # 1000    
 
-    
+    max_withdrawl = dynamo4626.maxWithdraw(trader, sender=trader)
+    max_redeem = dynamo4626.maxRedeem(trader, sender=trader)
+
+    shares_to_redeem = dynamo4626.convertToShares(max_withdrawl)
+    value_of_shares = dynamo4626.convertToAssets(shares_to_redeem)
+    print("max_withdrawl = %s." % max_withdrawl)
+    print("max_redeem = %s." % max_redeem)
+    print("shares_to_redeem = %s." % shares_to_redeem)
+    print("value_of_shares = %s." % value_of_shares)
+
+    assert max_withdrawl == 1000 + (1000 - (1000*0.11))
+    assert max_redeem == 1000
+
+    print("Got here #1.")
+
+    pools = dynamo4626.getBalanceTxs(max_withdrawl, 5, sender=trader)   
+
+    print("pools = %s." % [x for x in pools])
+
+    print("dai.balance_of(pool_adapterA) = %s." % dai.balanceOf(pool_adapterA))
+    print("dynamo4626.balance_of(trader) = %s." % dynamo4626.balanceOf(trader))    
+
+    #dynamo4626.balanceAdapters(1889, sender=trader)
+
+
+    print("Got here #2.")
+
+    taken = dynamo4626.withdraw(1890, trader, trader, sender=trader) 
+    #taken = dynamo4626.withdraw(1000, trader, trader, sender=trader) 
+    print("Got back: %s shares, was expecting %s." % (taken.return_value, max_redeem))
+
+    max_withdrawl = dynamo4626.maxWithdraw(trader, sender=trader)
+    max_redeem = dynamo4626.maxRedeem(trader, sender=trader)
+
+    assert max_withdrawl == 0, "Still got %s assets left to withdraw!" % max_withdrawl
+    assert max_redeem == 0, "Still got %s shares left to redeem!" % max_redeem
 
