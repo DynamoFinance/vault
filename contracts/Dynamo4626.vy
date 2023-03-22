@@ -292,6 +292,8 @@ def _claimable_fees_available(_yield : FeeType, _current_assets : uint256 = 0) -
 
     dtotal_fees_available : decimal = convert(total_returns, decimal) * (fee_percentage / 100.0)
 
+    assert self.total_strategy_fees_claimed + self.total_yield_fees_claimed <= convert(dtotal_fees_available, uint256), "Total fee calc error!"
+
     result : uint256 = 0
     if _yield == FeeType.YIELD or _yield == FeeType.BOTH:
         result = convert(dtotal_fees_available, uint256) - self.total_yield_fees_claimed
