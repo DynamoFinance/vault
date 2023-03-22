@@ -157,9 +157,6 @@ def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], 
         self.current_proposer = _proposer
         self.min_proposer_payout = _min_proposer_payout
 
-
-
-
     # Clear out all existing ratio allocations.
     for pool in self.dlending_pools:
         self.strategy[pool] = empty(uint256)
@@ -195,9 +192,6 @@ def _add_pool(_pool: address) -> bool:
     # TODO : should we check the result_ok result instead or in addition to?
 
     self.dlending_pools.append(_pool)
-
-    # # TODO : Hack - for now give each pool equal strategic balance.
-    # self.strategy[_pool] = 1
 
     log PoolAdded(msg.sender, _pool)
 
@@ -770,14 +764,16 @@ def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALT
     for dtx in txs:
         if dtx.adapter == empty(address): break
         if dtx.qty == 0: continue
-        if dtx.qty > 0:
+
+        # If the outgoing tx is larger than the min_proposer_payout then do it, otherwise ignore it.
+        if dtx.qty > convert(self.min_proposer_payout, int256):
             # Move funds into the lending pool's adapter.
             assert ERC20(asset).balanceOf(self) >= convert(dtx.qty, uint256), "_balanceAdapters d4626 insufficient assets!"
             # TODO : check for deposit failure. If it's due to going beyond
             #        the adapter's maxDeposit() limit, try again with lower limit.
             self._adapter_deposit(dtx.adapter, convert(dtx.qty, uint256))
 
-        else:
+        elif dtx.qty < 0:
             # Liquidate funds from lending pool's adapter.
             qty: uint256 = convert(dtx.qty * -1, uint256)
 
