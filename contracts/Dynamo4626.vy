@@ -41,7 +41,7 @@ governance: address
 current_proposer: address
 min_proposer_payout: uint256
 
-dlending_pools : DynArray[address, MAX_POOLS]
+dlending_pools : public(DynArray[address, MAX_POOLS])
 
 totalSupply: public(uint256)
 balanceOf: public(HashMap[address, uint256])
@@ -196,8 +196,8 @@ def _add_pool(_pool: address) -> bool:
 
     self.dlending_pools.append(_pool)
 
-    # TODO : Hack - for now give each pool equal strategic balance.
-    self.strategy[_pool] = 1
+    # # TODO : Hack - for now give each pool equal strategic balance.
+    # self.strategy[_pool] = 1
 
     log PoolAdded(msg.sender, _pool)
 
