@@ -340,7 +340,7 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
     #     and PROPOSER_FEE_PERCENTAGE : constant(decimal) = 1.0
     assert dynamo4626.convertToAssets(1000) == 1000 + (1000 - (1000*0.11))
 
-    assert dynamo4626.convertToShares(2000) == 1059 # 1000    
+    assert dynamo4626.convertToShares(2000) == 1058 # 1000    
 
     max_withdrawl = dynamo4626.maxWithdraw(trader, sender=trader)
     max_redeem = dynamo4626.maxRedeem(trader, sender=trader)

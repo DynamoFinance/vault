@@ -180,12 +180,12 @@ def test_single_adapter_aave(project, deployer, dynamo4626, aave_adapter, dai, t
 
     dynamo4626.redeem(100000 * 10**18 , trader, trader, sender=trader)
 
-    # BDM assert dynamo4626.balanceOf(trader) == 0
+    assert dynamo4626.balanceOf(trader) == 0
     print("dynamo4626.balanceOf(trader) should be close to 0 but is: %s." % dynamo4626.balanceOf(trader))
     assert dynamo4626.totalAssets() == pytest.approx(yielded_balance - available_balance)
     assert adai.balanceOf(dynamo4626) == pytest.approx(yielded_balance - available_balance)
-    # BDM assert dynamo4626.maxRedeem(trader) == 0
+    assert dynamo4626.maxRedeem(trader) == 0
     print("dynamo4626.maxRedeem(trader) should be close to 0 but is: %s." % dynamo4626.maxRedeem(trader))    
-    # BDM assert dynamo4626.maxWithdraw(trader) == 0
+    assert dynamo4626.maxWithdraw(trader) == 0
     print("dynamo4626.maxWithdraw(trader) should be close to 0 but is: %s." % dynamo4626.maxWithdraw(trader))
     assert dai.balanceOf(trader) == pytest.approx(trader_balance_start + (available_balance - 100000 * 10**18))

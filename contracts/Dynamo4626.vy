@@ -22,8 +22,6 @@ enum FeeType:
     YIELD
     PROPOSER
 
-SCALE_OUT : constant(decimal) = 10000000000.0    
-
 name: public(immutable(String[64]))
 symbol: public(immutable(String[32]))
 decimals: public(immutable(uint8))
@@ -392,24 +390,7 @@ def _convertToShares(_asset_amount: uint256) -> uint256:
     if shareqty == 0 : return _asset_amount
     if assetqty == 0 : return _asset_amount
 
-    #result_str : String[103] = concat("totalfees : ", uint2str(claimable_earnings+claimable_strategy))
-    #assert False, result_str
-
-    #result_str : String[103] = concat("shareqty : ", uint2str(shareqty))
-    #assert False, result_str
-
-    sharesPerAsset : decimal = (convert(shareqty, decimal) * SCALE_OUT / convert(assetqty, decimal)) # BDM + 1.0
-
-    ###sharesPerAsset : uint256 = ((shareqty * 1000000000) / assetqty) + 1
-
-    #result_str : String[103] = concat("sharesPerAsset : ", uint2str(sharesPerAsset))
-    #assert False, result_str
-
-    ###result : uint256 = _asset_amount * sharesPerAsset / 1000000000
-
-    ###return result
-    rounder : decimal = convert(_asset_amount, decimal) * sharesPerAsset / SCALE_OUT
-    return convert(ceil(rounder), uint256)
+    return _asset_amount * shareqty / assetqty 
 
 
 @external
@@ -420,8 +401,6 @@ def convertToShares(_asset_amount: uint256) -> uint256: return self._convertToSh
 @internal
 @view
 def _convertToAssets(_share_amount: uint256) -> uint256:
-    # return _share_amount
-
     shareqty : uint256 = self.totalSupply
     assetqty : uint256 = self._totalAssets()
 
@@ -434,9 +413,7 @@ def _convertToAssets(_share_amount: uint256) -> uint256:
     if shareqty == 0: return _share_amount    
     if assetqty == 0 : return _share_amount    
 
-    assetsPerShare : decimal = convert(assetqty, decimal) * SCALE_OUT / convert(shareqty, decimal) # + 1.0
-
-    return convert(convert(_share_amount, decimal) * assetsPerShare / SCALE_OUT, uint256)
+    return _share_amount * assetqty / shareqty
 
 
 @external
