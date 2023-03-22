@@ -34,6 +34,7 @@ struct AdapterStrategy:
 
 owner: address
 governance: address
+adapterBalancing: address
 current_proposer: address
 min_proposer_payout: uint256
 
@@ -77,10 +78,14 @@ event Withdraw:
 event StrategyActivation:
     strategy: AdapterStrategy[MAX_POOLS]
     proposer: address
+
+interface AdapterBalancing:
+    def getTargetBalances() -> bool: nonpayable
+    def getBalanceTxs() -> bool: nonpayable
     
 
 @external
-def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20asset : address, _pools: DynArray[address, MAX_POOLS], _governance: address):
+def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20asset : address, _pools: DynArray[address, MAX_POOLS], _governance: address, _adapterBalancing: address):
 
     assert MAX_BALTX_DEPOSIT <= MAX_POOLS, "Invalid contract pre-conditions."
     assert _governance != empty(address), "Governance cannot be null address."
@@ -93,6 +98,7 @@ def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20ass
 
     self.owner = msg.sender
     self.governance = _governance
+    self.adapterBalancing = _adapterBalancing
     self.totalSupply = 0
 
     assert len(self.dlending_pools)==0, "HUh?!?!?" # TODO - remove

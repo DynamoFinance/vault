@@ -4,17 +4,9 @@ MAX_POOLS : constant(int128) = 5
 owner: address
 dlending_pools : DynArray[address, MAX_POOLS]
 
-
-@external
-def __init__():
-
-    self.owner = msg.sender
-
-       
 struct BalanceTX:
     qty: int256
     adapter: address
-
 
 struct BalancePool:
     adapter: address
@@ -22,6 +14,15 @@ struct BalancePool:
     ratio: uint256
     target: uint256
     delta: int256
+
+interface Dynamo4626:
+    def getCurrentBalances() -> bool: nonpayable 
+
+
+@external
+def __init__():
+
+    self.owner = msg.sender
 
 
 @internal
@@ -120,7 +121,7 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
     pool_states: BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
     total_assets: uint256 = 0
     total_ratios: uint256 = 0
-    d4626_assets, pool_states, total_assets, total_ratios = self._getCurrentBalances()
+    # d4626_assets, pool_states, total_assets, total_ratios = self._getCurrentBalances()
 
     # What's the optimal outcome for our vault/pools?
     pool_assets_allocated : uint256 = 0
