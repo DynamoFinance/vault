@@ -146,7 +146,7 @@ def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], 
     if self.current_proposer != _proposer:
 
         current_assets : uint256 = self._totalAssets()
-        assert False, "failed here"
+        #assert False, "failed here"
         # Is there enough payout to actually do a transaction?
         if self._claimable_fees_available(FeeType.PROPOSER, current_assets) >= self.min_proposer_payout:
                 
