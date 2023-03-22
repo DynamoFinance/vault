@@ -229,11 +229,12 @@ def rejectStrategy(Nonce: uint256, vault: address):
     assert msg.sender in self.LGov
 
     #Check to see that sender has not already voted
-    assert msg.sender not in self.PendingStrategyByVault[vault].VotesReject
-    assert msg.sender not in self.PendingStrategyByVault[vault].VotesEndorse
+    pending_strat : Strategy = self.PendingStrategyByVault[vault]
+    assert msg.sender not in pending_strat.VotesReject
+    assert msg.sender not in pending_strat.VotesEndorse
 
     #Vote to reject strategy
-    self.PendingStrategyByVault[vault].VotesReject.append(msg.sender)
+    pending_strat.VotesReject.append(msg.sender)
 
     log StrategyVote(Nonce, vault, msg.sender, True)
 

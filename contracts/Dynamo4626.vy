@@ -145,9 +145,7 @@ def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], 
     # Are we replacing the old proposer?
     if self.current_proposer != _proposer:
 
-        current_assets : uint256 = self._totalAssets()        
-
-        assert False, "HERE!"        
+        current_assets : uint256 = self._totalAssets()
 
         # Is there enough payout to actually do a transaction?
         if self._claimable_fees_available(FeeType.PROPOSER, current_assets) >= self.min_proposer_payout:
@@ -766,23 +764,6 @@ def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALT
     # txs: DynArray[BalanceTX, MAX_POOLS] = empty(DynArray[BalanceTX, MAX_POOLS])
     txs: BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
     txs = self._getBalanceTxs( _target_asset_balance, _max_txs )
-
-    assert txs[0].qty != 0, "No resulting txs!"
-
-    # if _target_asset_balance == 1890:
-
-    #     tx_qty : uint256 = 0
-    #     if txs[0].qty > 0:
-    #         tx_qty = convert(txs[0].qty, uint256)
-    #     else:
-    #         tx_qty = convert(txs[0].qty*-1, uint256)
-    #     # 
-    #     result_str : String[103] = concat("Not 1890 qty : ", uint2str(tx_qty))
-       
-    #     assert txs[0].qty != 1890, result_str   
-    #     #assert False, result_str
-
-    #assert _target_asset_balance != 1890, "_balanceAdapters 1890!"
 
     # Move the funds in/out of Lending Pools as required.
     for dtx in txs:
