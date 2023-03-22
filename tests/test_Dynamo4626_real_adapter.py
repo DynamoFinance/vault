@@ -6,7 +6,7 @@ from web3 import Web3
 import requests, json
 import eth_abi
 
-
+ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 DAI = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
 
 AAVE_LENDING_POOL = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2"
@@ -78,6 +78,9 @@ def dynamo4626(project, deployer, dai):
 
 def test_single_adapter_aave(project, deployer, dynamo4626, aave_adapter, dai, trader, ensure_hardhat, adai):
     dynamo4626.add_pool(aave_adapter, sender=deployer)
+    strategy = [(ZERO_ADDRESS,0)] * 5 # This assumes Dynamo4626 MAX_POOLS == 5
+    strategy[0] = (aave_adapter,1)    
+    dynamo4626.set_strategy(deployer, strategy, 0, sender=deployer)
 
     assert dai.balanceOf(dynamo4626) == 0, "dynamo4626 should not have any dai"
     assert adai.balanceOf(dynamo4626) == 0, "dynamo4626 should not have any adai"
