@@ -386,6 +386,7 @@ def _convertToShares(_asset_amount: uint256) -> uint256:
     claimable_fees : uint256 = self._claimable_fees_available(FeeType.BOTH, grossAssets)
     
     # Less fees
+    assert grossAssets >= claimable_fees, "_convertToShares sanity failure!" # BDM
     assetqty : uint256 = grossAssets - claimable_fees    
 
     # If there aren't any shares/assets yet it's going to be 1:1.
@@ -409,6 +410,7 @@ def _convertToAssets(_share_amount: uint256) -> uint256:
     claimable_fees : uint256 = self._claimable_fees_available(FeeType.BOTH, assetqty)
     
     # Less fees
+    assert assetqty >= claimable_fees, "_convertToAssets sanity failure!" # BDM    
     assetqty -= claimable_fees     
 
     # If there aren't any shares yet it's going to be 1:1.
