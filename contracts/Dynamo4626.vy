@@ -135,6 +135,8 @@ def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], 
     assert msg.sender == self.governance, "Only Governance DAO may set a new strategy."
     assert _proposer != empty(address), "Proposer can't be null address."
 
+    assert False, "HERE!"
+
     # Are we replacing the old proposer?
     if self.current_proposer != _proposer:
 

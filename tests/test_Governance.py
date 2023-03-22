@@ -22,6 +22,42 @@ DECIMALS = 32
 ERC20ASSET = "0x0000000000000000000000000000000000000123"
 POOLS = [] 
 
+
+@pytest.fixture
+def owner(project, accounts):
+    owner = accounts[0]
+
+@pytest.fixture
+def dai(project, owner, accounts):
+    ua = owner.deploy(project.ERC20, "DAI", "DAI", 18, 0, owner)
+    return ua
+
+@pytest.fixture
+def pool_adapterA(project, owner, dai):
+    wdai = owner.deploy(project.ERC20, "aWDAI", "aWDAI", 18, 0, owner)
+    a = owner.deploy(project.MockLPAdapter, dai, wdai)
+    return a
+
+
+@pytest.fixture
+def pool_adapterB(project, owner, dai):
+    wdai = owner.deploy(project.ERC20, "bWDAI", "bWDAI", 18, 0, owner)
+    b = owner.deploy(project.MockLPAdapter, dai, wdai)
+    return b
+
+
+@pytest.fixture
+def pool_adapterC(project, owner, dai):
+    wdai = owner.deploy(project.ERC20, "cWDAI", "cWDAI", 18, 0, owner)
+    c = owner.deploy(project.MockLPAdapter, dai, wdai)
+    return c  
+
+
+@pytest.fixture
+def pools(pool_adapterA, pool_adapterB, pool_adapterC):
+    return [pool_adapterA, pool_adapterB, pool_adapterC]
+
+
 @pytest.fixture
 def governance_contract(owner, project, accounts):
 
@@ -33,12 +69,19 @@ def governance_contract(owner, project, accounts):
 
     return gcontract  
 
+
+def add_adapters_to_vault(vault, owner, pools):
+    for pool in pools:
+        vault.add_pool(pool, sender=owner)
+
+
 @pytest.fixture
-def vault_contract_one(governance_contract, owner, project, accounts):
+def vault_contract_one(governance_contract, owner, project, accounts, pools):
 
     owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
 
     vcontractone = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, ERC20ASSET, POOLS, governance_contract)
+    add_adapters_to_vault(vcontractone, owner, pools)
 
     return vcontractone
 
