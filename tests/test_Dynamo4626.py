@@ -129,6 +129,10 @@ def test_remove_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
     pytest.skip("TODO: Not implemented yet.")
 
 
+def test_min_tx_sizes(project, deployer, dynamo4626, pool_adapterA, trader, dai):
+    pytest.skip("TODO: Not implemented yet.")    
+
+
 def _setup_single_adapter(_project, _dynamo4626, _deployer, _dai, _adapter):
     # Setup our pool.
     _dynamo4626.add_pool(_adapter, sender=_deployer)
