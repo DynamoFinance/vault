@@ -12,6 +12,7 @@ ADAPTER_B_ADDRESS = "0x000000000000000000000000000000000000000b"
 
 WEIGHTS = [(ADAPTER_A_ADDRESS, 100),(ADAPTER_B_ADDRESS, 1000), [ZERO_ADDRESS,0], [ZERO_ADDRESS,0], [ZERO_ADDRESS,0]]
 WEIGHTSTWO = [(ADAPTER_A_ADDRESS, 150),(ADAPTER_B_ADDRESS, 1500), [ZERO_ADDRESS,0], [ZERO_ADDRESS,0], [ZERO_ADDRESS,0]]
+
 APYNOW = 5
 APYNOWTWO = 6
 APYPREDICTED = 10
@@ -139,7 +140,7 @@ def test_submitStrategy(governance_contract, vault_contract_one, accounts, owner
     sp = governance_contract.submitStrategy(ProposedStrategy, vault_contract_one, sender=owner)
     logs = list(sp.decode_logs(governance_contract.StrategyProposal))
     assert len(logs) == 1
-    assert logs[0].strategy[2] == tuple(WEIGHTS)
+    assert [x for x in logs[0].strategy[2]] == [tuple(w) for w in WEIGHTS]
     assert logs[0].strategy[3] == APYNOW
     assert logs[0].strategy[4] == APYPREDICTED
 
