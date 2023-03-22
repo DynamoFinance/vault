@@ -25,6 +25,12 @@ def dai(project, deployer, trader):
 
 
 @pytest.fixture
+def AdapterBalancingContract(project, deployer):
+    ab = deployer.deploy(project.AdapterBalancing)
+    return ab
+
+
+@pytest.fixture
 def pool_adapterA(project, deployer, dai):
     wdai = deployer.deploy(project.ERC20, "aWDAI", "aWDAI", 18, 0, deployer)
     a = deployer.deploy(project.MockLPAdapter, dai, wdai)

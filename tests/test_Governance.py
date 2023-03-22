@@ -34,6 +34,17 @@ def governance_contract(owner, project, accounts):
     return gcontract  
 
 @pytest.fixture
+def adapter_balancing_contract(owner, project, accounts):
+
+    owner, operator, someoneelse, someone, newcontract, currentvault = accounts[:6]
+
+    # deploy the contract with the initial value as a constructor argument
+
+    abcontract = owner.deploy(project.AdapterBalancing)
+
+    return abcontract 
+
+@pytest.fixture
 def vault_contract_one(governance_contract, owner, project, accounts):
 
     owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
