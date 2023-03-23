@@ -22,9 +22,9 @@ interface Dynamo4626:
 
 
 @external
-def __init__(_contractOwner: address):
+def __init__():
 
-    self.owner = _contractOwner
+    self.owner = msg.sender
 
 
 @external

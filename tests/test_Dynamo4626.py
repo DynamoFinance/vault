@@ -54,7 +54,7 @@ def pool_adapterC(project, deployer, dai):
 
 
 @pytest.fixture
-def dynamo4626(project, deployer, dai, trader):
+def dynamo4626(project, deployer, dai, trader, AdapterBalancingContract):
     v = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, [], deployer, AdapterBalancingContract)    
     return v
 
@@ -77,9 +77,9 @@ def test_basic_initialization(project, deployer, dynamo4626):
     assert dynamo4626.decimals(sender=deployer) == d4626_decimals
 
 
-def test_initial_pools_initialization(project, deployer, dai, pool_adapterA, pool_adapterB, pool_adapterC):
+def test_initial_pools_initialization(project, deployer, dai, pool_adapterA, pool_adapterB, pool_adapterC, AdapterBalancingContract):
     pools = [pool_adapterA, pool_adapterB, pool_adapterC]
-    dynamo = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, pools, deployer)    
+    dynamo = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, pools, deployer, AdapterBalancingContract)    
 
     # This should fail because we can't add the same pool twice!
     for pool in pools:
@@ -225,7 +225,7 @@ RATIO = 2
 TARGET = 3
 DELTA = 4
 
-def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai, trader):
+def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai, trader, AdapterBalancingContract):
     _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
 
     assert pool_adapterA.totalAssets() == 0

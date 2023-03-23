@@ -82,7 +82,7 @@ def adapter_balancing_contract(owner, project, accounts):
 
     # deploy the contract with the initial value as a constructor argument
 
-    abcontract = owner.deploy(project.AdapterBalancing, owner)
+    abcontract = owner.deploy(project.AdapterBalancing)
 
     return abcontract 
 

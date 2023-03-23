@@ -555,7 +555,15 @@ def _getCurrentBalances() -> (uint256, BalancePool[MAX_POOLS], uint256, uint256)
 @view 
 def getCurrentBalances() -> (uint256, BalancePool[MAX_POOLS], uint256, uint256): return self._getCurrentBalances()
 
+@external
+def getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS]) -> (uint256, uint256, uint256, BalancePool[MAX_POOLS]): 
+    AdapterBalancing(self.adapterBalancing).getTargetBalances(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances)
+    return _d4626_asset_target, _total_assets, _total_ratios, _pool_balances
 
+@external
+def getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> uint256: 
+    AdapterBalancing(self.adapterBalancing).getBalanceTxs( _target_asset_balance, _max_txs )
+    return _target_asset_balance
 
 @internal
 def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALTX_DEPOSIT ):
