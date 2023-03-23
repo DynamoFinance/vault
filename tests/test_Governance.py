@@ -87,38 +87,38 @@ def adapter_balancing_contract(owner, project, accounts):
     return abcontract 
 
 @pytest.fixture
-def vault_contract_one(governance_contract, adapter_balancing_contract, owner, project, accounts):
+def vault_contract_one(governance_contract, adapter_balancing_contract, owner, project, accounts, dai):
 
     owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
 
-    vcontractone = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, ERC20ASSET, POOLS, governance_contract, adapter_balancing_contract)
+    vcontractone = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, dai, POOLS, governance_contract, adapter_balancing_contract)
 
     return vcontractone
 
 @pytest.fixture
-def vault_contract_two(governance_contract, adapter_balancing_contract, owner, project, accounts):
+def vault_contract_two(governance_contract, adapter_balancing_contract, owner, project, accounts, dai):
 
     owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
 
-    vcontracttwo = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, ERC20ASSET, POOLS, governance_contract, adapter_balancing_contract)
+    vcontracttwo = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, dai, POOLS, governance_contract, adapter_balancing_contract)
 
     return vcontracttwo
 
 @pytest.fixture
-def vault_contract_three(governance_contract, adapter_balancing_contract, owner, project, accounts):
+def vault_contract_three(governance_contract, adapter_balancing_contract, owner, project, accounts, dai):
 
     owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
 
-    vcontractthree = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, ERC20ASSET, POOLS, governance_contract, adapter_balancing_contract)
+    vcontractthree = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, dai, POOLS, governance_contract, adapter_balancing_contract)
 
     return vcontractthree
 
 @pytest.fixture
-def vault_contract_four(governance_contract, adapter_balancing_contract, owner, project, accounts):
+def vault_contract_four(governance_contract, adapter_balancing_contract, owner, project, accounts, dai):
 
     owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
 
-    vcontractfour = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, ERC20ASSET, POOLS, governance_contract, adapter_balancing_contract)
+    vcontractfour = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, dai, POOLS, governance_contract, adapter_balancing_contract)
 
     return vcontractfour
 
@@ -290,8 +290,6 @@ def test_endorseStrategy(governance_contract, vault_contract_one, accounts):
 
 
 def test_rejectStrategy(governance_contract, vault_contract_one, accounts):
-    pytest.skip("Try later.")
-
     ProposedStrategy = (WEIGHTS, APYNOW, APYPREDICTED)
     owner, operator, someoneelse, someone = accounts[:4]
 
