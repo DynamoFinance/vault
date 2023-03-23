@@ -6,7 +6,7 @@ from web3 import Web3
 import requests, json
 import eth_abi
 
-
+ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 DAI = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
 
 AAVE_LENDING_POOL = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2"
@@ -78,6 +78,9 @@ def dynamo4626(project, deployer, dai):
 
 def test_single_adapter_aave(project, deployer, dynamo4626, aave_adapter, dai, trader, ensure_hardhat, adai):
     dynamo4626.add_pool(aave_adapter, sender=deployer)
+    strategy = [(ZERO_ADDRESS,0)] * 5 # This assumes Dynamo4626 MAX_POOLS == 5
+    strategy[0] = (aave_adapter,1)    
+    dynamo4626.set_strategy(deployer, strategy, 0, sender=deployer)
 
     assert dai.balanceOf(dynamo4626) == 0, "dynamo4626 should not have any dai"
     assert adai.balanceOf(dynamo4626) == 0, "dynamo4626 should not have any adai"
@@ -116,6 +119,8 @@ def test_single_adapter_aave(project, deployer, dynamo4626, aave_adapter, dai, t
     assert dai.balanceOf(aave_adapter) == 0, "aave_adapter should not have anything"
     assert adai.balanceOf(aave_adapter) == 0, "aave_adapter should not have anything"
     assert dynamo4626.maxRedeem(trader) == 100000 * 10**18
+    print("dynamo4626.maxRedeem(trader) returns %s." % dynamo4626.maxRedeem(trader))
+    print("dynamo4626.maxWithdraw(trader) returns\n\t: %s but we were expecting\n\t: %s." % (int(dynamo4626.maxWithdraw(trader)), int(100000 * 10**18)))
     assert dynamo4626.maxWithdraw(trader) == 100000 * 10**18
 
 
@@ -133,20 +138,59 @@ def test_single_adapter_aave(project, deployer, dynamo4626, aave_adapter, dai, t
     #Because theres fees involved...
     available_balance =  yield_rate*(100000 * 10**18) - (0.11*(yield_rate*(100000 * 10**18) - 100000 * 10**18))
 
+    print("POST YIELD!")
+
     assert dynamo4626.balanceOf(trader) == 100000 * 10**18
     assert dynamo4626.totalAssets() == pytest.approx(yielded_balance)
     assert adai.balanceOf(dynamo4626) == pytest.approx(yielded_balance)
     assert dynamo4626.maxRedeem(trader) == 100000 * 10**18
     assert dynamo4626.maxWithdraw(trader) == pytest.approx(available_balance)
+    print("dynamo4626.maxRedeem(trader) returns %s." % dynamo4626.maxRedeem(trader))
+    print("dynamo4626.maxWithdraw(trader) returns\n\t: %s but we were expecting\n\t: %s." % (int(dynamo4626.maxWithdraw(trader)), pytest.approx(available_balance)))
 
 
+    print("aave thinks dynamo4626 has: ", adai.balanceOf(dynamo4626))
+    print("dynamo4626 thinks it has: ", dynamo4626.getCurrentBalances()[-2])
+    print("adapter thinks it has: ", aave_adapter.totalAssets(sender=dynamo4626))
+    print("Traders maxWithdraw", dynamo4626.maxWithdraw(trader))
+    print("Traders convertToAssets(shares)", dynamo4626.convertToAssets(dynamo4626.balanceOf(trader)))
     #Lets withdraw it all...
 
-    # dynamo4626.redeem(100000 * 10**18 , trader, trader, sender=trader)
+    t_shares = dynamo4626.maxRedeem(trader)
+    req_assets = int(dynamo4626.convertToAssets(t_shares))
+    returns = dynamo4626.totalReturns()
+    claimable_fees = dynamo4626.claimable_all_fees_available()    
+    claim_yield_fees = dynamo4626.claimable_yield_fees_available()
+    claim_strat_fees = dynamo4626.claimable_strategy_fees_available()
+    remaining_assets = int(dynamo4626.totalAssets() - claimable_fees)
+    print("Trader shares are : %s." % t_shares)
+    print("Requires assets for those shares are: %s." % req_assets)
+    print("Estimated available_balance is %s." % available_balance)
+    print("There are %s assets as returns." % returns)
+    print("There are %s assets reserved as claimable fees." % claimable_fees)
+    print("\t%s are yield fees\n\t%s are strategy fees." % (claim_yield_fees,claim_strat_fees))
+    print("\tDifference due to rounding is %s." % (claimable_fees - (claim_yield_fees+claim_strat_fees)))
+    print("There are %s assets remaining to withdraw overall." % remaining_assets)
+    if req_assets > remaining_assets:
+        print("Shortage is %s." % (remaining_assets - req_assets))
+    else:
+        print("Overage is %s." % (remaining_assets - req_assets))               
+    assert t_shares >= 100000 * 10**18 , "trader has insufficient shares."
+    assert req_assets <= remaining_assets, "vault doesn't have enough free assets for trader withdraw"
 
-    # assert dynamo4626.balanceOf(trader) == 0
-    # assert dynamo4626.totalAssets() == pytest.approx(yielded_balance - available_balance)
-    # assert adai.balanceOf(dynamo4626) == pytest.approx(yielded_balance - available_balance)
-    # assert dynamo4626.maxRedeem(trader) == 0
-    # assert dynamo4626.maxWithdraw(trader) == 0
-    # assert dai.balanceOf(trader) == pytest.approx(trader_balance_start + (available_balance - 100000 * 10**18))
+    # 100000000000000000000000
+    # 100911382320000000000000
+
+    dynamo4626.redeem(100000 * 10**18 , trader, trader, sender=trader)
+
+    assert dynamo4626.balanceOf(trader) == 0
+    print("dynamo4626.balanceOf(trader) should be close to 0 but is: %s." % dynamo4626.balanceOf(trader))
+    assert dynamo4626.totalAssets() == pytest.approx(yielded_balance - available_balance)
+    assert adai.balanceOf(dynamo4626) == pytest.approx(yielded_balance - available_balance)
+    print("dynamo4626.maxRedeem(trader) should be close to 0 but is: %s." % dynamo4626.maxRedeem(trader))      
+    print("dynamo4626.maxWithdraw(trader) should be close to 0 but is: %s." % dynamo4626.maxWithdraw(trader))  
+    assert dynamo4626.maxRedeem(trader) == 0
+    print("next to last test!")
+    assert dynamo4626.maxWithdraw(trader) == 0
+    print("last test!")
+    assert dai.balanceOf(trader) == pytest.approx(trader_balance_start + (available_balance - 100000 * 10**18))

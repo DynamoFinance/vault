@@ -17,6 +17,10 @@ YIELD_FEE_PERCENTAGE : constant(uint256) = 10
 # 1% of the yield belongs to the Strategy proposer.
 PROPOSER_FEE_PERCENTAGE: constant(uint256) = 1
 
+enum FeeType:
+    BOTH
+    YIELD
+    PROPOSER
 
 name: public(immutable(String[64]))
 symbol: public(immutable(String[32]))
@@ -38,7 +42,7 @@ adapterBalancing: address
 current_proposer: address
 min_proposer_payout: uint256
 
-dlending_pools : DynArray[address, MAX_POOLS]
+dlending_pools : public(DynArray[address, MAX_POOLS])
 
 totalSupply: public(uint256)
 balanceOf: public(HashMap[address, uint256])
@@ -93,6 +97,14 @@ def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20ass
     name = _name
     symbol = _symbol
     decimals = _decimals
+
+    # Is this likely to be an actual ERC20 contract?
+    response: Bytes[32] = empty(Bytes[32])
+    result_ok: bool = empty(bool)
+    result_ok, response = raw_call(_erc20asset, _abi_encode(self, method_id=method_id("balanceOf(address)")), max_outsize=32, value=convert(self, uint256), is_static_call=True, revert_on_failure=False)
+    assert result_ok == True, "Doesn't appear to be an ERC20 contract."
+    #assert (response != empty(Bytes[32])), "Doesn't appear to be an ERC20 contract."
+
     asset = _erc20asset
 
 
@@ -142,15 +154,17 @@ def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], 
     if self.current_proposer != _proposer:
 
         current_assets : uint256 = self._totalAssets()
-        assert False, "failed here"
+        #assert False, "failed here"
         # Is there enough payout to actually do a transaction?
-        if self._claimable_fees_available(current_assets, False) >= self.min_proposer_payout:
+        if self._claimable_fees_available(FeeType.PROPOSER, current_assets) >= self.min_proposer_payout:
                 
             # Pay prior proposer his earned fees.
-            self._claim_fees(0, False, current_assets)
+            self._claim_fees(FeeType.PROPOSER, 0, current_assets)
 
         self.current_proposer = _proposer
         self.min_proposer_payout = _min_proposer_payout
+
+
 
 
     # Clear out all existing ratio allocations.
@@ -185,11 +199,12 @@ def _add_pool(_pool: address) -> bool:
 
     result_ok, response = raw_call(_pool, method_id("maxDeposit()"), max_outsize=32, is_static_call=True, revert_on_failure=False)
     assert (response != empty(Bytes[32])), "Doesn't appear to be an LPAdapter."
+    # TODO : should we check the result_ok result instead or in addition to?
 
     self.dlending_pools.append(_pool)
 
-    # TODO : Hack - for now give each pool equal strategic balance.
-    self.strategy[_pool] = 1
+    # # TODO : Hack - for now give each pool equal strategic balance.
+    # self.strategy[_pool] = 1
 
     log PoolAdded(msg.sender, _pool)
 
@@ -262,7 +277,7 @@ def totalAssets() -> uint256: return self._totalAssets()
 
 @internal
 @view 
-def _totalReturns(_current_assets : uint256 = 0) -> int256:
+def _totalReturns(_current_assets : uint256) -> int256:
     # Avoid having to call _totalAssets if we already know the value.
     current_holdings : uint256 = _current_assets
     if current_holdings == 0:
@@ -272,45 +287,69 @@ def _totalReturns(_current_assets : uint256 = 0) -> int256:
     return total_returns    
 
 
+@external
+@view 
+def totalReturns() -> int256:
+    assets : uint256 = self._totalAssets()
+    return self._totalReturns(assets)    
+
+
 @internal
 @view 
-def _claimable_fees_available(_current_assets : uint256 = 0, _yield : bool = True) -> uint256:
+def _claimable_fees_available(_yield : FeeType, _current_assets : uint256 = 0) -> uint256:
     total_returns : int256 = self._totalReturns(_current_assets)
     if total_returns < 0: return 0
 
+    # Assume FeeType.YIELD
     fee_percentage: decimal = convert(YIELD_FEE_PERCENTAGE, decimal)
-    if _yield == False:
+    if _yield == FeeType.PROPOSER:
         fee_percentage = convert(PROPOSER_FEE_PERCENTAGE, decimal)
+    elif _yield == FeeType.BOTH:
+        fee_percentage += convert(PROPOSER_FEE_PERCENTAGE, decimal)
 
     dtotal_fees_available : decimal = convert(total_returns, decimal) * (fee_percentage / 100.0)
 
-    if _yield == True:
-        return convert(dtotal_fees_available, uint256) - self.total_yield_fees_claimed
+    assert self.total_strategy_fees_claimed + self.total_yield_fees_claimed <= convert(dtotal_fees_available, uint256), "Total fee calc error!"
+
+    result : uint256 = 0
+    if _yield == FeeType.YIELD or _yield == FeeType.BOTH:
+        result = convert(dtotal_fees_available, uint256) - self.total_yield_fees_claimed
+    elif _yield == FeeType.PROPOSER:
+        result = convert(dtotal_fees_available, uint256) - self.total_strategy_fees_claimed
+    elif _yield == FeeType.BOTH:
+        result += convert(dtotal_fees_available, uint256) - self.total_strategy_fees_claimed
     else:
-        return convert(dtotal_fees_available, uint256) - self.total_strategy_fees_claimed
+        assert False, "Invalid FeeType!"
+
+    return result
 
 
-    # fee_percentage : uint256 = YIELD_FEE_PERCENTAGE * 100000
-    # if _yield == False:
-    #      fee_percentage = PROPOSER_FEE_PERCENTAGE * 100000
+@external
+@view    
+def claimable_yield_fees_available(_current_assets : uint256 = 0) -> uint256:
+    return self._claimable_fees_available(FeeType.YIELD, _current_assets)    
 
-    # total_fees_available : uint256 = convert(total_returns, uint256) * (fee_percentage / 100)
-    # total_fees_available = total_fees_available / 100000
 
-    # if _yield == True:
-    #     return total_fees_available - self.total_yield_fees_claimed
-    # else:
-    #     return total_fees_available - self.total_strategy_fees_claimed
-    
+@external
+@view    
+def claimable_strategy_fees_available(_current_assets : uint256 = 0) -> uint256:
+    return self._claimable_fees_available(FeeType.PROPOSER, _current_assets)  
+
+
+@external
+@view    
+def claimable_all_fees_available(_current_assets : uint256 = 0) -> uint256:
+    return self._claimable_fees_available(FeeType.BOTH, _current_assets)      
+
 
 @internal
-def _claim_fees(_asset_amount: uint256, _yield : bool = True,_current_assets : uint256 = 0) -> uint256:
+def _claim_fees(_yield : FeeType, _asset_amount: uint256, _current_assets : uint256 = 0) -> uint256:
     # If current proposer is zero address we pay no strategy fees.    
-    if _yield == False and self.current_proposer == empty(address): return 0
+    if _yield != FeeType.YIELD and self.current_proposer == empty(address): return 0
 
     claim_amount : uint256 = _asset_amount
 
-    total_fees_remaining : uint256 = self._claimable_fees_available(_current_assets, _yield)
+    total_fees_remaining : uint256 = self._claimable_fees_available(_yield, _current_assets)
     if _asset_amount == 0:
         claim_amount = total_fees_remaining
 
@@ -324,12 +363,15 @@ def _claim_fees(_asset_amount: uint256, _yield : bool = True,_current_assets : u
         self._balanceAdapters(claim_amount)
 
     # Account for the claim and move the funds.
-    if _yield == True:
-        self.total_yield_fees_claimed += claim_amount
-        ERC20(asset).transfer(self.owner, claim_amount)
-    else:
-        self.total_strategy_fees_claimed += claim_amount
-        ERC20(asset).transfer(self.current_proposer, claim_amount)
+    if _yield == FeeType.YIELD:
+        self.total_yield_fees_claimed += claim_amount    
+    elif _yield == FeeType.PROPOSER:
+        self.total_strategy_fees_claimed += claim_amount        
+    elif _yield == FeeType.BOTH:
+        prop_fee : uint256 = self._claimable_fees_available(FeeType.PROPOSER, _current_assets)
+        self.total_yield_fees_claimed += claim_amount - prop_fee
+        self.total_strategy_fees_claimed += prop_fee
+    ERC20(asset).transfer(msg.sender, claim_amount)
 
     return claim_amount
 
@@ -337,13 +379,19 @@ def _claim_fees(_asset_amount: uint256, _yield : bool = True,_current_assets : u
 @external
 def claim_yield_fees(_asset_amount: uint256 = 0) -> uint256:
     assert msg.sender == self.owner, "Only owner may claim yield fees."
-    return self._claim_fees(_asset_amount, True)
+    return self._claim_fees(FeeType.YIELD, _asset_amount)
 
 
 @external
 def claim_strategy_fees(_asset_amount: uint256 = 0) -> uint256:
     assert msg.sender == self.current_proposer, "Only curent proposer may claim strategy fees."
-    return self._claim_fees(_asset_amount, False)    
+    return self._claim_fees(FeeType.PROPOSER, _asset_amount)    
+
+
+@external
+def claim_all_fees(_asset_amount: uint256 = 0) -> uint256:
+    assert msg.sender == self.owner and msg.sender == self.current_proposer, "Must be both owner and current proposer to claim all fees."
+    return self._claim_fees(FeeType.BOTH, _asset_amount)
 
 
 @internal
@@ -351,35 +399,18 @@ def claim_strategy_fees(_asset_amount: uint256 = 0) -> uint256:
 def _convertToShares(_asset_amount: uint256) -> uint256:
     shareqty : uint256 = self.totalSupply
     grossAssets : uint256 = self._totalAssets()
-    assetqty : uint256 = grossAssets
-    claimable_earnings : uint256 = self._claimable_fees_available(grossAssets, True)
-    claimable_strategy : uint256 = self._claimable_fees_available(grossAssets, False)
+
+    claimable_fees : uint256 = self._claimable_fees_available(FeeType.BOTH, grossAssets)
+    
     # Less fees
-    assetqty -= self._claimable_fees_available(grossAssets, True)
-    assetqty -= self._claimable_fees_available(grossAssets, False)
+    assert grossAssets >= claimable_fees, "_convertToShares sanity failure!" # BDM
+    assetqty : uint256 = grossAssets - claimable_fees    
 
     # If there aren't any shares/assets yet it's going to be 1:1.
     if shareqty == 0 : return _asset_amount
     if assetqty == 0 : return _asset_amount
 
-    #result_str : String[103] = concat("totalfees : ", uint2str(claimable_earnings+claimable_strategy))
-    #assert False, result_str
-
-    #result_str : String[103] = concat("shareqty : ", uint2str(shareqty))
-    #assert False, result_str
-
-    sharesPerAsset : decimal = (convert(shareqty, decimal) * 10000.0 / convert(assetqty, decimal)) + 1.0
-
-    ###sharesPerAsset : uint256 = ((shareqty * 1000000000) / assetqty) + 1
-
-    #result_str : String[103] = concat("sharesPerAsset : ", uint2str(sharesPerAsset))
-    #assert False, result_str
-
-    ###result : uint256 = _asset_amount * sharesPerAsset / 1000000000
-
-    ###return result
-
-    return convert(convert(_asset_amount, decimal) * sharesPerAsset / 10000.0, uint256)
+    return _asset_amount * shareqty / assetqty 
 
 
 @external
@@ -390,21 +421,20 @@ def convertToShares(_asset_amount: uint256) -> uint256: return self._convertToSh
 @internal
 @view
 def _convertToAssets(_share_amount: uint256) -> uint256:
-    # return _share_amount
-
     shareqty : uint256 = self.totalSupply
-    total_assets : uint256 = self._totalAssets()
+    assetqty : uint256 = self._totalAssets()
 
-    # TODO - do these two calls to claimable_fees_available open us up to potential rounding errors?
-    assetqty : uint256 = total_assets - (self._claimable_fees_available(total_assets, True) + self._claimable_fees_available(total_assets, False))
-
+    claimable_fees : uint256 = self._claimable_fees_available(FeeType.BOTH, assetqty)
+    
+    # Less fees
+    assert assetqty >= claimable_fees, "_convertToAssets sanity failure!" # BDM    
+    assetqty -= claimable_fees     
 
     # If there aren't any shares yet it's going to be 1:1.
-    if shareqty == 0: return _share_amount
+    if shareqty == 0: return _share_amount    
+    if assetqty == 0 : return _share_amount    
 
-    assetsPerShare : decimal = convert(assetqty, decimal) / convert(shareqty, decimal)
-
-    return convert(convert(_share_amount, decimal) * assetsPerShare, uint256)
+    return _share_amount * assetqty / shareqty
 
 
 @external
@@ -477,6 +507,8 @@ def previewRedeem(_share_amount: uint256) -> uint256:
 @external
 def redeem(_share_amount: uint256, _receiver: address, _owner: address) -> uint256:
     assetqty: uint256 = self._convertToAssets(_share_amount)
+    #if assetqty == 100911382350000000000000:
+    #    assert False, "Matches!"
     return self._withdraw(assetqty, _receiver, _owner)
 
 
@@ -535,23 +567,6 @@ def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALT
     txs: BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
     txs = AdapterBalancing(self.adapterBalancing).getBalanceTxs( _target_asset_balance, _max_txs )
 
-    assert txs[0].qty != 0, "No resulting txs!"
-
-    # if _target_asset_balance == 1890:
-
-    #     tx_qty : uint256 = 0
-    #     if txs[0].qty > 0:
-    #         tx_qty = convert(txs[0].qty, uint256)
-    #     else:
-    #         tx_qty = convert(txs[0].qty*-1, uint256)
-    #     # 
-    #     result_str : String[103] = concat("Not 1890 qty : ", uint2str(tx_qty))
-       
-    #     assert txs[0].qty != 1890, result_str   
-    #     #assert False, result_str
-
-    #assert _target_asset_balance != 1890, "_balanceAdapters 1890!"
-
     # Move the funds in/out of Lending Pools as required.
     for dtx in txs:
         if dtx.adapter == empty(address): break
@@ -571,7 +586,13 @@ def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALT
             #        the adapter's maxWithdraw limit then try again with lower limit.
             # TODO:  We also have to check to see if we short the 4626 balance, where
             #        the necessary funds will come from! Otherwise this may need to revert.
-            assert ERC20(asset).balanceOf(dtx.adapter) >= qty, "_balanceAdapters adapter insufficient assets!"
+            #assert ERC20(asset).balanceOf(dtx.adapter) >= qty, "_balanceAdapters adapter insufficient assets!"
+
+            # BDM
+            #if ERC20(asset).balanceOf(dtx.adapter) < qty:
+            #    missing: uint256 = qty - ERC20(asset).balanceOf(dtx.adapter)                 
+            #    xmsg: String[274] = concat("Missing ", uint2str(missing), " assets to do ", uint2str(qty), " from ", uint2str(ERC20(asset).balanceOf(dtx.adapter)), " adapter tx.")
+            #    assert False, xmsg
                  
             self._adapter_withdraw(dtx.adapter, qty, self)
 
@@ -579,7 +600,6 @@ def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALT
 @external
 def balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALTX_DEPOSIT ):
     self._balanceAdapters(_target_asset_balance, _max_txs)
-
 
 
 @internal
@@ -599,9 +619,12 @@ def _mint(_receiver: address, _share_amount: uint256) -> uint256:
 
 
 @internal
-def _adapter_deposit(_adapter: address, _asset_amount: uint256):
+def _adapter_deposit(_adapter: address, _asset_amount: uint256):    
     response: Bytes[32] = empty(Bytes[32])
     result_ok: bool = False
+
+    starting_assets : uint256 = self._poolAssets(_adapter)
+
     result_ok, response = raw_call(
         _adapter,
         _abi_encode(_asset_amount, method_id=method_id("deposit(uint256)")),
@@ -612,6 +635,9 @@ def _adapter_deposit(_adapter: address, _asset_amount: uint256):
 
     # TODO - interpret response as revert msg in case this assertion fails.
     assert result_ok == True, convert(response, String[32]) #"_adapter_deposit raw_call failed"
+
+    new_assets : uint256 = self._poolAssets(_adapter)
+    assert _asset_amount + starting_assets == new_assets, "Didn't move the assets into our adapter!"
 
 
 @internal
@@ -646,7 +672,8 @@ def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: a
     assert result_ok == True, "withdraw raw_call failed!"
 
     #if _asset_amount == 1890:
-    #    assert False, "Here we are 849!"       
+
+    #assert False, "Here we are 902!"
 
     balafter : uint256 = ERC20(asset).balanceOf(_withdraw_to)
     assert balafter != balbefore, "NOTHING CHANGED!"
@@ -676,8 +703,6 @@ def _deposit(_asset_amount: uint256, _receiver: address) -> uint256:
     assert shares == _asset_amount, "DIFFERENT VALUES!"
     self._mint(_receiver, shares)
 
-    #assert False, "GOT HERE!"
-
     # Update all-time assets deposited for yield tracking.
     self.total_assets_deposited += _asset_amount
 
@@ -699,12 +724,26 @@ def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint
     shares: uint256 = self._convertToShares(_asset_amount)
 
     #result_str : String[103] = concat("Not 1890 assets : ", uint2str(_asset_amount))
-    #assert _asset_amount == 1890, result_str
+    #assert False, result_str
 
     #assert shares == 1000, result_str
 
+    xcbal : uint256 = self.balanceOf[_owner]
+
+    #xxmsg : String[275] = concat("Owner has ", uint2str(xcbal), " shares but needs ", uint2str(shares), ".")
+
     # Owner has adequate shares?
     assert self.balanceOf[_owner] >= shares, "Owner has inadequate shares for this withdraw."
+    #assert xcbal >= shares, xxmsg
+    # if xcbal >= shares:
+    # #    assert False, "Got here."
+    #     #xcbal : uint256 = self.balanceOf[_owner]
+    #     assert False, "EHERE!"
+    #     assert False, "Got here."
+    #     cbal: String[78] = uint2str(xcbal)
+    #     #assert False, "Got here."
+    #     xmsg : String[169] = concat("has: ", uint2str(self.balanceOf[_owner]), " needs: ", uint2str(shares))
+    #     assert False, xmsg
 
     # Withdrawl is handled by someone other than the owner?
     if msg.sender != _owner:
@@ -713,11 +752,10 @@ def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint
         self.allowance[_owner][msg.sender] -= shares
 
     # Burn the shares.
-    self.balanceOf[_owner] -= shares
+    self.balanceOf[_owner] -= shares    
+
     self.totalSupply -= shares
     log Transfer(_owner, empty(address), shares)
-
-
 
     # Make sure we have enough assets to send to _receiver.
     self._balanceAdapters( _asset_amount )

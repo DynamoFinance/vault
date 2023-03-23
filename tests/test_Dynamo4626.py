@@ -8,6 +8,8 @@ d4626_name = "DynamoDAI"
 d4626_token = "dyDAI"
 d4626_decimals = 18
 
+ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+
 @pytest.fixture
 def deployer(accounts):
     return accounts[0]
@@ -136,6 +138,12 @@ def test_remove_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
 def _setup_single_adapter(_project, _dynamo4626, _deployer, _dai, _adapter):
     # Setup our pool.
     _dynamo4626.add_pool(_adapter, sender=_deployer)
+    strategy = [(ZERO_ADDRESS,0)] * 5 # This assumes Dynamo4626 MAX_POOLS == 5
+    strategy[0] = (_adapter,1)
+    _dynamo4626.set_strategy(_deployer, strategy, 0, sender=_deployer)
+
+
+    #assert False, "break"
 
     # Jiggle around transfer rights here for test purposes.
     _project.ERC20.at(_adapter.wrappedAsset()).transferMinter(_dynamo4626, sender=_deployer)
@@ -382,6 +390,6 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
     max_withdrawl = dynamo4626.maxWithdraw(trader, sender=trader)
     max_redeem = dynamo4626.maxRedeem(trader, sender=trader)
 
-    assert max_withdrawl == 0, "Still got %s assets left to withdraw!" % max_withdrawl
-    assert max_redeem == 0, "Still got %s shares left to redeem!" % max_redeem
+    assert max_withdrawl == pytest.approx(0), "Still got %s assets left to withdraw!" % max_withdrawl
+    assert max_redeem == pytest.approx(0), "Still got %s shares left to redeem!" % max_redeem
 
