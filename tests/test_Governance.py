@@ -323,7 +323,7 @@ def test_rejectStrategy(governance_contract, vault_contract_one, accounts):
 
     #Test to see if i can vote again
     with ape.reverts():
-        rs = governance_contract.rejectStrategy(NONCE, vault_contract_one, sender=someone)
+        rs = governance_contract.rejectStrategy(2, vault_contract_one, sender=someone)
 
 
 
