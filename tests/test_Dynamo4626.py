@@ -53,7 +53,7 @@ def pool_adapterC(project, deployer, dai):
 
 @pytest.fixture
 def dynamo4626(project, deployer, dai, trader):
-    v = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, [], deployer)    
+    v = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, [], deployer, AdapterBalancingContract)    
     return v
 
 

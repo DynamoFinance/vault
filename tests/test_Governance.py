@@ -40,43 +40,43 @@ def adapter_balancing_contract(owner, project, accounts):
 
     # deploy the contract with the initial value as a constructor argument
 
-    abcontract = owner.deploy(project.AdapterBalancing)
+    abcontract = owner.deploy(project.AdapterBalancing, owner)
 
     return abcontract 
 
 @pytest.fixture
-def vault_contract_one(governance_contract, owner, project, accounts):
+def vault_contract_one(governance_contract, adapter_balancing_contract, owner, project, accounts):
 
     owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
 
-    vcontractone = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, ERC20ASSET, POOLS, governance_contract)
+    vcontractone = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, ERC20ASSET, POOLS, governance_contract, adapter_balancing_contract)
 
     return vcontractone
 
 @pytest.fixture
-def vault_contract_two(governance_contract, owner, project, accounts):
+def vault_contract_two(governance_contract, adapter_balancing_contract, owner, project, accounts):
 
     owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
 
-    vcontracttwo = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, ERC20ASSET, POOLS, governance_contract)
+    vcontracttwo = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, ERC20ASSET, POOLS, governance_contract, adapter_balancing_contract)
 
     return vcontracttwo
 
 @pytest.fixture
-def vault_contract_three(governance_contract, owner, project, accounts):
+def vault_contract_three(governance_contract, adapter_balancing_contract, owner, project, accounts):
 
     owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
 
-    vcontractthree = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, ERC20ASSET, POOLS, governance_contract)
+    vcontractthree = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, ERC20ASSET, POOLS, governance_contract, adapter_balancing_contract)
 
     return vcontractthree
 
 @pytest.fixture
-def vault_contract_four(governance_contract, owner, project, accounts):
+def vault_contract_four(governance_contract, adapter_balancing_contract, owner, project, accounts):
 
     owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
 
-    vcontractfour = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, ERC20ASSET, POOLS, governance_contract)
+    vcontractfour = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, ERC20ASSET, POOLS, governance_contract, adapter_balancing_contract)
 
     return vcontractfour
 

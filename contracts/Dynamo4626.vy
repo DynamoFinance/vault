@@ -100,6 +100,7 @@ def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20ass
     self.governance = _governance
     self.adapterBalancing = _adapterBalancing
     self.totalSupply = 0
+    self.current_proposer = msg.sender
 
     assert len(self.dlending_pools)==0, "HUh?!?!?" # TODO - remove
 
