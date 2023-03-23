@@ -28,22 +28,7 @@ event GovernanceContractChanged:
 
 event VoteForNewGovernance:
     NewGovernance: indexed(address)
-
-event NewVault:
-    vault: indexed(address)
-
-event VaultRemoved:
-    vault: indexed(address)
-
-event VaultSwap:
-    OldVaultAddress: indexed(address)
-    NewVaultAddress: indexed(address)
-
-#Weights
-struct AdapterStrategy:
-    adapter: address
-    ratio: uint256
-
+    
 struct ProposedStrategy:
     Weights: AdapterStrategy[MAX_POOLS]
     APYNow: uint256
@@ -230,11 +215,11 @@ def rejectStrategy(Nonce: uint256, vault: address):
     assert msg.sender in self.LGov
 
     #Check to see that sender has not already voted
-    assert msg.sender not in self.PendingStrategyByVault[vault].VotesReject
-    assert msg.sender not in self.PendingStrategyByVault[vault].VotesEndorse
+    assert msg.sender not in self.PendingStrategy.VotesReject
+    assert msg.sender not in self.PendingStrategy.VotesEndorse
 
     #Vote to reject strategy
-    self.PendingStrategyByVault[vault].VotesReject.append(msg.sender)
+    self.PendingStrategy.VotesReject.append(msg.sender)
 
     log StrategyVote(Nonce, vault, msg.sender, True)
 
@@ -260,11 +245,8 @@ def activateStrategy(Nonce: uint256, vault: address):
     assert self.PendingStrategyByVault[vault].Nonce == Nonce
 
     #Make Current Strategy and Activate Strategy
-    self.CurrentStrategyByVault[vault] = self.PendingStrategyByVault[vault]
-
-    DynamoVault(vault).set_strategy(self.CurrentStrategyByVault[vault].ProposerAddress, self.CurrentStrategyByVault[vault].Weights, MIN_PROPOSER_PAYOUT)
-
-    assert False, "failed here"
+    self.CurrentStrategy = self.PendingStrategy
+    # Vault(self.Vault).PoolRebalancer(self.CurrentStrategy)
 
     log StrategyActivation(self.CurrentStrategyByVault[vault], self.CurrentStrategyByVault[vault].ProposerAddress, self.CurrentStrategyByVault[vault].Weights, vault)
  

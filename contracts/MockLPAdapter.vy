@@ -14,6 +14,7 @@ aoriginalAsset: immutable(address)
 awrappedAsset: immutable(address)
 adapterLPAddr: immutable(address)
 
+
 @external
 def __init__(_originalAsset: address, _wrappedAsset: address):
     aoriginalAsset = _originalAsset
@@ -34,16 +35,14 @@ def wrappedAsset() -> address: return awrappedAsset
 @internal
 @view
 def _convertToShares(_asset_amount: uint256) -> uint256:
-    # return _asset_amount
-
     shareQty : uint256 = ERC20(awrappedAsset).totalSupply()
     assetQty : uint256 = ERC20(aoriginalAsset).balanceOf(self)
 
     # If there aren't any shares yet it's going to be 1:1.
-    if shareQty == 0 : return _asset_amount
+    if shareQty == 0 or assetQty == 0: return _asset_amount
     
-    sharesPerAsset : uint256 = assetQty / shareQty
-    return _asset_amount * sharesPerAsset 
+    sharesPerAsset : decimal = (convert(shareQty, decimal) * 10000.0 / convert(assetQty, decimal)) + 1.0
+    return convert(convert(_asset_amount, decimal) * sharesPerAsset / 10000.0, uint256)
 
 
 @external
@@ -60,10 +59,10 @@ def _convertToAssets(_share_amount: uint256) -> uint256:
     assetQty : uint256 = ERC20(aoriginalAsset).balanceOf(self)
 
     # If there aren't any shares yet it's going to be 1:1.
-    if shareQty == 0: return _share_amount
+    if shareQty == 0 or assetQty == 0: return _share_amount
     
-    assetsPerShare : uint256 = shareQty / assetQty
-    return _share_amount * assetsPerShare
+    assetsPerShare : decimal = convert(assetQty, decimal) / convert(shareQty, decimal)
+    return convert(convert(_share_amount, decimal) * assetsPerShare, uint256)
 
 
 @external
@@ -99,19 +98,26 @@ def deposit(asset_amount: uint256):
     ERC20(aoriginalAsset).transfer(adapterLPAddr, asset_amount)
 
     # Return LP wrapped assets to 4626 vault.
-    mintableERC20(awrappedAsset).mint(self, asset_amount) 
+    # TODO : Ignore wrapped asset for now!
+    # mintableERC20(awrappedAsset).mint(self, self._convertToShares(asset_amount)) 
 
 
 # Withdraw the asset from the LP to an arbitary address. 
 @external
 @nonpayable
 def withdraw(asset_amount: uint256 , withdraw_to: address):
+    # TODO : Ignore wrapped asset for now!
     # Destroy the wrapped assets
-    mintableERC20(awrappedAsset).burn(asset_amount)
+    # shares_owned : uint256 = ERC20(awrappedAsset).balanceOf(self)
+    # shares_to_burn : uint256 = self._convertToShares(asset_amount)
+
+    #if shares_to_burn > shares_owned:
+    #    assert False, "ACK!" # concat("X ",uint2str(shares_owned), "<", uint2str(shares_to_burn))
+
+    #mintableERC20(awrappedAsset).burn(shares_to_burn)
 
     assert ERC20(aoriginalAsset).balanceOf(adapterLPAddr) >= asset_amount, "INSUFFICIENT FUNDS!"
     assert ERC20(aoriginalAsset).allowance(adapterLPAddr, self) >= asset_amount, "NO APPROVAL!"
 
     # Move funds into the destination accout.
     ERC20(aoriginalAsset).transferFrom(adapterLPAddr, withdraw_to, asset_amount)
-
