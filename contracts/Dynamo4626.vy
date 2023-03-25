@@ -528,6 +528,9 @@ def _getCurrentBalances() -> (uint256, BalancePool[MAX_POOLS], uint256, uint256)
 
     pool_balances: BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
 
+    if True: return 0, pool_balances, 0, 0
+    assert False, "NO WAY!"
+
     # If there are no pools then nothing to do.
     if len(self.dlending_pools) == 0: return current_local_asset_balance, pool_balances, current_local_asset_balance, 0
 
