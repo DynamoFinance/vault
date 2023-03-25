@@ -8,7 +8,7 @@ implements: ERC20
 implements: ERC4626
 
 
-MAX_POOLS : constant(int128) = 5
+MAX_POOLS : constant(uint256) = 5
 MAX_BALTX_DEPOSIT : constant(uint8) = 2
 
 # Contract owner hold 10% of the yield.
