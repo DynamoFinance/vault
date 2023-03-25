@@ -8,7 +8,7 @@ implements: ERC20
 implements: ERC4626
 
 
-MAX_POOLS : constant(int128) = 5
+MAX_POOLS : constant(uint256) = 5
 MAX_BALTX_DEPOSIT : constant(uint8) = 2
 
 # Contract owner hold 10% of the yield.
@@ -510,32 +510,42 @@ struct BalancePool:
     ratio: uint256
     target: uint256
     delta: int256
+    last_value: uint256
+
+
+@external
+@view 
+def getBrokeBalancePools() -> ( uint256, BalancePool[MAX_POOLS]):
+    result : BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
+    return 0, result
+    #return result
 
 
 # Returns current 4626 asset balance, first 3 parts of BalancePools, total Assets, & total ratios of Strategy.
 @internal
 @view 
 def _getCurrentBalances() -> (uint256, BalancePool[MAX_POOLS], uint256, uint256):
-    current_local_asset_balance : uint256 = ERC20(asset).balanceOf(self)
+    #current_local_asset_balance : uint256 = ERC20(asset).balanceOf(self)
 
     pool_balances: BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
 
-    # If there are no pools then nothing to do.
-    if len(self.dlending_pools) == 0: return current_local_asset_balance, pool_balances, current_local_asset_balance, 0
+    return 0, pool_balances, 0, 0
+    # # If there are no pools then nothing to do.
+    # if len(self.dlending_pools) == 0: return current_local_asset_balance, pool_balances, current_local_asset_balance, 0
 
-    total_balance: uint256 = current_local_asset_balance
-    total_ratios: uint256 = 0
-    pos: uint256 = 0
+    # total_balance: uint256 = current_local_asset_balance
+    # total_ratios: uint256 = 0
+    # pos: uint256 = 0
 
-    for pool in self.dlending_pools:
-        pool_balances[pos].adapter = pool
-        pool_balances[pos].current = self._poolAssets(pool)
-        pool_balances[pos].ratio = self.strategy[pool]
-        total_balance += pool_balances[pos].current
-        total_ratios += pool_balances[pos].ratio
-        pos += 1
+    # for pool in self.dlending_pools:
+    #     pool_balances[pos].adapter = pool
+    #     pool_balances[pos].current = self._poolAssets(pool)
+    #     pool_balances[pos].ratio = self.strategy[pool]
+    #     total_balance += pool_balances[pos].current
+    #     total_ratios += pool_balances[pos].ratio
+    #     pos += 1
 
-    return current_local_asset_balance, pool_balances, total_balance, total_ratios
+    # return current_local_asset_balance, pool_balances, total_balance, total_ratios
 
 
 @external
@@ -607,9 +617,9 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
                 if pool.adapter == empty(address) or pool.delta < pools[npos].delta:
                     # Here's our insertion point. Shift the existing txs to the right.
                     for xpos in range(MAX_POOLS):
-                        dst: uint256 = convert(pos,uint256)-convert(xpos,uint256)
+                        dst: uint256 = pos-xpos
                         src: uint256 = dst-1
-                        if convert(xpos,uint256) == src: break
+                        if xpos == src: break
 
                         pools[dst]=pools[src]
 
