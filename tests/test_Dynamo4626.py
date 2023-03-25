@@ -223,6 +223,13 @@ RATIO = 2
 TARGET = 3
 DELTA = 4
 
+
+def test_broken_BalancePool(project, dynamo4626):
+    print("START TEST")
+    dynamo4626.getBrokeBalancePools()
+    print("COMPLETE TEST")  
+    
+
 def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai, trader):
     _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
 

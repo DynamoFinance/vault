@@ -510,6 +510,14 @@ struct BalancePool:
     ratio: uint256
     target: uint256
     delta: int256
+    #last_value: uint256
+
+@external
+@view 
+def getBrokeBalancePools() -> ( uint256, BalancePool[MAX_POOLS]):
+    result : BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
+    return 0, result
+    #return result    
 
 
 # Returns current 4626 asset balance, first 3 parts of BalancePools, total Assets, & total ratios of Strategy.
