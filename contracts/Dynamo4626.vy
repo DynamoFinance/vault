@@ -823,6 +823,9 @@ def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: a
     balafter : uint256 = ERC20(asset).balanceOf(_withdraw_to)
     assert balafter != balbefore, "NOTHING CHANGED!"
     assert balafter - balbefore == _asset_amount, "DIDN'T GET OUR ASSETS BACK!"
+    
+    # Update our last_asset_value in our strategy for protection against LP exploits.
+    self.strategy[_adapter].last_asset_value = balafter
 
 
 @internal
