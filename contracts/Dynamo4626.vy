@@ -48,7 +48,11 @@ balanceOf: public(HashMap[address, uint256])
 allowance: public(HashMap[address, HashMap[address, uint256]])
 
 # Maps adapter address (not LP address) to ratios.
-strategy: public(HashMap[address, uint256])
+struct AdapterValue:
+    ratio: uint256
+    last_asset_value: uint256
+
+strategy: public(HashMap[address, AdapterValue])
 
 
 event PoolAdded:
@@ -149,7 +153,7 @@ def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], 
         current_assets : uint256 = self._totalAssets()
         #assert False, "failed here"
         # Is there enough payout to actually do a transaction?
-        if self._claimable_fees_available(FeeType.PROPOSER, current_assets) >= self.min_proposer_payout:
+        if self._claimable_fees_available(FeeType.PROPOSER, current_assets) > self.min_proposer_payout:
                 
             # Pay prior proposer his earned fees.
             self._claim_fees(FeeType.PROPOSER, 0, current_assets)
@@ -159,11 +163,13 @@ def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], 
 
     # Clear out all existing ratio allocations.
     for pool in self.dlending_pools:
-        self.strategy[pool] = empty(uint256)
+        self.strategy[pool] = empty(AdapterValue)
 
     # Now set strategies according to the new plan.
     for strategy in _strategies:
-        self.strategy[strategy.adapter] = strategy.ratio 
+        plan : AdapterValue = empty(AdapterValue)
+        plan.ratio = strategy.ratio
+        self.strategy[strategy.adapter] = plan
 
     # Rebalance vault according to new strategy.
     self._balanceAdapters(0, convert(MAX_POOLS, uint8))
@@ -244,6 +250,7 @@ def _poolAssets(_pool: address) -> uint256:
 
     assert result_ok, "TOTAL ASSETS REVERT!"        
     return empty(uint256)
+
 
 
 @internal
@@ -507,6 +514,7 @@ struct BalanceTX:
 struct BalancePool:
     adapter: address
     current: uint256
+    last_value: uint256    
     ratio: uint256
     target: uint256
     delta: int256
@@ -530,7 +538,9 @@ def _getCurrentBalances() -> (uint256, BalancePool[MAX_POOLS], uint256, uint256)
     for pool in self.dlending_pools:
         pool_balances[pos].adapter = pool
         pool_balances[pos].current = self._poolAssets(pool)
-        pool_balances[pos].ratio = self.strategy[pool]
+        plan : AdapterValue = self.strategy[pool]
+        pool_balances[pos].ratio = plan.ratio
+        pool_balances[pos].last_value = plan.last_asset_value
         total_balance += pool_balances[pos].current
         total_ratios += pool_balances[pos].ratio
         pos += 1
@@ -545,7 +555,7 @@ def getCurrentBalances() -> (uint256, BalancePool[MAX_POOLS], uint256, uint256):
 
 @internal
 @pure
-def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS]) -> (uint256, int256, uint256, BalancePool[MAX_POOLS]):
+def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS], _min_outgoing_tx: uint256) -> (uint256, int256, uint256, BalancePool[MAX_POOLS]):
     """
     @dev    Returns 1) the total asset allocation across all pools 
             (less _d4626_asset_target),
@@ -563,7 +573,10 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
 
     @param _total_ratios the total of all BalancePool.ratio values in _pool_balances.
 
-    @param _pool_balances current state of the adapter pools.
+    @param _pool_balances current state of the adapter pools. BDM TODO Specify TYPES!
+
+    @param _min_outgoing_tx the minimum size of a tx depositing funds to an adapter (as set by the current strategy).
+
     """
 
     # WHAT IF THE _d4626_asset_target is larger than the total assets?!?!?
@@ -578,6 +591,9 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
     # We have to copy from the old list into a new one to update values. (NOT THE MOST EFFICIENT OPTION.)
     pools : BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
 
+    # Any funds that should have been moved into an LPAdapter but weren't due to invalid txs.
+    leftover_assets : int256 = 0
+
     for pos in range(MAX_POOLS):
         pool : BalancePool = _pool_balances[pos]
         if pool.adapter == empty(address): break
@@ -591,14 +607,31 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
             pool.target = convert(convert(total_pool_target_assets, decimal) * pool_percent, uint256)        
             pool.delta = convert(pool.target, int256) - convert(pool.current, int256)            
 
+            # Check for valid outgoing txs here.
+            if pool.delta > 0:
+                # Is an outgoing tx > min size?
+                if pool.delta < convert(_min_outgoing_tx, int256): 
+                    leftover_assets += pool.delta
+                    pool.delta = 0
+                # Is the LP possibly compromised for an outgoing tx?
+                if pool.current < pool.last_value:
+                    # We've lost value in this adapter! Don't give it more money!
+                    leftover_assets += pool.delta
+                    pool.delta = 0
+                    pool.target = 0
+
             pool_result : int256 = convert(pool.current, int256) + pool.delta
             assert pool_result >= 0, "Pool resulting balance can't be less than zero!"
             pool_assets_allocated += convert(pool_result, uint256)
 
         d4626_delta += pool.delta * -1
-        if pool.delta != 0: tx_count += 1
+        #if pool.delta != 0: tx_count += 1
+        # Don't insert a tx if there's nothing to transfer.
+        if pool.delta == 0: continue
 
-        # Do an insertion sort keeping in order of lowest pool.delta value.
+        tx_count += 1
+
+        # Do an insertion sort keeping in increasing order of pool.delta value.
         if pos == 0:
             pools[pos]=pool
         else:
@@ -623,7 +656,7 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
 
 @external
 @pure 
-def getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS]) -> (uint256, int256, uint256, BalancePool[MAX_POOLS]): return self._getTargetBalances(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances)
+def getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS], _min_outgoing_tx: uint256) -> (uint256, int256, uint256, BalancePool[MAX_POOLS]): return self._getTargetBalances(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances, _min_outgoing_tx)
 
 
 @internal
@@ -645,101 +678,12 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
     pool_assets_allocated : uint256 = 0
     d4626_delta : int256 = 0
     tx_count : uint256 = 0
-    pool_assets_allocated, d4626_delta, tx_count, pool_states = self._getTargetBalances(_target_asset_balance, total_assets, total_ratios, pool_states)
-
+    pool_assets_allocated, d4626_delta, tx_count, pool_states = self._getTargetBalances(_target_asset_balance, total_assets, total_ratios, pool_states, self.min_proposer_payout)
 
     pos : uint256 = 0
     for tx_bal in pool_states:
         result[pos] = BalanceTX({qty: tx_bal.delta, adapter: tx_bal.adapter})
         pos += 1
-
-    # # Schedule the tx order while trying to stay within the _max_tx count limit.
-    # optional_inbound : DynArray[uint256,MAX_POOLS] = empty(DynArray[uint256,MAX_POOLS])
-    # optional_outbound : DynArray[uint256,MAX_POOLS] = empty(DynArray[uint256,MAX_POOLS])
-
-    # pos : uint256 = 0
-    # scheduled : uint256 = 0
-    # for _tx in pool_states:
-    #     if _tx.adapter == empty(address): break
-    #     if _tx.target == 0 and _tx.delta < 0:
-    #         # This is a non-optional tx as it is emptying a pool adapter.
-    #         d4626_assets = convert(convert(d4626_assets,int256) - _tx.delta, uint256)
-    #         result[pos]= BalanceTX( {qty: _tx.delta, adapter : _tx.adapter} )
-    #         pos += 1
-    #         scheduled += 1
-    #         continue
-
-    #     if pos >= convert(_max_txs, uint256) and d4626_assets >= _target_asset_balance:
-    #         # We've met our d4626 target and already have our max desired tx count.
-    #         # Defer this tx.
-    #         if _tx.delta > 0:
-    #             optional_outbound.append(pos)
-    #         else:
-    #             optional_inbound.append(pos)
-    #         pos += 1
-    #         continue
-
-    #     if convert(convert(d4626_assets,int256) - _tx.delta, uint256) < _target_asset_balance:
-    #         # We can take this tx and still meet our d4626 assets target.
-    #         result[pos]= BalanceTX( {qty: _tx.delta, adapter : _tx.adapter} )
-    #         scheduled += 1 
-    #     elif _tx.delta < 0:
-    #             # This tx moves funds to our d4626. Take it.
-    #             d4626_assets = convert(convert(d4626_assets,int256) - _tx.delta, uint256)
-    #             result[pos]= BalanceTX( {qty: _tx.delta, adapter : _tx.adapter} )             
-    #             scheduled += 1
-    #     else:
-    #             # Defer this tx.
-    #             optional_outbound.append(pos)            
-    #     pos += 1
-
-    # # Are we good to go now?
-    # if d4626_assets >= _target_asset_balance and (scheduled >= convert(_max_txs, uint256) or scheduled == tx_count): return result
-
-    # # Walk over our pending txs and grab what we need most.
-    # in_pos : uint256 = 0
-    # for npos in range(MAX_POOLS):
-    #     if d4626_assets < _target_asset_balance:
-    #         # We need more funds!
-    #         if in_pos < len(optional_inbound):
-    #             # There's still a pending inbound tx we can get funds from. Take it.
-    #             pool : BalancePool = pool_states[optional_inbound[in_pos]]
-    #             result[pos]= BalanceTX({qty : pool.delta, adapter : pool.adapter})
-    #             d4626_assets = convert(convert(d4626_assets,int256) - result[pos].qty, uint256)                
-    #             in_pos += 1
-    #             pos += 1
-    #             scheduled += 1
-    #         else:
-    #             # We have to go back and steal more funds!
-    #             pass
-    #     elif len(optional_outbound) > 0:
-    #         # Try to take the maximum transfer into an adapter pool.
-    #         considered : DynArray[uint256,MAX_POOLS] = empty(DynArray[uint256,MAX_POOLS])
-    #         selected : uint256 = 0
-    #         candidate_tx : BalancePool = empty(BalancePool)
-    #         for tx_pos in optional_outbound:
-    #              if pool_states[tx_pos].adapter != empty(address) and pool_states[tx_pos].delta > candidate_tx.delta \
-    #                 and convert(convert(d4626_assets, int256) - candidate_tx.delta, uint256) >= _target_asset_balance:
-    #                 # We can accept this one.
-    #                 selected = tx_pos
-    #                 candidate_tx = pool_states[tx_pos]
-                    
-    #         if candidate_tx.adapter != empty(address):
-    #             result[pos]= BalanceTX({qty : candidate_tx.delta, adapter : candidate_tx.adapter})  
-    #             d4626_assets = convert(convert(d4626_assets,int256) - result[pos].qty, uint256)
-    #             pool_states[selected].adapter = empty(address)
-    #             pos +=1
-    #             scheduled += 1
-
-    #     elif in_pos < len(optional_inbound):
-    #         # Take the pending inbound tx and continue.
-    #         pool : BalancePool = pool_states[optional_inbound[in_pos]]
-    #         result[pos]= BalanceTX({qty : pool.delta, adapter : pool.adapter})
-
-    #         d4626_assets = convert(convert(d4626_assets,int256) - result[pos].qty, uint256)
-    #         in_pos += 1
-    #         pos += 1
-    #         scheduled += 1
 
     return result
 
@@ -766,7 +710,7 @@ def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALT
         if dtx.qty == 0: continue
 
         # If the outgoing tx is larger than the min_proposer_payout then do it, otherwise ignore it.
-        if dtx.qty > convert(self.min_proposer_payout, int256):
+        if dtx.qty > 0 and dtx.qty >= convert(self.min_proposer_payout, int256):
             # Move funds into the lending pool's adapter.
             assert ERC20(asset).balanceOf(self) >= convert(dtx.qty, uint256), "_balanceAdapters d4626 insufficient assets!"
             # TODO : check for deposit failure. If it's due to going beyond
