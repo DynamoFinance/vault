@@ -781,6 +781,9 @@ def _adapter_deposit(_adapter: address, _asset_amount: uint256):
     new_assets : uint256 = self._poolAssets(_adapter)
     assert _asset_amount + starting_assets == new_assets, "Didn't move the assets into our adapter!"
 
+    # Update our last_asset_value in our strategy for protection against LP exploits.
+    self.strategy[_adapter].last_asset_value = new_assets
+
 
 @internal
 def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: address):
