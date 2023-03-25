@@ -53,7 +53,11 @@ strategy: public(HashMap[address, uint256])
 
 event PoolAdded:
     sender: indexed(address)
-    contract_addr: indexed(address)
+    adapter_addr: indexed(address)
+
+event PoolRemoved:   
+    sender: indexed(address)
+    afapter_addr: indexed(address) 
 
 event Transfer:
     sender: indexed(address)
@@ -207,17 +211,39 @@ def add_pool(_pool: address) -> bool:
 
 
 @internal
-def _remove_pool(_pool: address) -> bool:
-    # TODO - pull out all assets, remove pool, rebalance pool.
-    return False
+def _remove_pool(_pool: address, _rebalance: bool = True) -> bool:
+    if _pool not in self.dlending_pools: return False
+
+    # Clear out any strategy ratio this adapter may have.
+    self.strategy[_pool] = 0
+
+    if _rebalance == True: 
+        self._balanceAdapters(0, convert(MAX_POOLS, uint8))
+    else:
+        pool_assets : uint256 = self._poolAssets(_pool)
+
+        if pool_assets > 0:
+            self._adapter_withdraw(_pool, pool_assets, self)
+
+    # Walk over the list of adapters and get rid of this one.
+    new_pools : DynArray[address, MAX_POOLS] = empty(DynArray[address, MAX_POOLS])
+    for pool in self.dlending_pools:
+        if pool != _pool:
+            new_pools.append(pool)
+
+    self.dlending_pools = new_pools            
+
+    log PoolRemoved(msg.sender, _pool)
+
+    return True
 
 
 @external
-def remove_pool(_pool: address) -> bool:
+def remove_pool(_pool: address, _rebalance: bool = True) -> bool:
     # Is this from the owner?
     assert msg.sender == self.owner, "Only owner can remove Lending Pools."
 
-    return self._remove_pool(_pool)
+    return self._remove_pool(_pool, _rebalance)
 
 
 @internal

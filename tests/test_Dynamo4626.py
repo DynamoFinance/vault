@@ -125,14 +125,6 @@ def test_add_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
         dynamo4626.add_pool(a, sender=deployer)
 
 
-def test_remove_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
-    pytest.skip("TODO: Not implemented yet.")
-
-
-def test_min_tx_sizes(project, deployer, dynamo4626, pool_adapterA, trader, dai):
-    pytest.skip("TODO: Not implemented yet.")    
-
-
 def _setup_single_adapter(_project, _dynamo4626, _deployer, _dai, _adapter):
     # Setup our pool.
     _dynamo4626.add_pool(_adapter, sender=_deployer)
@@ -148,6 +140,29 @@ def _setup_single_adapter(_project, _dynamo4626, _deployer, _dai, _adapter):
     _project.ERC20.at(_adapter.wrappedAsset()).setApprove(_adapter, _dynamo4626, (1<<256)-1, sender=_dynamo4626) 
     _dai.setApprove(_dynamo4626, _adapter, (1<<256)-1, sender=_deployer)
     _dai.setApprove(_adapter, _dynamo4626, (1<<256)-1, sender=_deployer)
+
+
+def test_remove_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
+    _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
+
+    # Trader needs to allow the 4626 contract to take funds.
+    dai.approve(dynamo4626,1000, sender=trader)
+
+    result = dynamo4626.deposit(500, trader, sender=trader)
+
+    assert dynamo4626.totalAssets() == 500   
+    assert pool_adapterA.totalAssets() == 500
+
+    result = dynamo4626.remove_pool(pool_adapterA, sender=deployer)
+
+    assert result.return_value == True
+
+    assert dynamo4626.totalAssets() == 500   
+    assert pool_adapterA.totalAssets() == 0    
+
+
+def test_min_tx_sizes(project, deployer, dynamo4626, pool_adapterA, trader, dai):
+    pytest.skip("TODO: Not implemented yet.")    
 
 
 def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, dai, trader):
@@ -228,7 +243,7 @@ def test_broken_BalancePool(project, dynamo4626):
     print("START TEST")
     dynamo4626.getBrokeBalancePools()
     print("COMPLETE TEST")  
-    
+
 
 def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai, trader):
     _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
