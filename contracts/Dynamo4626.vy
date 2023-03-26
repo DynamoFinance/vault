@@ -9,7 +9,7 @@ implements: ERC4626
 
 
 MAX_POOLS : constant(uint256) = 5
-MAX_BALTX_DEPOSIT : constant(uint8) = 2
+MAX_BALTX_DEPOSIT : constant(uint8) = 5 # TODO - not enforced for now. Make same aas MAX_POOLS
 
 # Contract owner hold 10% of the yield.
 YIELD_FEE_PERCENTAGE : constant(uint256) = 10
