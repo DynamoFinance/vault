@@ -341,8 +341,12 @@ def _claimable_fees_available(_yield : FeeType, _current_assets : uint256 = 0) -
     # We want to do the above sanity checks even if total_assets is zero just in case.
     #if total_assets == 0: return 0
     if total_assets < total_fees_available:
-        xxmsg : String[277] = concat("Fees ", uint2str(total_fees_available), " > current assets : ", uint2str(total_assets), " against ", uint2str(convert(total_returns,uint256)), " returns!")
-        assert total_assets >= total_fees_available, xxmsg       
+        # Is it a rounding error?
+        if total_fees_available - 1 == total_assets:
+            total_fees_available -= 1
+        else:
+            xxmsg : String[277] = concat("Fees ", uint2str(total_fees_available), " > current assets : ", uint2str(total_assets), " against ", uint2str(convert(total_returns,uint256)), " returns!")
+            assert total_assets >= total_fees_available, xxmsg       
 
     return total_fees_available
 
