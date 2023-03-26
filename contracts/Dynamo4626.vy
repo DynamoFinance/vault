@@ -266,7 +266,7 @@ def _poolAssets(_pool: address) -> uint256:
         )
 
     if result_ok:
-        return convert(response, uint256)
+        return convert(response, uint256)    
 
     assert result_ok, "TOTAL ASSETS REVERT!"        
     return empty(uint256)
@@ -310,8 +310,11 @@ def totalReturns() -> int256:
 @internal
 @view 
 def _claimable_fees_available(_yield : FeeType, _current_assets : uint256 = 0) -> uint256:
-    total_returns : int256 = self._totalReturns(_current_assets)
-    if total_returns < 0: return 0
+    total_assets : uint256 = _current_assets
+    if total_assets == 0:
+        total_assets = self._totalAssets()
+    total_returns : int256 = self._totalReturns(total_assets)
+    if total_returns <= 0: return 0
 
     # Assume FeeType.YIELD
     fee_percentage: uint256 = YIELD_FEE_PERCENTAGE
@@ -319,22 +322,29 @@ def _claimable_fees_available(_yield : FeeType, _current_assets : uint256 = 0) -
         fee_percentage = PROPOSER_FEE_PERCENTAGE
     elif _yield == FeeType.BOTH:
         fee_percentage += PROPOSER_FEE_PERCENTAGE
+    elif _yield != FeeType.YIELD:
+        assert False, "Invalid FeeType!" 
 
-    dtotal_fees_available : uint256 = (convert(total_returns,uint256) * fee_percentage) / 100
+    total_fees_ever : uint256 = (convert(total_returns,uint256) * fee_percentage) / 100
 
-    assert self.total_strategy_fees_claimed + self.total_yield_fees_claimed <= dtotal_fees_available, "Total fee calc error!"
+    assert self.total_strategy_fees_claimed + self.total_yield_fees_claimed <= total_fees_ever, "Total fee calc error!"
 
-    result : uint256 = 0
+    total_fees_available : uint256 = 0
     if _yield == FeeType.YIELD or _yield == FeeType.BOTH:
-        result = dtotal_fees_available - self.total_yield_fees_claimed
+        total_fees_available = total_fees_ever - self.total_yield_fees_claimed
     elif _yield == FeeType.PROPOSER:
-        result = dtotal_fees_available - self.total_strategy_fees_claimed
-    elif _yield == FeeType.BOTH:
-        result += dtotal_fees_available - self.total_strategy_fees_claimed
-    else:
-        assert False, "Invalid FeeType!"
+        total_fees_available = total_fees_ever - self.total_strategy_fees_claimed           
 
-    return result
+    if _yield == FeeType.BOTH:
+        total_fees_available -= self.total_strategy_fees_claimed
+
+    # We want to do the above sanity checks even if total_assets is zero just in case.
+    #if total_assets == 0: return 0
+    if total_assets < total_fees_available:
+        xxmsg : String[277] = concat("Fees ", uint2str(total_fees_available), " > current assets : ", uint2str(total_assets), " against ", uint2str(convert(total_returns,uint256)), " returns!")
+        assert total_assets >= total_fees_available, xxmsg       
+
+    return total_fees_available
 
 
 @external
