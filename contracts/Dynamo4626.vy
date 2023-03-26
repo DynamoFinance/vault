@@ -314,23 +314,23 @@ def _claimable_fees_available(_yield : FeeType, _current_assets : uint256 = 0) -
     if total_returns < 0: return 0
 
     # Assume FeeType.YIELD
-    fee_percentage: decimal = convert(YIELD_FEE_PERCENTAGE, decimal)
+    fee_percentage: uint256 = YIELD_FEE_PERCENTAGE
     if _yield == FeeType.PROPOSER:
-        fee_percentage = convert(PROPOSER_FEE_PERCENTAGE, decimal)
+        fee_percentage = PROPOSER_FEE_PERCENTAGE
     elif _yield == FeeType.BOTH:
-        fee_percentage += convert(PROPOSER_FEE_PERCENTAGE, decimal)
+        fee_percentage += PROPOSER_FEE_PERCENTAGE
 
-    dtotal_fees_available : decimal = convert(total_returns, decimal) * (fee_percentage / 100.0)
+    dtotal_fees_available : uint256 = (convert(total_returns,uint256) * fee_percentage) / 100
 
-    assert self.total_strategy_fees_claimed + self.total_yield_fees_claimed <= convert(dtotal_fees_available, uint256), "Total fee calc error!"
+    assert self.total_strategy_fees_claimed + self.total_yield_fees_claimed <= dtotal_fees_available, "Total fee calc error!"
 
     result : uint256 = 0
     if _yield == FeeType.YIELD or _yield == FeeType.BOTH:
-        result = convert(dtotal_fees_available, uint256) - self.total_yield_fees_claimed
+        result = dtotal_fees_available - self.total_yield_fees_claimed
     elif _yield == FeeType.PROPOSER:
-        result = convert(dtotal_fees_available, uint256) - self.total_strategy_fees_claimed
+        result = dtotal_fees_available - self.total_strategy_fees_claimed
     elif _yield == FeeType.BOTH:
-        result += convert(dtotal_fees_available, uint256) - self.total_strategy_fees_claimed
+        result += dtotal_fees_available - self.total_strategy_fees_claimed
     else:
         assert False, "Invalid FeeType!"
 
@@ -621,13 +621,12 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
             pool.target = 0
             pool.delta = convert(pool.current, int256) * -1 # Withdraw it all!
         else:
-            pool_percent : decimal = convert(pool.ratio, decimal)/convert(_total_ratios,decimal)
-            pool.target = convert(convert(total_pool_target_assets, decimal) * pool_percent, uint256)        
+            pool.target = (total_pool_target_assets * pool.ratio) / _total_ratios      
             pool.delta = convert(pool.target, int256) - convert(pool.current, int256)            
 
-            pool_result : int256 = convert(pool.current, int256) + pool.delta
-            assert pool_result >= 0, "Pool resulting balance can't be less than zero!"
-            pool_assets_allocated += convert(pool_result, uint256)
+        pool_result : int256 = convert(pool.current, int256) + pool.delta
+        assert pool_result >= 0, "Pool resulting balance can't be less than zero!"
+        pool_assets_allocated += convert(pool_result, uint256)
 
         d4626_delta += pool.delta * -1
         if pool.delta != 0: tx_count += 1
