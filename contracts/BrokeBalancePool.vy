@@ -1,6 +1,6 @@
 # @version 0.3.7
 
-MAX_POOLS : constant(int128) = 5
+MAX_POOLS : constant(int128) = 6
 
 struct BalancePool:
     adapter: address

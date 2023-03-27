@@ -6,6 +6,8 @@ from web3 import Web3
 import requests, json
 import eth_abi
 
+MAX_POOLS = 6 # Must match Dynamo4626.vy MAX_POOLS
+
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 DAI = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
 
@@ -78,7 +80,7 @@ def dynamo4626(project, deployer, dai):
 
 def test_single_adapter_aave(project, deployer, dynamo4626, aave_adapter, dai, trader, ensure_hardhat, adai):
     dynamo4626.add_pool(aave_adapter, sender=deployer)
-    strategy = [(ZERO_ADDRESS,0)] * 5 # This assumes Dynamo4626 MAX_POOLS == 5
+    strategy = [(ZERO_ADDRESS,0)] * MAX_POOLS
     strategy[0] = (aave_adapter,1)    
     dynamo4626.set_strategy(deployer, strategy, 0, sender=deployer)
 

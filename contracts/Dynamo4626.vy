@@ -8,8 +8,8 @@ implements: ERC20
 implements: ERC4626
 
 
-MAX_POOLS : constant(uint256) = 5
-MAX_BALTX_DEPOSIT : constant(uint8) = 2
+MAX_POOLS : constant(uint256) = 6
+MAX_BALTX_DEPOSIT : constant(uint8) = 6
 
 # Contract owner hold 10% of the yield.
 YIELD_FEE_PERCENTAGE : constant(uint256) = 10
@@ -510,7 +510,7 @@ struct BalancePool:
     ratio: uint256
     target: uint256
     delta: int256
-    #last_value: uint256
+    last_value: uint256
 
 @external
 @view 
