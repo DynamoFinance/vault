@@ -57,7 +57,11 @@ strategy: public(HashMap[address, AdapterValue])
 
 event PoolAdded:
     sender: indexed(address)
-    contract_addr: indexed(address)
+    adapter_addr: indexed(address)
+
+event PoolRemoved:   
+    sender: indexed(address)
+    afapter_addr: indexed(address) 
 
 event Transfer:
     sender: indexed(address)
@@ -213,17 +217,39 @@ def add_pool(_pool: address) -> bool:
 
 
 @internal
-def _remove_pool(_pool: address) -> bool:
-    # TODO - pull out all assets, remove pool, rebalance pool.
-    return False
+def _remove_pool(_pool: address, _rebalance: bool = True) -> bool:
+    if _pool not in self.dlending_pools: return False
+
+    # Clear out any strategy ratio this adapter may have.
+    self.strategy[_pool].ratio = 0
+
+    if _rebalance == True: 
+        self._balanceAdapters(0, convert(MAX_POOLS, uint8))
+    else:
+        pool_assets : uint256 = self._poolAssets(_pool)
+
+        if pool_assets > 0:
+            self._adapter_withdraw(_pool, pool_assets, self)
+
+    # Walk over the list of adapters and get rid of this one.
+    new_pools : DynArray[address, MAX_POOLS] = empty(DynArray[address, MAX_POOLS])
+    for pool in self.dlending_pools:
+        if pool != _pool:
+            new_pools.append(pool)
+
+    self.dlending_pools = new_pools            
+
+    log PoolRemoved(msg.sender, _pool)
+
+    return True
 
 
 @external
-def remove_pool(_pool: address) -> bool:
+def remove_pool(_pool: address, _rebalance: bool = True) -> bool:
     # Is this from the owner?
     assert msg.sender == self.owner, "Only owner can remove Lending Pools."
 
-    return self._remove_pool(_pool)
+    return self._remove_pool(_pool, _rebalance)
 
 
 @internal
@@ -246,7 +272,7 @@ def _poolAssets(_pool: address) -> uint256:
         )
 
     if result_ok:
-        return convert(response, uint256)
+        return convert(response, uint256)    
 
     assert result_ok, "TOTAL ASSETS REVERT!"        
     return empty(uint256)
@@ -291,31 +317,45 @@ def totalReturns() -> int256:
 @internal
 @view 
 def _claimable_fees_available(_yield : FeeType, _current_assets : uint256 = 0) -> uint256:
-    total_returns : int256 = self._totalReturns(_current_assets)
-    if total_returns < 0: return 0
+    total_assets : uint256 = _current_assets
+    if total_assets == 0:
+        total_assets = self._totalAssets()
+    total_returns : int256 = self._totalReturns(total_assets)
+    if total_returns <= 0: return 0
 
     # Assume FeeType.YIELD
-    fee_percentage: decimal = convert(YIELD_FEE_PERCENTAGE, decimal)
+    fee_percentage: uint256 = YIELD_FEE_PERCENTAGE
     if _yield == FeeType.PROPOSER:
-        fee_percentage = convert(PROPOSER_FEE_PERCENTAGE, decimal)
+        fee_percentage = PROPOSER_FEE_PERCENTAGE
     elif _yield == FeeType.BOTH:
-        fee_percentage += convert(PROPOSER_FEE_PERCENTAGE, decimal)
+        fee_percentage += PROPOSER_FEE_PERCENTAGE
+    elif _yield != FeeType.YIELD:
+        assert False, "Invalid FeeType!" 
 
-    dtotal_fees_available : decimal = convert(total_returns, decimal) * (fee_percentage / 100.0)
+    total_fees_ever : uint256 = (convert(total_returns,uint256) * fee_percentage) / 100
 
-    assert self.total_strategy_fees_claimed + self.total_yield_fees_claimed <= convert(dtotal_fees_available, uint256), "Total fee calc error!"
+    assert self.total_strategy_fees_claimed + self.total_yield_fees_claimed <= total_fees_ever, "Total fee calc error!"
 
-    result : uint256 = 0
+    total_fees_available : uint256 = 0
     if _yield == FeeType.YIELD or _yield == FeeType.BOTH:
-        result = convert(dtotal_fees_available, uint256) - self.total_yield_fees_claimed
+        total_fees_available = total_fees_ever - self.total_yield_fees_claimed
     elif _yield == FeeType.PROPOSER:
-        result = convert(dtotal_fees_available, uint256) - self.total_strategy_fees_claimed
-    elif _yield == FeeType.BOTH:
-        result += convert(dtotal_fees_available, uint256) - self.total_strategy_fees_claimed
-    else:
-        assert False, "Invalid FeeType!"
+        total_fees_available = total_fees_ever - self.total_strategy_fees_claimed           
 
-    return result
+    if _yield == FeeType.BOTH:
+        total_fees_available -= self.total_strategy_fees_claimed
+
+    # We want to do the above sanity checks even if total_assets is zero just in case.
+    #if total_assets == 0: return 0
+    if total_assets < total_fees_available:
+        # Is it a rounding error?
+        if total_fees_available - 1 == total_assets:
+            total_fees_available -= 1
+        else:
+            xxmsg : String[277] = concat("Fees ", uint2str(total_fees_available), " > current assets : ", uint2str(total_assets), " against ", uint2str(convert(total_returns,uint256)), " returns!")
+            assert total_assets >= total_fees_available, xxmsg       
+
+    return total_fees_available
 
 
 @external
@@ -606,8 +646,7 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
             pool.target = 0
             pool.delta = convert(pool.current, int256) * -1 # Withdraw it all!
         else:
-            pool_percent : decimal = convert(pool.ratio, decimal)/convert(_total_ratios,decimal)
-            pool.target = convert(convert(total_pool_target_assets, decimal) * pool_percent, uint256)        
+            pool.target = (total_pool_target_assets * pool.ratio) / _total_ratios      
             pool.delta = convert(pool.target, int256) - convert(pool.current, int256)            
 
             # Check for valid outgoing txs here.
@@ -623,9 +662,10 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
                     pool.delta = 0
                     pool.target = 0
 
-            pool_result : int256 = convert(pool.current, int256) + pool.delta
-            assert pool_result >= 0, "Pool resulting balance can't be less than zero!"
-            pool_assets_allocated += convert(pool_result, uint256)
+        pool_result : int256 = convert(pool.current, int256) + pool.delta
+        assert pool_result >= 0, "Pool resulting balance can't be less than zero!"
+        pool_assets_allocated += convert(pool_result, uint256)
+
 
         d4626_delta += pool.delta * -1
         #if pool.delta != 0: tx_count += 1
