@@ -4,6 +4,8 @@ from tests.conftest import is_not_hard_hat
 
 from itertools import zip_longest
 
+MAX_POOLS = 6 # Must match the value from Dynamo4626.vy
+
 d4626_name = "DynamoDAI"
 d4626_token = "dyDAI"
 d4626_decimals = 18
@@ -113,7 +115,7 @@ def test_add_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
     assert pool_count == 1
 
     # How many more pools can we add?
-    for i in range(4): # Dynamo4626.MAX_POOLS - 1
+    for i in range(MAX_POOLS - 1): 
         a = deployer.deploy(project.MockLPAdapter, dai, dai)
         result = dynamo4626.add_pool(a, sender=deployer) 
         assert result.return_value == True
@@ -136,7 +138,7 @@ def test_min_tx_sizes(project, deployer, dynamo4626, pool_adapterA, trader, dai)
 def _setup_single_adapter(_project, _dynamo4626, _deployer, _dai, _adapter):
     # Setup our pool.
     _dynamo4626.add_pool(_adapter, sender=_deployer)
-    strategy = [(ZERO_ADDRESS,0)] * 5 # This assumes Dynamo4626 MAX_POOLS == 5
+    strategy = [(ZERO_ADDRESS,0)] * MAX_POOLS 
     strategy[0] = (_adapter,1)
     _dynamo4626.set_strategy(_deployer, strategy, 0, sender=_deployer)
 
@@ -224,6 +226,7 @@ LAST_VALUE = 2
 RATIO = 3
 TARGET = 4
 DELTA = 5
+    
 
 def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai, trader):
     print("**** test_single_getBalanceTxs ****")

@@ -8,8 +8,8 @@ implements: ERC20
 implements: ERC4626
 
 
-MAX_POOLS : constant(int128) = 5
-MAX_BALTX_DEPOSIT : constant(uint8) = 2
+MAX_POOLS : constant(uint256) = 6
+MAX_BALTX_DEPOSIT : constant(uint8) = 6
 
 # Contract owner hold 10% of the yield.
 YIELD_FEE_PERCENTAGE : constant(uint256) = 10
@@ -516,8 +516,8 @@ struct BalancePool:
     current: uint256
     last_value: uint256    
     ratio: uint256
+    target: uint256 
     delta: int256
-    target: uint256    
 
 
 # Returns current 4626 asset balance, first 3 parts of BalancePools, total Assets, & total ratios of Strategy.
@@ -643,9 +643,11 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
                 if pool.adapter == empty(address) or pool.delta < pools[npos].delta:
                     # Here's our insertion point. Shift the existing txs to the right.
                     for xpos in range(MAX_POOLS):
-                        dst: uint256 = convert(pos,uint256)-convert(xpos,uint256)
+                        assert pos > xpos, "UNDERFLOW pos-xpos!"
+                        dst: uint256 = pos-xpos
+                        assert dst >= 0, "UNDERFLOW dst-1!"
                         src: uint256 = dst-1
-                        if convert(xpos,uint256) == src: break
+                        if xpos == src: break
 
                         pools[dst]=pools[src]
 
