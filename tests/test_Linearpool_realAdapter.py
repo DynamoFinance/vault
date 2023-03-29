@@ -3,6 +3,8 @@ import pytest
 import ape
 from tests.conftest import ensure_hardhat
 from web3 import Web3
+import requests, json
+import eth_abi
 
 
 #ETH Mainnet addrs
@@ -33,17 +35,29 @@ def vault(project, ensure_hardhat):
 
 @pytest.fixture
 def dai(project, deployer, trader, ensure_hardhat):
-    ua = deployer.deploy(project.ERC20, "mock DAI", "DAI", 18, 0, deployer)
-    #Transfer some to trader.
-    ua.mint(trader, '5000000000 Ether', sender=deployer)
-    print(ua.balanceOf(trader))
-    #Aprove vault
-    ua.approve(VAULT, '1000000000 Ether', sender=trader)
-    return ua
+    dai = project.DAI.at(DAI)
+    # print("wards", dai.wards(deployer))
+    #Make deployer a minter
+    #background info https://mixbytes.io/blog/modify-ethereum-storage-hardhats-mainnet-fork
+    #Dai contract has  minters in first slot mapping (address => uint) public wards;
+    abi_encoded = eth_abi.encode(['address', 'uint256'], [deployer.address, 0])
+    storage_slot = Web3.solidityKeccak(["bytes"], ["0x" + abi_encoded.hex()]).hex()
+
+    set_storage_request = {"jsonrpc": "2.0", "method": "hardhat_setStorageAt", "id": 1,
+        "params": [DAI, storage_slot, "0x" + eth_abi.encode(["uint256"], [1]).hex()]}
+    print(requests.post("http://localhost:8545/", json.dumps(set_storage_request)))
+    # print("wards", dai.wards(deployer))
+    #make the trader rich, airdrop $1 billion
+    dai.mint(trader, '10000000000 Ether', sender=deployer)
+    dai.approve(VAULT, '10000000000 Ether', sender=trader)
+
+    # print(dai.balanceOf(trader))
+    return project.ERC20.at(DAI)
+
 
 @pytest.fixture
 def aave_adapter(project, deployer, dai, ensure_hardhat):
-    aa = deployer.deploy(project.aaveAdapter, AAVE_LENDING_POOL, dai, ADAI)
+    aa = deployer.deploy(project.aaveAdapter, AAVE_LENDING_POOL, DAI, ADAI)
     #we run tests against interface
     return project.LPAdapter.at(aa)
 
@@ -56,12 +70,12 @@ def ddai4626(project, deployer, trader, dai, ensure_hardhat, aave_adapter):
 
     dynamo4626.set_strategy(deployer, strategy, 0, sender=deployer)
     #Grant allowance for trader
-    dai.approve(dynamo4626, 1000000000 *10 ** 18, sender=trader)
+    dai.approve(dynamo4626, 100000 *10 ** 18, sender=trader)
     #Transfer some to trader.
-    assert dai.allowance(trader, dynamo4626) >= 1000000000 *10 ** 18, "dynamo4626 does not have allowance"
-    assert dai.balanceOf(trader) >= 1000000000 *10 ** 18, "trader is broke"
+    assert dai.allowance(trader, dynamo4626) >= 100000 *10 ** 18, "dynamo4626 does not have allowance"
+    assert dai.balanceOf(trader) >= 100000 *10 ** 18, "trader is broke"
     #Previous like confirms trader has enough money
-    dynamo4626.deposit(1000000000 *10 ** 18, trader, sender=trader)
+    dynamo4626.deposit(100000 *10 ** 18, trader, sender=trader)
     # ua.mint(trader, '1000000000 Ether', sender=deployer)
     # print(ua.balanceOf(trader))
     #Aprove vault
@@ -105,8 +119,8 @@ def print_pool_info(vault, pool_id, main_idx, wrapped_idx):
 
 
 def test_pool_swap(linear_pool, dai, ddai4626, trader, vault, ensure_hardhat):
-    assert dai.balanceOf(trader) == 4000000000 * 10**18
-    assert ddai4626.balanceOf(trader) == 1000000000 * 10**18
+    assert dai.balanceOf(trader) == (10000000000 - 100000) * 10**18
+    assert ddai4626.balanceOf(trader) == 100000 * 10**18
     assert linear_pool.balanceOf(trader) == 0
     pool_id = linear_pool.getPoolId()
     main_idx = linear_pool.getMainIndex()
@@ -151,13 +165,13 @@ def test_pool_swap(linear_pool, dai, ddai4626, trader, vault, ensure_hardhat):
         1, #SwapKind kind
         ddai4626, #IAsset assetIn
         linear_pool, #IAsset assetOut
-        "10000000 Ether", #uint256 amount
+        "1000 Ether", #uint256 amount
         b"" #bytes userData
     )
     vault.swap(
         struct_single_swap, #SingleSwap singleSwap
         struct_fund_management, #FundManagement funds
-        "20000000 Ether", #uint256 limit
+        "2000 Ether", #uint256 limit
         999999999999999999, #uint256 deadline
         sender=trader
     )
@@ -207,7 +221,7 @@ def test_pool_swap(linear_pool, dai, ddai4626, trader, vault, ensure_hardhat):
         1, #SwapKind kind
         dai, #IAsset assetIn
         linear_pool, #IAsset assetOut
-        "2099999 Ether", #uint256 amount
+        "9999 Ether", #uint256 amount
         b"" #bytes userData
     )
     struct_fund_management = (
@@ -219,7 +233,7 @@ def test_pool_swap(linear_pool, dai, ddai4626, trader, vault, ensure_hardhat):
     vault.swap(
         struct_single_swap, #SingleSwap singleSwap
         struct_fund_management, #FundManagement funds
-        "2099999 Ether", #uint256 limit
+        "19999 Ether", #uint256 limit
         999999999999999999, #uint256 deadline
         sender=trader
     )
@@ -250,15 +264,23 @@ def test_pool_swap(linear_pool, dai, ddai4626, trader, vault, ensure_hardhat):
     )
     bal = tokendiff(trader, tokens)
     print_pool_info(vault, pool_id, main_idx, wrapped_idx)
-    #Lets make our 4626 get 2x yiels
-    dai.transfer(ddai4626, '1000000000 Ether', sender=trader)
+    #Lets make our 4626 get 
+    print(linear_pool.getRate())
+    #cause aDAI to have a huge yield
+    #mine 100000 blocks with an interval of 5 minute
+    set_storage_request = {"jsonrpc": "2.0", "method": "hardhat_mine", "id": 1,
+        "params": ["0x186a0", "0x12c"]}
+    print(requests.post("http://localhost:8545/", json.dumps(set_storage_request)))
+    print("===GENERATED YIELD BY TRAVELING FORWARD IN TIME===")    
     bal = tokendiff(trader, tokens)
     print_pool_info(vault, pool_id, main_idx, wrapped_idx)
+    print(linear_pool.getRate())
+
    
     vault.swap(
         struct_single_swap, #SingleSwap singleSwap
         struct_fund_management, #FundManagement funds
-        "2000.1 Ether", #uint256 limit
+        "2010.1 Ether", #uint256 limit
         999999999999999999, #uint256 deadline
         sender=trader
     )
