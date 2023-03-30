@@ -1,5 +1,12 @@
 # @version 0.3.7
+"""
 
+@title Governance Contract
+@license
+@author BiggestLab
+@notice Governance for Dynamo Vault
+
+"""
 from vyper.interfaces import ERC20
 from vyper.interfaces import ERC4626
 #from interfaces.adapter import LPAdapter
@@ -89,7 +96,15 @@ event StrategyActivation:
 
 @external
 def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20asset : address, _pools: DynArray[address, MAX_POOLS], _governance: address):
-
+    """
+    @notice The function provides a way to initialize the contract
+    @param _name: Name for token to evaluate
+    @param _symbol: Symbol for token to evaluate
+    @param _decimals: Decimal amount for token to evaluate
+    @param _erc20asset: Address for Token Contract to evaluate
+    @param _pools: List of addresses for Pools to evaluate
+    @param _governance: Governance Contract address to evaluate
+    """
     assert MAX_BALTX_DEPOSIT <= MAX_POOLS, "Invalid contract pre-conditions."
     assert _governance != empty(address), "Governance cannot be null address."
 
@@ -119,6 +134,11 @@ def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20ass
 
 @external
 def replaceGovernanceContract(_new_governance: address) -> bool:
+    """
+    @notice This function provides a way to replace the governance contract with a new governance contract
+    @param _new_governance: Address of the new governance contract to evaluate
+    @return True, if governance contract was replaced, False otherwise
+    """
     assert msg.sender == self.governance, "Only existing Governance contract may replace itself."
     assert _new_governance != empty(address), "Governance cannot be null address."
 
@@ -128,6 +148,11 @@ def replaceGovernanceContract(_new_governance: address) -> bool:
 
 @external
 def replaceOwner(_new_owner: address) -> bool:
+    """
+    @notice This function provides a way to replace this contract owner with a new contract owner
+    @param _new_owner: Address of the new contract owner to evaluate
+    @return True, if contract owner was replaced, False otherwise
+    """
     assert msg.sender == self.owner, "Only existing owner can replace the owner."
     assert _new_owner != empty(address), "Owner cannot be null address."
 
@@ -139,7 +164,12 @@ def replaceOwner(_new_owner: address) -> bool:
 # https://github.com/vyperlang/vyper/issues/2897
 @view
 @external
-def lending_pools() -> DynArray[address, MAX_POOLS]: return self.dlending_pools
+def lending_pools() -> DynArray[address, MAX_POOLS]: 
+    """
+    @notice This function returns list of pools
+    @return List of lending pool addresses
+    """
+    return self.dlending_pools
 
 
 @internal
@@ -179,6 +209,16 @@ def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], 
 
 @external
 def set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], _min_proposer_payout : uint256) -> bool:
+    """
+    @notice This function activates a proposed strategy 
+    @param _proposer: Address for the proposer (of the strategy) to evaluate
+    @param _strategies: List of strategies (for the pools) to evaluate
+    @param _min_proposer_payout: Minimum possible payout (for proposer) to evaluate
+    @return Proposer Address
+    @return Adapter Strategy
+    @return Minimum Proposer Payout
+    @return True if strategy was activated, False overwise
+    """
     return self._set_strategy(_proposer, _strategies, _min_proposer_payout)
 
 
@@ -204,6 +244,12 @@ def _add_pool(_pool: address) -> bool:
 
 @external 
 def add_pool(_pool: address) -> bool: 
+    """
+    @notice This function provides a way to add a new pool
+    @param _pool: Address for new pool to evaluate
+    @return Pool Address
+    @return True if pool was added, False otherwise
+    """
     # Is this from the owner?
     assert msg.sender == self.owner, "Only owner can add new Lending Pools."
 
@@ -240,6 +286,13 @@ def _remove_pool(_pool: address, _rebalance: bool = True) -> bool:
 
 @external
 def remove_pool(_pool: address, _rebalance: bool = True) -> bool:
+    """
+    @notice This function provides a way to remove a pool
+    @param _pool: Address of pool (that will be removed) to evaluate
+    @param _rebalance: triggers balance adapter removal
+    @return Pool Address
+    @return True if pool was removed, False otherwise
+    """
     # Is this from the owner?
     assert msg.sender == self.owner, "Only owner can remove Lending Pools."
 
@@ -285,7 +338,12 @@ def _totalAssets() -> uint256:
 
 @external
 @view
-def totalAssets() -> uint256: return self._totalAssets()
+def totalAssets() -> uint256: 
+    """
+    @notice This function returns list of total assets
+    @return List of total assets
+    """
+    return self._totalAssets()
 
 
 @internal
@@ -303,6 +361,10 @@ def _totalReturns(_current_assets : uint256) -> int256:
 @external
 @view 
 def totalReturns() -> int256:
+    """
+    @notice This function returns list of total returns
+    @return List of total returns
+    """
     assets : uint256 = self._totalAssets()
     return self._totalReturns(assets)    
 
@@ -354,18 +416,36 @@ def _claimable_fees_available(_yield : FeeType, _current_assets : uint256 = 0) -
 @external
 @view    
 def claimable_yield_fees_available(_current_assets : uint256 = 0) -> uint256:
+    """
+    @notice This function returns claimable yield fees available for current assets
+    @param _current_assets: Number of current assets to evaluate
+    @return Claimable fees available for yield
+    @return Current assets
+    """
     return self._claimable_fees_available(FeeType.YIELD, _current_assets)    
 
 
 @external
 @view    
 def claimable_strategy_fees_available(_current_assets : uint256 = 0) -> uint256:
+    """
+    @notice This function returns claimable strategy fees available for current assets
+    @param _current_assets: Number of current assets to evaluate
+    @return Claimable fees available for proposer
+    @return Current assets
+    """
     return self._claimable_fees_available(FeeType.PROPOSER, _current_assets)  
 
 
 @external
 @view    
 def claimable_all_fees_available(_current_assets : uint256 = 0) -> uint256:
+    """
+    @notice This function returns all claimable fees available for current assets
+    @param _current_assets: Number of current assets to evaluate
+    @return Claimable fees available for yield and proposer
+    @return Current assets
+    """
     return self._claimable_fees_available(FeeType.BOTH, _current_assets)      
 
 
@@ -405,18 +485,36 @@ def _claim_fees(_yield : FeeType, _asset_amount: uint256, _current_assets : uint
 
 @external
 def claim_yield_fees(_asset_amount: uint256 = 0) -> uint256:
+    """
+    @notice This function returns claim yield fees for asset amount
+    @param _asset_amount: Number amount of assets to evaluate
+    @return Claim fees for yield
+    @return Asset amount
+    """
     assert msg.sender == self.owner, "Only owner may claim yield fees."
     return self._claim_fees(FeeType.YIELD, _asset_amount)
 
 
 @external
 def claim_strategy_fees(_asset_amount: uint256 = 0) -> uint256:
+    """
+    @notice This function returns claim strategy fees for asset amount
+    @param _asset_amount: Number amount of assets to evaluate
+    @return Claim fees for proposer
+    @return Asset amount
+    """
     assert msg.sender == self.current_proposer, "Only curent proposer may claim strategy fees."
     return self._claim_fees(FeeType.PROPOSER, _asset_amount)    
 
 
 @external
 def claim_all_fees(_asset_amount: uint256 = 0) -> uint256:
+    """
+    @notice This function returns claim yield and strategy fees for asset amount
+    @param _asset_amount: Number amount of assets to evaluate
+    @return Claim fees for yield and proposer
+    @return Asset amount
+    """
     assert msg.sender == self.owner and msg.sender == self.current_proposer, "Must be both owner and current proposer to claim all fees."
     return self._claim_fees(FeeType.BOTH, _asset_amount)
 
@@ -466,12 +564,23 @@ def _convertToAssets(_share_amount: uint256) -> uint256:
 
 @external
 @view
-def convertToAssets(_share_amount: uint256) -> uint256: return self._convertToAssets(_share_amount)
+def convertToAssets(_share_amount: uint256) -> uint256:
+    """
+    @notice This function converts share amount to assets
+    @param _share_amount: Number amount of shares to evaluate
+    @return Assets per share amount
+    """
+    return self._convertToAssets(_share_amount)
 
 
 @external
 @view
 def maxDeposit(_spender: address) -> uint256:
+    """
+    @notice This function provides the max deposit per spender 
+    @param _spender: Address for spender to evaluate
+    @return Max deposit amount for the spender
+    """
     # TODO - if deposits are disabled return 0
     # Ensure this value cannot take local asset balance over max_value(128) for _getBalanceTxs math.
     return convert(max_value(int128), uint256) - ERC20(asset).balanceOf(self)
@@ -479,34 +588,58 @@ def maxDeposit(_spender: address) -> uint256:
 
 @external
 def previewDeposit(_asset_amount: uint256) -> uint256:
+    """
+    @notice This function converts asset amount to shares in deposit
+    @param _asset_amount: Number amount of assets to evaluate
+    @return Shares per asset amount in deposit
+    """
     return self._convertToShares(_asset_amount)
 
 
 @external
 @view
-# Returns maximum number of shares that can be minted for this address.
 def maxMint(_receiver: address) -> uint256:
+    """
+    @notice This function returns number of shares that can be minted to receiver
+    @param _receiver: Address of receiver to evaluate
+    @return Maximum mint to receiver 
+    """
     # TODO - if mints are disabled return 0.
     return convert(max_value(int128), uint256)
 
 
 @external
 @view 
-# Returns asset qty that would be returned for this share_amount.
 def previewMint(_share_amount: uint256) -> uint256:
+    """
+    @notice This function returns asset qty that would be returned for this share_amount per mint
+    @param _share_amount: Number amount of shares to evaluate
+    @return Assets per share amount in mint
+    """
     return self._convertToAssets(_share_amount)
 
 
 @external
 def mint(_share_amount: uint256, _receiver: address) -> uint256:
+    """
+    @notice This function mints asset qty that would be returned for this share_amount to receiver
+    @param _share_amount: Number amount of shares to evaluate
+    @param _receiver: Address of receiver to evaluate
+    @return Asset qty per share amount
+    @return Address of receiver who received asset qty
+    """
     assetqty : uint256 = self._convertToAssets(_share_amount)
     return self._deposit(assetqty, _receiver)
 
 
 @external
 @view 
-# Returns maximum assets this _owner can extract.
 def maxWithdraw(_owner: address) -> uint256:
+    """
+    @notice This function returns maximum assets this _owner can extract
+    @param _owner: Address of owner of assets to evaluate
+    @return maximum assets this _owner can withdraw
+    """
     # TODO: If withdraws are disabled return 0.
     return self._convertToAssets(self.balanceOf[_owner])
 
@@ -514,6 +647,11 @@ def maxWithdraw(_owner: address) -> uint256:
 @external
 @view 
 def previewWithdraw(_asset_amount: uint256) -> uint256:
+    """
+    @notice This function returns asset qty per share amount for withdraw
+    @param _asset_amount: Number amount of assets to evaluate
+    @return Share qty per asset amount in withdraw
+    """
     return self._convertToShares(_asset_amount)
 
 
@@ -521,6 +659,11 @@ def previewWithdraw(_asset_amount: uint256) -> uint256:
 @view 
 # Returns maximum shares this _owner can redeem.
 def maxRedeem(_owner: address) -> uint256:
+    """
+    @notice This function returns maximum shares this _owner can redeem
+    @param _owner: Address of owner of assets to evaluate
+    @return maximum shares this _owner can redeem
+    """
     # TODO: If redemption is disabled return 0.
     return self.balanceOf[_owner]
 
@@ -528,11 +671,25 @@ def maxRedeem(_owner: address) -> uint256:
 @external
 @view 
 def previewRedeem(_share_amount: uint256) -> uint256:
+    """
+    @notice This function returns asset qty per share amount for redemption
+    @param _share_amount: Number amount of shares to evaluate
+    @return asset qty per share amount in redemption
+    """
     return self._convertToAssets(_share_amount)
 
 
 @external
 def redeem(_share_amount: uint256, _receiver: address, _owner: address) -> uint256:
+    """
+    @notice This function redeems asset qty that would be returned for this share_amount to receiver from owner
+    @param _share_amount: Number amount of shares to evaluate
+    @param _receiver: Address of receiver to evaluate
+    @param _owner: Address of owner of assets to evaluate
+    @return Asset qty withdrawn
+    @return Address of Receiver of asset qty
+    @return Address of contract owner
+    """
     assetqty: uint256 = self._convertToAssets(_share_amount)
     #if assetqty == 100911382350000000000000:
     #    assert False, "Matches!"
@@ -555,6 +712,10 @@ struct BalancePool:
 @external
 @view 
 def getBrokeBalancePools() -> ( uint256, BalancePool[MAX_POOLS]):
+    """
+    @notice This function returns number of empty balance pools
+    @return List of empty pools
+    """
     result : BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
     return 0, result
     #return result    
@@ -588,7 +749,12 @@ def _getCurrentBalances() -> (uint256, BalancePool[MAX_POOLS], uint256, uint256)
 
 @external
 @view 
-def getCurrentBalances() -> (uint256, BalancePool[MAX_POOLS], uint256, uint256): return self._getCurrentBalances()
+def getCurrentBalances() -> (uint256, BalancePool[MAX_POOLS], uint256, uint256): 
+    """
+    @notice This function returns current balances of pools
+    @return Current balances of pools
+    """
+    return self._getCurrentBalances()
 
 
 @internal
@@ -672,7 +838,8 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
 
 @external
 @pure 
-def getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS]) -> (uint256, int256, uint256, BalancePool[MAX_POOLS]): return self._getTargetBalances(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances)
+def getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS]) -> (uint256, int256, uint256, BalancePool[MAX_POOLS]): 
+    return self._getTargetBalances(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances)
 
 
 @internal
@@ -843,6 +1010,11 @@ def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALT
 
 @external
 def balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALTX_DEPOSIT ):
+    """
+    @notice The function provides a way to balance adapters
+    @param _target_asset_balance: Target amount for assets balance
+    @param _max_txs: Maximum amount of adapters
+    """
     self._balanceAdapters(_target_asset_balance, _max_txs)
 
 
@@ -958,7 +1130,15 @@ def _deposit(_asset_amount: uint256, _receiver: address) -> uint256:
 
 
 @external
-def deposit(_asset_amount: uint256, _receiver: address) -> uint256: return self._deposit(_asset_amount, _receiver)
+def deposit(_asset_amount: uint256, _receiver: address) -> uint256: 
+    """
+    @notice This function provides a way to transfer an asset amount from message sender to receiver
+    @param _asset_amount: Number amount of assets to evaluate
+    @param _receiver: Address of receiver to evaluate
+    @return Asset amount deposited to receiver
+    @return Address who received the asset amount
+    """
+    return self._deposit(_asset_amount, _receiver)
 
 
 @internal
@@ -1019,7 +1199,17 @@ def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint
     return shares
 
 @external
-def withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint256: return self._withdraw(_asset_amount,_receiver,_owner)
+def withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint256:
+    """
+    @notice This function provides a way to withdraw an asset amount to receiver
+    @param _asset_amount: Number amount of assets to evaluate
+    @param _receiver: Address of receiver to evaluate
+    @param _owner: Address of owner of assets to evaluate
+    @return Asset amount deposited to receiver
+    @return Address who received the asset amount
+    @return Address of contract owner
+    """
+    return self._withdraw(_asset_amount,_receiver,_owner)
 
 ### ERC20 functionality.
 
