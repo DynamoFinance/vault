@@ -278,7 +278,6 @@ def _poolAssets(_pool: address) -> uint256:
     return empty(uint256)
 
 
-
 @internal
 @view
 def _totalAssets() -> uint256:
@@ -568,27 +567,25 @@ def _getCurrentBalances() -> (uint256, BalancePool[MAX_POOLS], uint256, uint256)
 
     pool_balances: BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
 
-    return 0, pool_balances, 0, 0
-    #assert False, "NO WAY!"
 
-    # # If there are no pools then nothing to do.
-    # if len(self.dlending_pools) == 0: return current_local_asset_balance, pool_balances, current_local_asset_balance, 0
+    # If there are no pools then nothing to do.
+    if len(self.dlending_pools) == 0: return current_local_asset_balance, pool_balances, current_local_asset_balance, 0
 
-    # total_balance: uint256 = current_local_asset_balance
-    # total_ratios: uint256 = 0
-    # pos: uint256 = 0
+    total_balance: uint256 = current_local_asset_balance
+    total_ratios: uint256 = 0
+    pos: uint256 = 0
 
-    # for pool in self.dlending_pools:
-    #     pool_balances[pos].adapter = pool
-    #     pool_balances[pos].current = self._poolAssets(pool)
-    #     plan : AdapterValue = self.strategy[pool]
-    #     pool_balances[pos].ratio = plan.ratio
-    #     pool_balances[pos].last_value = plan.last_asset_value
-    #     total_balance += pool_balances[pos].current
-    #     total_ratios += pool_balances[pos].ratio
-    #     pos += 1
+    for pool in self.dlending_pools:
+        pool_balances[pos].adapter = pool
+        pool_balances[pos].current = self._poolAssets(pool)
+        plan : AdapterValue = self.strategy[pool]
+        pool_balances[pos].ratio = plan.ratio
+        pool_balances[pos].last_value = plan.last_asset_value
+        total_balance += pool_balances[pos].current
+        total_ratios += pool_balances[pos].ratio
+        pos += 1
 
-    # return current_local_asset_balance, pool_balances, total_balance, total_ratios
+    return current_local_asset_balance, pool_balances, total_balance, total_ratios
 
 
 @external
