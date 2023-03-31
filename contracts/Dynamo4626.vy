@@ -597,12 +597,12 @@ def getCurrentBalances() -> (uint256, BalancePool[MAX_POOLS], uint256, uint256):
 @pure
 def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS], _min_outgoing_tx: uint256) -> (uint256, int256, uint256, BalancePool[MAX_POOLS]):
     """
-    @dev    Returns 1) the total asset allocation across all pools 
-            (less _d4626_asset_target),
-            2) the total delta of local d4626 assets that would be moved across
+    @dev    Returns: 
+            1) uint256 - the total asset allocation across all pools (less _d4626_asset_target),
+            2) int256 - the total delta of local d4626 assets that would be moved across
             all transactions, 
-            3) the total number of planned txs to achieve these targets,
-            4) plus the updated list of transactions required to
+            3) uint256 - the total number of planned txs to achieve these targets,
+            4) BalancePool[MAX_POOLS] - the updated list of transactions required to
             meet the target goals sorted in ascending order of BalancePool.delta.
 
     @param  _d4626_asset_target minimum asset target goal to be made available
