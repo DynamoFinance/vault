@@ -6,12 +6,14 @@ import ape
 import pytest
 from  pytest import raises
 
+MAX_POOLS = 6 # Must match Dynamo4626
+
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 ADAPTER_A_ADDRESS = "0x000000000000000000000000000000000000000a"
 ADAPTER_B_ADDRESS = "0x000000000000000000000000000000000000000b"
 
-WEIGHTS = [(ADAPTER_A_ADDRESS, 100),(ADAPTER_B_ADDRESS, 1000), [ZERO_ADDRESS,0], [ZERO_ADDRESS,0], [ZERO_ADDRESS,0]]
-WEIGHTSTWO = [(ADAPTER_A_ADDRESS, 150),(ADAPTER_B_ADDRESS, 1500), [ZERO_ADDRESS,0], [ZERO_ADDRESS,0], [ZERO_ADDRESS,0]]
+WEIGHTS = [(ADAPTER_A_ADDRESS, 100),(ADAPTER_B_ADDRESS, 1000), [ZERO_ADDRESS,0], [ZERO_ADDRESS,0], [ZERO_ADDRESS,0], [ZERO_ADDRESS,0]]
+WEIGHTSTWO = [(ADAPTER_A_ADDRESS, 150),(ADAPTER_B_ADDRESS, 1500), [ZERO_ADDRESS,0], [ZERO_ADDRESS,0], [ZERO_ADDRESS,0], [ZERO_ADDRESS,0]]
 
 APYNOW = 5
 APYNOWTWO = 6
@@ -670,9 +672,9 @@ def test_activateMultipleStrategies(governance_contract, vault_contract_one, vau
     gc_one = governance_contract.CurrentStrategyByVault(vault_contract_one)
     gc_two = governance_contract.CurrentStrategyByVault(vault_contract_two)
 
-    assert [(x[0].lower(),x[1]) for x in gc_one.Weights] == [tuple(w) for w in WEIGHTS]
+    assert [(x[0].lower(),x[1]) for x in gc_one.LPRatios] == [tuple(w) for w in WEIGHTS]
     assert gc_one.APYNow == APYNOW
     assert gc_one.APYPredicted == APYPREDICTED
-    assert [(x[0].lower(),x[1]) for x in gc_two.Weights] == [tuple(w) for w in WEIGHTSTWO]
+    assert [(x[0].lower(),x[1]) for x in gc_two.LPRatios] == [tuple(w) for w in WEIGHTSTWO]
     assert gc_two.APYNow == APYNOWTWO
     assert gc_two.APYPredicted == APYPREDICTEDTWO

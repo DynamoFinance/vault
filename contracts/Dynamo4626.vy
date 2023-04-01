@@ -185,6 +185,7 @@ def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], 
 
 @external
 def set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], _min_proposer_payout : uint256) -> bool:
+    #assert False, "GOT set_strategy!"    
     return self._set_strategy(_proposer, _strategies, _min_proposer_payout)
 
 

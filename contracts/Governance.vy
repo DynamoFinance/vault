@@ -79,14 +79,16 @@ struct Strategy:
 # Contract assigned storage 
 contractOwner: public(address)
 MAX_GUARDS: constant(uint256) = 2
-MAX_POOLS: constant(uint256) = 5
+MAX_POOLS: constant(uint256) = 6
 MAX_VAULTS: constant(uint256) = 3
 MIN_PROPOSER_PAYOUT: constant(uint256) = 0
 LGov: public(DynArray[address, MAX_GUARDS])
 TDelay: public(uint256)
 no_guards: public(uint256)
+
 CurrentStrategyByVault: public(HashMap[address, Strategy])
 PendingStrategyByVault: public(HashMap[address, Strategy])
+
 VotesGCByVault: public(HashMap[address, HashMap[address, address]])
 MIN_GUARDS: constant(uint256) = 1
 NextNonceByVault: public(HashMap[address, uint256])
@@ -267,7 +269,7 @@ def activateStrategy(Nonce: uint256, vault: address):
     #Make Current Strategy and Activate Strategy
     self.CurrentStrategyByVault[vault] = self.PendingStrategyByVault[vault]
 
-    #DynamoVault(vault).set_strategy(self.CurrentStrategyByVault[vault].ProposerAddress, self.CurrentStrategyByVault[vault].LPRatios, MIN_PROPOSER_PAYOUT)
+    DynamoVault(vault).set_strategy(self.CurrentStrategyByVault[vault].ProposerAddress, self.CurrentStrategyByVault[vault].LPRatios, MIN_PROPOSER_PAYOUT)
 
     log StrategyActivation(self.CurrentStrategyByVault[vault], self.CurrentStrategyByVault[vault].ProposerAddress, self.CurrentStrategyByVault[vault].LPRatios, vault)
  
