@@ -89,6 +89,12 @@ event Withdraw:
 event StrategyActivation:
     strategy: AdapterStrategy[MAX_POOLS]
     proposer: address
+
+event PoolLoss:
+    adapter: indexed(address)
+    last_value: uint256
+    current_value: uint256
+
     
 
 @external
@@ -596,7 +602,7 @@ def getCurrentBalances() -> (uint256, BalancePool[MAX_POOLS], uint256, uint256):
 
 @internal
 @pure
-def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS], _min_outgoing_tx: uint256) -> (uint256, int256, uint256, BalancePool[MAX_POOLS]):
+def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS], _min_outgoing_tx: uint256) -> (uint256, int256, uint256, BalancePool[MAX_POOLS], address[MAX_POOLS]):
     """
     @dev    Returns: 
             1) uint256 - the total asset allocation across all pools (less _d4626_asset_target),
@@ -605,6 +611,7 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
             3) uint256 - the total number of planned txs to achieve these targets,
             4) BalancePool[MAX_POOLS] - the updated list of transactions required to
             meet the target goals sorted in ascending order of BalancePool.delta.
+            5) A list of any adapters that should be blocked because they lost funds.
 
     @param  _d4626_asset_target minimum asset target goal to be made available
             for withdraw from the 4626 contract.
@@ -631,6 +638,8 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
 
     # We have to copy from the old list into a new one to update values. (NOT THE MOST EFFICIENT OPTION.)
     pools : BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
+    blocked_adapters : address[MAX_POOLS] = empty(address[MAX_POOLS])
+    blocked_pos : uint256 = 0
 
     # Any funds that should have been moved into an LPAdapter but weren't due to invalid txs.
     leftover_assets : int256 = 0
@@ -657,6 +666,8 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
                 if pool.current < pool.last_value:
                     # We've lost value in this adapter! Don't give it more money!
                     leftover_assets += pool.delta
+                    blocked_adapters[blocked_pos] = pool.adapter
+                    blocked_pos += 1
                     pool.delta = 0 # This will result in no tx being generated.
 
         pool_result : int256 = convert(pool.current, int256) + pool.delta
@@ -693,21 +704,23 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
 
     # Check to make sure we hit our _d4626_asset_target in the end!
 
-    return pool_assets_allocated, d4626_delta, tx_count, pools
+    return pool_assets_allocated, d4626_delta, tx_count, pools, blocked_adapters
 
 
 @external
 @pure 
-def getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS], _min_outgoing_tx: uint256) -> (uint256, int256, uint256, BalancePool[MAX_POOLS]): return self._getTargetBalances(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances, _min_outgoing_tx)
+def getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS], _min_outgoing_tx: uint256) -> (uint256, int256, uint256, BalancePool[MAX_POOLS], address[MAX_POOLS]): 
+    return self._getTargetBalances(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances, _min_outgoing_tx)
 
 
 @internal
 @view
-def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceTX[MAX_POOLS]: 
-    result : BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
+def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> (BalanceTX[MAX_POOLS], address[MAX_POOLS]): 
+    pool_txs : BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
+    blocked_adapters : address[MAX_POOLS] = empty(address[MAX_POOLS])
 
     # If there are no pools then nothing to do.
-    if len(self.dlending_pools) == 0: return result
+    if len(self.dlending_pools) == 0: return pool_txs, blocked_adapters
 
     # Setup current state of vault & pools & strategy.
     d4626_assets: uint256 = 0
@@ -720,19 +733,20 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceT
     pool_assets_allocated : uint256 = 0
     d4626_delta : int256 = 0
     tx_count : uint256 = 0
-    pool_assets_allocated, d4626_delta, tx_count, pool_states = self._getTargetBalances(_target_asset_balance, total_assets, total_ratios, pool_states, self.min_proposer_payout)
+
+    pool_assets_allocated, d4626_delta, tx_count, pool_states, blocked_adapters = self._getTargetBalances(_target_asset_balance, total_assets, total_ratios, pool_states, self.min_proposer_payout)
 
     pos : uint256 = 0
     for tx_bal in pool_states:
-        result[pos] = BalanceTX({qty: tx_bal.delta, adapter: tx_bal.adapter})
+        pool_txs[pos] = BalanceTX({qty: tx_bal.delta, adapter: tx_bal.adapter})
         pos += 1
 
-    return result
+    return pool_txs, blocked_adapters
 
 
 @external
 @view
-def getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> BalanceTX[MAX_POOLS]: 
+def getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> (BalanceTX[MAX_POOLS], address[MAX_POOLS]): 
     return self._getBalanceTxs( _target_asset_balance, _max_txs )
 
 
@@ -744,7 +758,19 @@ def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALT
     # Make sure we have enough assets to send to _receiver.
     # txs: DynArray[BalanceTX, MAX_POOLS] = empty(DynArray[BalanceTX, MAX_POOLS])
     txs: BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
-    txs = self._getBalanceTxs( _target_asset_balance, _max_txs )
+    blocked_adapters: address[MAX_POOLS] = empty(address[MAX_POOLS])
+
+    txs, blocked_adapters = self._getBalanceTxs( _target_asset_balance, _max_txs )
+
+    # If there are blocked_adapters then set their strategy ratios to zero.
+    for adapter in blocked_adapters:
+        if adapter == empty(address): break
+
+        new_strat : AdapterValue = self.strategy[adapter]
+        new_strat.ratio = 0
+        self.strategy[adapter] = new_strat
+
+        log PoolLoss(adapter, new_strat.last_asset_value, self._poolAssets(adapter))
 
     # Move the funds in/out of Lending Pools as required.
     for dtx in txs:
@@ -887,7 +913,6 @@ def _deposit(_asset_amount: uint256, _receiver: address) -> uint256:
     self._balanceAdapters( empty(uint256) )
 
     # Now mint assets to return to investor.    
-    assert shares == _asset_amount, "DIFFERENT VALUES!"
     self._mint(_receiver, shares)
 
     # Update all-time assets deposited for yield tracking.
