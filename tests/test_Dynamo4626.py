@@ -306,11 +306,9 @@ def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai,
 
     d4626_assets, pool_states, total_assets, total_ratios = dynamo4626.getCurrentBalances()
 
-    print("HERE!")
-
     assert d4626_assets == 0
-    assert pool_states[0][CURRENT] == 0    
-    assert pool_states[0][RATIO] == 1 
+    assert pool_states[0].current == 0    
+    assert pool_states[0].ratio == 1 
     assert total_assets == 0
     assert total_ratios == 1
 
@@ -323,10 +321,10 @@ def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai,
     assert pool_asset_allocation == 1000    
     assert d4626_delta == -1000
     assert tx_count == 1
-    assert pool_states[0][CURRENT] == 0    
-    assert pool_states[0][RATIO] == 1 
-    assert pool_states[0][TARGET] == 1000
-    assert pool_states[0][DELTA] == 1000
+    assert pool_states[0].current == 0    
+    assert pool_states[0].ratio == 1 
+    assert pool_states[0].target == 1000
+    assert pool_states[0].delta == 1000
 
     print("pool_states = %s." % [x for x in pool_states])    
 
@@ -339,10 +337,10 @@ def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai,
     d4626_assets, pool_states, total_assets, total_ratios = dynamo4626.getCurrentBalances()
 
     assert d4626_assets == 0
-    assert pool_states[0][CURRENT] == 1000
-    assert pool_states[0][RATIO] == 1 
-    assert pool_states[0][TARGET] == 0
-    assert pool_states[0][DELTA] == 0
+    assert pool_states[0].current == 1000
+    assert pool_states[0].ratio == 1 
+    assert pool_states[0].target == 0
+    assert pool_states[0].delta== 0
     assert total_assets == 1000
     assert total_ratios == 1    
 
@@ -355,12 +353,15 @@ def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai,
     assert pool_asset_allocation == 750
     assert d4626_delta == 250
     assert tx_count == 1
-    assert pool_states[0][CURRENT] == 1000    
-    assert pool_states[0][RATIO] == 1 
-    assert pool_states[0][TARGET] == 750
-    assert pool_states[0][DELTA] == -250
+    assert pool_states[0].current == 1000    
+    assert pool_states[0].ratio == 1 
+    assert pool_states[0].target == 750
+    assert pool_states[0].delta== -250
 
     print("pool_states = %s." % [x for x in pool_states])
+
+
+
 
 
 def test_single_adapter_withdraw(project, deployer, dynamo4626, pool_adapterA, dai, trader):
@@ -526,11 +527,11 @@ def test_single_adapter_brakes_target_balance_txs(project, deployer, dynamo4626,
     assert blocked_adapters[0] == pool_adapterA    
 
     assert pool_txs[0][ADAPTER] == ZERO_ADDRESS
-    assert pool_txs[0][CURRENT] == 0
+    assert pool_txs[0].current == 0
     assert pool_txs[0][LAST_VALUE] == 0
-    assert pool_txs[0][RATIO] == 0    
-    assert pool_txs[0][TARGET] == 0
-    assert pool_txs[0][DELTA] == 0
+    assert pool_txs[0].ratio == 0    
+    assert pool_txs[0].target == 0
+    assert pool_txs[0].delta== 0
 
 
     pools = [x for x in pool_states]
@@ -557,10 +558,10 @@ def test_single_adapter_brakes_target_balance_txs(project, deployer, dynamo4626,
     next_assets, moved, tx_count, pool_txs, blocked_adapters = dynamo4626.getTargetBalances(0, 2000, 1, pools, 0)
 
     assert pool_txs[0][ADAPTER] == pool_adapterB.address
-    assert pool_txs[0][CURRENT] == 1000
+    assert pool_txs[0].current == 1000
     assert pool_txs[0][LAST_VALUE] == 0
-    assert pool_txs[0][TARGET] == 1000
-    assert pool_txs[0][DELTA] == 1000
+    assert pool_txs[0].target == 1000
+    assert pool_txs[0].delta== 1000
 
 
 def test_single_adapter_brakes(project, deployer, dynamo4626, pool_adapterA, pool_adapterB, dai, trader):
@@ -576,10 +577,10 @@ def test_single_adapter_brakes(project, deployer, dynamo4626, pool_adapterA, poo
     d4626_assets, pool_states, total_assets, total_ratios = dynamo4626.getCurrentBalances()
 
     assert d4626_assets == 0
-    assert pool_states[0][CURRENT] == 1000
-    assert pool_states[0][RATIO] == 1 
-    assert pool_states[0][TARGET] == 0
-    assert pool_states[0][DELTA] == 0
+    assert pool_states[0].current == 1000
+    assert pool_states[0].ratio == 1 
+    assert pool_states[0].target == 0
+    assert pool_states[0].delta== 0
     assert total_assets == 1000
     assert total_ratios == 1   
 
@@ -594,10 +595,10 @@ def test_single_adapter_brakes(project, deployer, dynamo4626, pool_adapterA, poo
     d4626_assets, pool_states, total_assets, total_ratios = dynamo4626.getCurrentBalances()
 
     assert d4626_assets == 1000
-    assert pool_states[0][CURRENT] == 400
-    assert pool_states[0][RATIO] == 0 # Now has been blocked! 
-    assert pool_states[0][TARGET] == 0
-    assert pool_states[0][DELTA] == 0
+    assert pool_states[0].current == 400
+    assert pool_states[0].ratio == 0 # Now has been blocked! 
+    assert pool_states[0].target == 0
+    assert pool_states[0].delta== 0
     assert total_assets == 1400
     assert total_ratios == 0  
 
@@ -609,15 +610,15 @@ def test_single_adapter_brakes(project, deployer, dynamo4626, pool_adapterA, poo
     d4626_assets, pool_states, total_assets, total_ratios = dynamo4626.getCurrentBalances()
 
     assert d4626_assets == 0
-    assert pool_states[0][CURRENT] == 400
-    assert pool_states[0][RATIO] == 0 
-    assert pool_states[0][TARGET] == 0
-    assert pool_states[0][DELTA] == 0
+    assert pool_states[0].current == 400
+    assert pool_states[0].ratio == 0 
+    assert pool_states[0].target == 0
+    assert pool_states[0].delta== 0
 
-    assert pool_states[1][CURRENT] == 1000
-    assert pool_states[1][RATIO] == 1 
-    assert pool_states[1][TARGET] == 0
-    assert pool_states[1][DELTA] == 0
+    assert pool_states[1].current == 1000
+    assert pool_states[1].ratio == 1 
+    assert pool_states[1].target == 0
+    assert pool_states[1].delta== 0
     assert total_assets == 1400
     assert total_ratios == 1 
 
