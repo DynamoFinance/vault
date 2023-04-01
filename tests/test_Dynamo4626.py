@@ -304,29 +304,27 @@ def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai,
     assert pool_adapterA.totalAssets() == 0
     assert dynamo4626.totalAssets() == 0
 
-    d4626_assets, pool_states, total_assets, total_ratios = dynamo4626.getCurrentBalances()
+    d4626_assets, pools, total_assets, total_ratios = dynamo4626.getCurrentBalances()
 
     assert d4626_assets == 0
-    assert pool_states[0].current == 0    
-    assert pool_states[0].ratio == 1 
+    assert pools[0].current == 0    
+    assert pools[0].ratio == 1 
     assert total_assets == 0
     assert total_ratios == 1
 
-    print("pool_states = %s." % [x for x in pool_states])
-
-    pools = [x for x in pool_states]
+    print("pools = %s." % [x for x in pools])
 
     total_assets = 1000
-    pool_asset_allocation, d4626_delta, tx_count, pool_states, blocked_adapters = dynamo4626.getTargetBalances(0, total_assets, total_ratios, pools, 0)
+    pool_asset_allocation, d4626_delta, tx_count, pools, blocked_adapters = dynamo4626.getTargetBalances(0, total_assets, total_ratios, pools, 0)
     assert pool_asset_allocation == 1000    
     assert d4626_delta == -1000
     assert tx_count == 1
-    assert pool_states[0].current == 0    
-    assert pool_states[0].ratio == 1 
-    assert pool_states[0].target == 1000
-    assert pool_states[0].delta == 1000
+    assert pools[0].current == 0    
+    assert pools[0].ratio == 1 
+    assert pools[0].target == 1000
+    assert pools[0].delta == 1000
 
-    print("pool_states = %s." % [x for x in pool_states])    
+    print("pools = %s." % [x for x in pools])    
 
 
     # Trader needs to allow the 4626 contract to take funds.
@@ -334,31 +332,28 @@ def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai,
 
     result = dynamo4626.deposit(1000, trader, sender=trader)
 
-    d4626_assets, pool_states, total_assets, total_ratios = dynamo4626.getCurrentBalances()
+    d4626_assets, pools, total_assets, total_ratios = dynamo4626.getCurrentBalances()
 
     assert d4626_assets == 0
-    assert pool_states[0].current == 1000
-    assert pool_states[0].ratio == 1 
-    assert pool_states[0].target == 0
-    assert pool_states[0].delta== 0
+    assert pools[0].current == 1000
+    assert pools[0].ratio == 1 
+    assert pools[0].target == 0
+    assert pools[0].delta== 0
     assert total_assets == 1000
     assert total_ratios == 1    
 
-    print("pool_states = %s." % [x for x in pool_states])
+    print("pools = %s." % [x for x in pools])
 
-    # Ape needs this conversion.
-    pools = [x for x in pool_states]
-
-    pool_asset_allocation, d4626_delta, tx_count, pool_states, blocked_adapters = dynamo4626.getTargetBalances(250, total_assets, total_ratios, pools, 0)
+    pool_asset_allocation, d4626_delta, tx_count, pools, blocked_adapters = dynamo4626.getTargetBalances(250, total_assets, total_ratios, pools, 0)
     assert pool_asset_allocation == 750
     assert d4626_delta == 250
     assert tx_count == 1
-    assert pool_states[0].current == 1000    
-    assert pool_states[0].ratio == 1 
-    assert pool_states[0].target == 750
-    assert pool_states[0].delta== -250
+    assert pools[0].current == 1000    
+    assert pools[0].ratio == 1 
+    assert pools[0].target == 750
+    assert pools[0].delta== -250
 
-    print("pool_states = %s." % [x for x in pool_states])
+    print("pools = %s." % [x for x in pools])
 
 
 
