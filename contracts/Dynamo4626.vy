@@ -682,6 +682,8 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
 
         tx_count += 1
 
+        #pools[pos]=pool
+
         # Do an insertion sort keeping in increasing order of pool.delta value.
         if pos == 0:
             pools[pos]=pool

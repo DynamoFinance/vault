@@ -409,10 +409,19 @@ def test_multiple_adapter_balanceAdapters(project, deployer, dynamo4626, pool_ad
     d4626_assets, pools, total_assets, total_ratios = dynamo4626.getCurrentBalances()
 
     assert d4626_assets == 0
+    
+    assert pools[0].adapter == pool_adapterA
     assert pools[0].current == 500
     assert pools[0].ratio == 1 
     assert pools[0].target == 0
     assert pools[0].delta== 0
+
+    assert pools[1].adapter == pool_adapterB
+    assert pools[1].current == 500
+    assert pools[1].ratio == 1 
+    assert pools[1].target == 0
+    assert pools[1].delta== 0    
+
     assert total_assets == 1000
     assert total_ratios == 2
 
@@ -574,8 +583,6 @@ def test_single_adapter_brakes_target_balance_txs(project, deployer, dynamo4626,
     # Pretend to add another 1000.
     # No tx should be generated for the adapter as the brakes are applied due to the loss.
     next_assets, moved, tx_count, pool_txs, blocked_adapters = dynamo4626.getTargetBalances(0, 2000, 1, pools, 0)
-
-
 
     assert blocked_adapters[0] == pool_adapterA    
 
