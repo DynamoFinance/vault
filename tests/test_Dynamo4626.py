@@ -490,6 +490,7 @@ def test_single_adapter_brakes_target_balance_txs(project, deployer, dynamo4626,
 
     assert pool_txs[0][ADAPTER] == pool_adapterA
     assert pool_txs[0][CURRENT] == 1000
+    assert pool_txs[0][LAST_VALUE] == 1000
     assert pool_txs[0][TARGET] == 2000
     assert pool_txs[0][DELTA] == 1000
     
@@ -497,7 +498,7 @@ def test_single_adapter_brakes_target_balance_txs(project, deployer, dynamo4626,
     # Knock the first pool's current value down as if there was a loss in that LP.
     pools = [x for x in pool_txs]
     new_pool_state = [x for x in pools[0]]
-    new_pool_state[CURRENT] = 500
+    new_pool_state[CURRENT] = 500   # Because this number is less than pool_txs[0][LAST_VALUE] it's a loss.
     pools[0] = tuple(new_pool_state) 
 
     # Pretend to add another 1000.
@@ -506,6 +507,7 @@ def test_single_adapter_brakes_target_balance_txs(project, deployer, dynamo4626,
 
     assert pool_txs[0][ADAPTER] == ZERO_ADDRESS
     assert pool_txs[0][CURRENT] == 0
+    assert pool_txs[0][LAST_VALUE] == 0
     assert pool_txs[0][TARGET] == 0
     assert pool_txs[0][DELTA] == 0
 
