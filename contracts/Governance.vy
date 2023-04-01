@@ -244,22 +244,22 @@ def rejectStrategy(Nonce: uint256, vault: address):
 @external
 def activateStrategy(Nonce: uint256, vault: address):
     # No using a Strategy function without a vault
-    assert len(self.VaultList) > 0, "Cannot call Strategy function with no vault"
+    assert len(self.VaultList) > 0, "No vaults to apply a strategy to."
 
     #Check to see if vault is in vault list
-    assert vault in self.VaultList, "vault not in vault list!"  
+    assert vault in self.VaultList, "No such Vault!"  
 
     #Confirm there is a currently pending strategy
-    assert (self.CurrentStrategyByVault[vault].Nonce != self.PendingStrategyByVault[vault].Nonce)
-    assert (self.PendingStrategyByVault[vault].Withdrawn == False)
+    assert (self.CurrentStrategyByVault[vault].Nonce != self.PendingStrategyByVault[vault].Nonce), "No pending strategy."
+    assert (self.PendingStrategyByVault[vault].Withdrawn == False), "Pending srategy has been withdrawn."
 
     #Confirm strategy is approved by guards
     assert (len(self.PendingStrategyByVault[vault].VotesEndorse) >= len(self.LGov)/2) or \
-           ((self.PendingStrategyByVault[vault].TSubmitted + self.TDelay) < block.timestamp)
-    assert len(self.PendingStrategyByVault[vault].VotesReject) < len(self.PendingStrategyByVault[vault].VotesEndorse)
+           ((self.PendingStrategyByVault[vault].TSubmitted + self.TDelay) < block.timestamp), "Not an approved strategy."
+    assert len(self.PendingStrategyByVault[vault].VotesReject) < len(self.PendingStrategyByVault[vault].VotesEndorse), "More rejection than endorement votes."
 
     #Confirm Pending Strategy is the Strategy we want to activate
-    assert self.PendingStrategyByVault[vault].Nonce == Nonce
+    assert self.PendingStrategyByVault[vault].Nonce == Nonce, "Nonce not for this pending strategy."
 
     #Make Current Strategy and Activate Strategy
     self.CurrentStrategyByVault[vault] = self.PendingStrategyByVault[vault]
