@@ -657,8 +657,7 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
                 if pool.current < pool.last_value:
                     # We've lost value in this adapter! Don't give it more money!
                     leftover_assets += pool.delta
-                    pool.delta = 0
-                    pool.target = 0
+                    pool.delta = 0 # This will result in no tx being generated.
 
         pool_result : int256 = convert(pool.current, int256) + pool.delta
         assert pool_result >= 0, "Pool resulting balance can't be less than zero!"

@@ -339,6 +339,7 @@ def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai,
 
     print("pool_states = %s." % [x for x in pool_states])
 
+    # Ape needs this conversion.
     pools = [x for x in pool_states]
 
     pool_asset_allocation, d4626_delta, tx_count, pool_states = dynamo4626.getTargetBalances(250, total_assets, total_ratios, pools, 0)
@@ -351,6 +352,7 @@ def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai,
     assert pool_states[0][DELTA] == -250
 
     print("pool_states = %s." % [x for x in pool_states])
+
 
 def test_single_adapter_withdraw(project, deployer, dynamo4626, pool_adapterA, dai, trader):
     _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
@@ -459,4 +461,52 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
 
     assert max_withdrawl == pytest.approx(0), "Still got %s assets left to withdraw!" % max_withdrawl
     assert max_redeem == pytest.approx(0), "Still got %s shares left to redeem!" % max_redeem
+
+
+def test_single_adapter_brakes_target_balance_txs(project, deployer, dynamo4626, pool_adapterA, dai, trader):
+    _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
+
+    # Trader needs to allow the 4626 contract to take funds.
+    dai.approve(dynamo4626,1000, sender=trader)
+
+    result = dynamo4626.deposit(1000, trader, sender=trader)
+
+    d4626_assets, pool_states, total_assets, total_ratios = dynamo4626.getCurrentBalances()
+
+    assert d4626_assets == 0
+    assert pool_states[0][CURRENT] == 1000
+    assert pool_states[0][RATIO] == 1 
+    assert pool_states[0][TARGET] == 0
+    assert pool_states[0][DELTA] == 0
+    assert total_assets == 1000
+    assert total_ratios == 1   
+
+    # Ape needs this conversion.
+    pools = [x for x in pool_states]
+
+    # Pretend to add another 1000.
+    # The target for the first pool's value should be the full amount.
+    next_assets, moved, tx_count, pool_txs = dynamo4626.getTargetBalances(0, 2000, 1, pools, 0)
+
+    assert pool_txs[0][ADAPTER] == pool_adapterA
+    assert pool_txs[0][CURRENT] == 1000
+    assert pool_txs[0][TARGET] == 2000
+    assert pool_txs[0][DELTA] == 1000
+    
+
+    # Knock the first pool's current value down as if there was a loss in that LP.
+    pools = [x for x in pool_txs]
+    new_pool_state = [x for x in pools[0]]
+    new_pool_state[CURRENT] = 500
+    pools[0] = tuple(new_pool_state) 
+
+    # Pretend to add another 1000.
+    # No tx should be generated for the adapter as the brakes are applied due to the loss.
+    next_assets, moved, tx_count, pool_txs = dynamo4626.getTargetBalances(0, 2000, 1, pools, 0)
+
+    assert pool_txs[0][ADAPTER] == ZERO_ADDRESS
+    assert pool_txs[0][CURRENT] == 0
+    assert pool_txs[0][TARGET] == 0
+    assert pool_txs[0][DELTA] == 0
+
 
