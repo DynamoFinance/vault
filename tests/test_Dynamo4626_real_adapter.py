@@ -6,7 +6,7 @@ from web3 import Web3
 import requests, json
 import eth_abi
 
-MAX_POOLS = 6 # Must match Dynamo4626.vy MAX_POOLS
+MAX_POOLS = 5 # Must match Dynamo4626.vy MAX_POOLS
 
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 DAI = "0x6B175474E89094C44Da98b954EedeAC495271d0F"

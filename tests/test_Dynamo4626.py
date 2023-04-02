@@ -7,7 +7,7 @@ from tests.conftest import is_not_hard_hat
 
 from itertools import zip_longest
 
-MAX_POOLS = 6 # Must match the value from Dynamo4626.vy
+MAX_POOLS = 5 # Must match the value from Dynamo4626.vy
 
 d4626_name = "DynamoDAI"
 d4626_token = "dyDAI"

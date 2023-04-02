@@ -79,7 +79,7 @@ struct Strategy:
 # Contract assigned storage 
 contractOwner: public(address)
 MAX_GUARDS: constant(uint256) = 2
-MAX_POOLS: constant(uint256) = 6
+MAX_POOLS: constant(uint256) = 5
 MAX_VAULTS: constant(uint256) = 3
 MIN_PROPOSER_PAYOUT: constant(uint256) = 0
 LGov: public(DynArray[address, MAX_GUARDS])

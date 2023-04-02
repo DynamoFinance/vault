@@ -2,14 +2,13 @@
 
 from vyper.interfaces import ERC20
 from vyper.interfaces import ERC4626
-#from interfaces.adapter import LPAdapter
 import LPAdapter as LPAdapter
 implements: ERC20
 implements: ERC4626
 
 
-MAX_POOLS : constant(uint256) = 6
-MAX_BALTX_DEPOSIT : constant(uint8) = 6
+MAX_POOLS : constant(uint256) = 5
+MAX_BALTX_DEPOSIT : constant(uint8) = 5 # TODO - this is ignored for now.
 
 # Contract owner hold 10% of the yield.
 YIELD_FEE_PERCENTAGE : constant(uint256) = 10
@@ -727,6 +726,7 @@ def getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _tot
 @internal
 @view
 def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> (BalanceTX[MAX_POOLS], address[MAX_POOLS]): 
+    # _BDM TODO : max_txs is ignored for now.    
     pool_txs : BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
     blocked_adapters : address[MAX_POOLS] = empty(address[MAX_POOLS])
 
