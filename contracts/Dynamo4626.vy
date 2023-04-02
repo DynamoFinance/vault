@@ -685,6 +685,14 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
         #pools[pos]=pool
 
         # Do an insertion sort keeping in increasing order of pool.delta value.
+        # struct BalancePool:
+        #     adapter: address
+        #     current: uint256
+        #     last_value: uint256    
+        #     ratio: uint256
+        #     target: uint256 
+        #     delta: int256
+
         if pos == 0:
             pools[pos]=pool
         else:
@@ -701,8 +709,8 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
 
                         pools[dst]=pools[src]
 
-                    # Now insert our element here.
-                    pools[npos]=pool 
+                # Now insert our element here.
+                pools[npos]=pool 
 
     # Check to make sure we hit our _d4626_asset_target in the end!
 
