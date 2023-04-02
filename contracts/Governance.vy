@@ -542,3 +542,4 @@ def swapVault(OldVaultAddress: address, NewVaultAddress: address):
 
     # Log Vault Swap
     log VaultSwap(OldVaultAddress, NewVaultAddress)
+    
