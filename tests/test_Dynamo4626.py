@@ -706,8 +706,7 @@ def test_insertion_sort():
                 break
             elif ordered_txs[pos].delta > next_tx.delta: # Move everything right and insert here.
                 for npos in range(MAX_POOLS):
-                    next_pos = MAX_POOLS - 1 - npos
-                    if next_pos == pos: break
+                    next_pos = MAX_POOLS - npos - 1
                     if ordered_txs[next_pos].delta == 0: continue
                     ordered_txs[next_pos+1] = ordered_txs[next_pos]
                     
@@ -715,22 +714,10 @@ def test_insertion_sort():
                 print("ordered_txs = %s\n" % ordered_txs)
                 break
 
-
-
     # test got them all
     assert countif(transactions) == countif(ordered_txs), "Didn't get all txs."
 
     # test sorted order
-    last_item = None
-    #for pos, tx in enumerate(sorted(transactions, key=lambda x: x.delta)):
-    for pos, tx in enumerate(ordered_txs):
-        if pos==0:
-            last_item = tx
-            continue
-        if tx.delta == 0 and last_item.delta != 0: continue    
-        assert last_item.delta <= tx.delta, "%s not <= %s!" % (last_item, tx)
-        last_item = tx
-
     print("\n\nordered_txs = %s" % ordered_txs)
     print("sorted(transactions) = %s" % sorted(transactions, key=lambda x: x.delta))
     assert all([x[0].delta == x[1].delta for x in zip(ordered_txs, sorted(transactions, key=lambda x: x.delta))])
