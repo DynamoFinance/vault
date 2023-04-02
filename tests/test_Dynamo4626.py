@@ -698,7 +698,8 @@ def test_insertion_sort():
 
     # test sorted order
     last_item = None
-    for pos, tx in enumerate(sorted(transactions, key=lambda x: x.delta)):
+    #for pos, tx in enumerate(sorted(transactions, key=lambda x: x.delta)):
+    for pos, tx in enumerate(transactions, key=lambda x: x.delta):
         if pos==0:
             last_item = tx
             continue
