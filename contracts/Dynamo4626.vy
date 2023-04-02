@@ -709,22 +709,6 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
                     pools[npos] = pool
                     break
 
-            # for npos in range(MAX_POOLS):
-            #     if npos == pos: break
-            #     if pool.adapter == empty(address) or pool.delta < pools[npos].delta:
-            #         # Here's our insertion point. Shift the existing txs to the right.
-            #         for xpos in range(MAX_POOLS):
-            #             assert pos > xpos, "UNDERFLOW pos-xpos!"
-            #             dst: uint256 = pos-xpos
-            #             assert dst >= 0, "UNDERFLOW dst-1!"
-            #             src: uint256 = dst-1
-            #             if xpos == src: break
-
-            #             pools[dst]=pools[src]
-
-            #     # Now insert our element here.
-            #     pools[npos]=pool 
-
     # Check to make sure we hit our _d4626_asset_target in the end!
 
     return pool_assets_allocated, d4626_delta, tx_count, pools, blocked_adapters
