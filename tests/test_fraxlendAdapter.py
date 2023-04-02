@@ -28,7 +28,7 @@ def frax(project, deployer, trader, ensure_hardhat):
     #TODO: Ensure trader has enough FRAX
     #first storage slot: mapping (address => uint256) internal _balances; 
     abi_encoded = eth_abi.encode(['address', 'uint256'], [trader.address, 0])
-    storage_slot = Web3.solidityKeccak(["bytes"], ["0x" + abi_encoded.hex()]).hex()
+    storage_slot = Web3.solidity_keccak(["bytes"], ["0x" + abi_encoded.hex()]).hex()
     set_storage_request = {"jsonrpc": "2.0", "method": "hardhat_setStorageAt", "id": 1,
         "params": [FRAX, storage_slot, "0x" + eth_abi.encode(["uint256"], [10**28]).hex()]}
     print(requests.post("http://localhost:8545/", json.dumps(set_storage_request)))

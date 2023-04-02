@@ -29,7 +29,7 @@ def dai(project, deployer, trader, ensure_hardhat):
     #background info https://mixbytes.io/blog/modify-ethereum-storage-hardhats-mainnet-fork
     #Dai contract has  minters in first slot mapping (address => uint) public wards;
     abi_encoded = eth_abi.encode(['address', 'uint256'], [deployer.address, 0])
-    storage_slot = Web3.solidityKeccak(["bytes"], ["0x" + abi_encoded.hex()]).hex()
+    storage_slot = Web3.solidity_keccak(["bytes"], ["0x" + abi_encoded.hex()]).hex()
 
     set_storage_request = {"jsonrpc": "2.0", "method": "hardhat_setStorageAt", "id": 1,
         "params": [DAI, storage_slot, "0x" + eth_abi.encode(["uint256"], [1]).hex()]}
