@@ -1,12 +1,10 @@
 # @version 0.3.7
 """
-
-@title Governance Contract
+@title Dynamo4626 Multi-Vault
 @license MIT
 @author BiggestLab
-@notice Governance for Dynamo Vault
-
 """
+
 from vyper.interfaces import ERC20
 from vyper.interfaces import ERC4626
 import LPAdapter as LPAdapter
@@ -44,6 +42,7 @@ struct AdapterStrategy:
 
 owner: address
 governance: address
+funds_allocator: address
 current_proposer: address
 min_proposer_payout: uint256
 
@@ -104,7 +103,7 @@ event PoolLoss:
     
 
 @external
-def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20asset : address, _pools: DynArray[address, MAX_POOLS], _governance: address):
+def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20asset : address, _pools: DynArray[address, MAX_POOLS], _governance: address, _funds_allocator: address):
     """
     @notice The function provides a way to initialize the contract
     @param _name Name for token to evaluate
@@ -116,6 +115,7 @@ def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20ass
     """
     assert MAX_BALTX_DEPOSIT <= MAX_POOLS, "Invalid contract pre-conditions."
     assert _governance != empty(address), "Governance cannot be null address."
+    assert _funds_allocator != empty(address), "Fund allocator cannot be null address."
 
     name = _name
     symbol = _symbol
@@ -126,13 +126,11 @@ def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20ass
     result_ok: bool = empty(bool)
     result_ok, response = raw_call(_erc20asset, _abi_encode(self, method_id=method_id("balanceOf(address)")), max_outsize=32, value=convert(self, uint256), is_static_call=True, revert_on_failure=False)
     assert result_ok == True, "Doesn't appear to be an ERC20 contract."
-    #assert (response != empty(Bytes[32])), "Doesn't appear to be an ERC20 contract."
-
     asset = _erc20asset
-
 
     self.owner = msg.sender
     self.governance = _governance
+    self.funds_allocator = _funds_allocator
     self.totalSupply = 0
 
     assert len(self.dlending_pools)==0, "HUh?!?!?" # TODO - remove
@@ -754,6 +752,99 @@ def getCurrentBalances() -> (uint256, BalancePool[MAX_POOLS], uint256, uint256):
 @internal
 @pure
 def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS], _min_outgoing_tx: uint256) -> (uint256, int256, uint256, BalancePool[MAX_POOLS], address[MAX_POOLS]):
+
+    # Is this likely to be an actual ERC20 contract?
+    response: Bytes[32] = empty(Bytes[32])
+    result_ok: bool = empty(bool)
+    #result_ok, response = raw_call(_erc20asset, _abi_encode(self, method_id=method_id("balanceOf(address)")), max_outsize=32, value=convert(self, uint256), is_static_call=True, revert_on_failure=False)
+    assert result_ok == True, "Doesn't appear to be an ERC20 contract."
+
+    getTargetBalances_method_id : Union[Bytes[4], bytes4] = method_id(getTargetBalances(uint256, uint256, uint256, BalancePool[MAX_POOLS], uint256))
+    parameters: Bytes[32] = _abi_encode(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances, _min_outgoing_tx, method_id=getTargetBalances_method_id)
+
+    result_ok, response = raw_call(self.funds_allocator, paramters, max_outsize=32, is_static_call=True, revert_on_failure=False)
+
+    assert result_ok, "_getTargetBalances raw_call failed!"
+    return response
+
+    # # WHAT IF THE _d4626_asset_target is larger than the total assets?!?!?
+    # assert _d4626_asset_target <= _total_assets, "Not enough assets to fulfill d4626 target goals!"
+
+    # total_pool_target_assets : uint256 = _total_assets - _d4626_asset_target
+
+    # pool_assets_allocated : uint256 = 0 
+    # d4626_delta : int256 = 0
+    # tx_count: uint256 = 0
+
+    # # We have to copy from the old list into a new one to update values. (NOT THE MOST EFFICIENT OPTION.)
+    # pools : BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
+    # blocked_adapters : address[MAX_POOLS] = empty(address[MAX_POOLS])
+    # blocked_pos : uint256 = 0
+
+    # # Any funds that should have been moved into an LPAdapter but weren't due to invalid txs.
+    # leftover_assets : int256 = 0
+
+    # for pos in range(MAX_POOLS):
+    #     pool : BalancePool = _pool_balances[pos]
+    #     if pool.adapter == empty(address): break
+
+    #     # If the pool has been removed from the strategy then we must empty it!
+    #     if pool.ratio == 0:
+    #         pool.target = 0
+    #         pool.delta = convert(pool.current, int256) * -1 # Withdraw it all!
+    #     else:
+    #         pool.target = (total_pool_target_assets * pool.ratio) / _total_ratios      
+    #         pool.delta = convert(pool.target, int256) - convert(pool.current, int256)            
+
+    #         # Check for valid outgoing txs here.
+    #         if pool.delta > 0:
+    #             # Is an outgoing tx > min size?
+    #             if pool.delta < convert(_min_outgoing_tx, int256): 
+    #                 leftover_assets += pool.delta
+    #                 pool.delta = 0
+    #             # Is the LP possibly compromised for an outgoing tx?
+    #             if pool.current < pool.last_value:
+    #                 # We've lost value in this adapter! Don't give it more money!
+    #                 leftover_assets += pool.delta
+    #                 blocked_adapters[blocked_pos] = pool.adapter
+    #                 blocked_pos += 1
+    #                 pool.delta = 0 # This will result in no tx being generated.
+
+    #     pool_result : int256 = convert(pool.current, int256) + pool.delta
+    #     assert pool_result >= 0, "Pool resulting balance can't be less than zero!"
+    #     pool_assets_allocated += convert(pool_result, uint256)
+
+
+    #     d4626_delta += pool.delta * -1
+    #     #if pool.delta != 0: tx_count += 1
+    #     # Don't insert a tx if there's nothing to transfer.
+    #     if pool.delta == 0: continue
+
+    #     tx_count += 1
+
+    #     if pos == 0:
+    #         pools[pos]=pool
+    #     else:
+    #         for npos in range(MAX_POOLS):
+    #             if pools[npos].delta == 0:  # Empty position, take it.
+    #                 pools[npos] = pool
+    #                 break
+    #             if pools[npos].delta > pool.delta: # Move everything right and insert here.
+    #                 for mpos in range(MAX_POOLS):
+    #                     next_pos : uint256 = MAX_POOLS - npos - 1 
+    #                     if pools[next_pos].delta == 0: continue
+    #                     pools[next_pos+1] = pools[next_pos]
+
+    #                 pools[npos] = pool
+    #                 break
+
+    # # Check to make sure we hit our _d4626_asset_target in the end!
+    # return pool_assets_allocated, d4626_delta, tx_count, pools, blocked_adapters
+
+
+@external
+@pure 
+def getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS], _min_outgoing_tx: uint256) -> (uint256, int256, uint256, BalancePool[MAX_POOLS], address[MAX_POOLS]): 
     """
     @dev    Returns: 
             1) uint256 - the total asset allocation across all pools (less _d4626_asset_target),
@@ -776,97 +867,7 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
 
     @param _min_outgoing_tx the minimum size of a tx depositing funds to an adapter (as set by the current strategy).
 
-    """
-
-    # WHAT IF THE _d4626_asset_target is larger than the total assets?!?!?
-    assert _d4626_asset_target <= _total_assets, "Not enough assets to fulfill d4626 target goals!"
-
-    total_pool_target_assets : uint256 = _total_assets - _d4626_asset_target
-
-    pool_assets_allocated : uint256 = 0 
-    d4626_delta : int256 = 0
-    tx_count: uint256 = 0
-
-    # We have to copy from the old list into a new one to update values. (NOT THE MOST EFFICIENT OPTION.)
-    pools : BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
-    blocked_adapters : address[MAX_POOLS] = empty(address[MAX_POOLS])
-    blocked_pos : uint256 = 0
-
-    # Any funds that should have been moved into an LPAdapter but weren't due to invalid txs.
-    leftover_assets : int256 = 0
-
-    for pos in range(MAX_POOLS):
-        pool : BalancePool = _pool_balances[pos]
-        if pool.adapter == empty(address): break
-
-        # If the pool has been removed from the strategy then we must empty it!
-        if pool.ratio == 0:
-            pool.target = 0
-            pool.delta = convert(pool.current, int256) * -1 # Withdraw it all!
-        else:
-            pool.target = (total_pool_target_assets * pool.ratio) / _total_ratios      
-            pool.delta = convert(pool.target, int256) - convert(pool.current, int256)            
-
-            # Check for valid outgoing txs here.
-            if pool.delta > 0:
-                # Is an outgoing tx > min size?
-                if pool.delta < convert(_min_outgoing_tx, int256): 
-                    leftover_assets += pool.delta
-                    pool.delta = 0
-                # Is the LP possibly compromised for an outgoing tx?
-                if pool.current < pool.last_value:
-                    # We've lost value in this adapter! Don't give it more money!
-                    leftover_assets += pool.delta
-                    blocked_adapters[blocked_pos] = pool.adapter
-                    blocked_pos += 1
-                    pool.delta = 0 # This will result in no tx being generated.
-
-        pool_result : int256 = convert(pool.current, int256) + pool.delta
-        assert pool_result >= 0, "Pool resulting balance can't be less than zero!"
-        pool_assets_allocated += convert(pool_result, uint256)
-
-
-        d4626_delta += pool.delta * -1
-        #if pool.delta != 0: tx_count += 1
-        # Don't insert a tx if there's nothing to transfer.
-        if pool.delta == 0: continue
-
-        tx_count += 1
-
-        #pools[pos]=pool
-
-        # Do an insertion sort keeping in increasing order of pool.delta value.
-        # struct BalancePool:
-        #     adapter: address
-        #     current: uint256
-        #     last_value: uint256    
-        #     ratio: uint256
-        #     target: uint256 
-        #     delta: int256
-
-        if pos == 0:
-            pools[pos]=pool
-        else:
-            for npos in range(MAX_POOLS):
-                if pools[npos].delta == 0:  # Empty position, take it.
-                    pools[npos] = pool
-                    break
-                if pools[npos].delta > pool.delta: # Move everything right and insert here.
-                    for mpos in range(MAX_POOLS):
-                        next_pos : uint256 = MAX_POOLS - npos - 1 
-                        if pools[next_pos].delta == 0: continue
-                        pools[next_pos+1] = pools[next_pos]
-
-                    pools[npos] = pool
-                    break
-
-    # Check to make sure we hit our _d4626_asset_target in the end!
-    return pool_assets_allocated, d4626_delta, tx_count, pools, blocked_adapters
-
-
-@external
-@pure 
-def getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS], _min_outgoing_tx: uint256) -> (uint256, int256, uint256, BalancePool[MAX_POOLS], address[MAX_POOLS]): 
+    """    
     return self._getTargetBalances(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances, _min_outgoing_tx)
 
 

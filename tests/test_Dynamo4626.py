@@ -51,10 +51,14 @@ def pool_adapterC(project, deployer, dai):
     c = deployer.deploy(project.MockLPAdapter, dai, wdai)
     return c    
 
+@pytest.fixture
+def funds_alloc(project, deployer):
+    f = deployer.deploy(project.FundsAllocator)
+    return f
 
 @pytest.fixture
-def dynamo4626(project, deployer, dai, trader):
-    v = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, [], deployer)    
+def dynamo4626(project, deployer, dai, trader, funds_alloc):
+    v = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, [], deployer, funds_alloc)    
     return v
 
 
@@ -76,9 +80,9 @@ def test_basic_initialization(project, deployer, dynamo4626):
     assert dynamo4626.decimals(sender=deployer) == d4626_decimals
 
 
-def test_initial_pools_initialization(project, deployer, dai, pool_adapterA, pool_adapterB, pool_adapterC):
+def test_initial_pools_initialization(project, deployer, dai, pool_adapterA, pool_adapterB, pool_adapterC, funds_alloc):
     pools = [pool_adapterA, pool_adapterB, pool_adapterC]
-    dynamo = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, pools, deployer)    
+    dynamo = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, pools, deployer, funds_alloc)    
 
     # This should fail because we can't add the same pool twice!
     for pool in pools:
