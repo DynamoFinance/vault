@@ -1,0 +1,5 @@
+ape-alchemy==0.6.1
+ape-hardhat==0.6.1
+ape-polygon==0.6.0
+ape-vyper==0.6.2
+eth-ape==0.6.7
