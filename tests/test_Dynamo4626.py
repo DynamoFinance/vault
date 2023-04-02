@@ -131,8 +131,7 @@ def test_add_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
 
 
 def _setup_single_adapter(_project, _dynamo4626, _deployer, _dai, _adapter, ratio=1):
-    # Setup our pool.
-    _dynamo4626.add_pool(_adapter, sender=_deployer)
+    # Setup our pool strategy first.
     strategy = [(ZERO_ADDRESS,0)] * MAX_POOLS 
 
     # Get the current strategy settings.
@@ -141,8 +140,12 @@ def _setup_single_adapter(_project, _dynamo4626, _deployer, _dai, _adapter, rati
         strategy[pos] = (pool, _dynamo4626.strategy(pool).ratio)
         pos += 1
 
-    strategy[pos] = (_adapter,ratio)
+    strategy[pos] = (_adapter.address,ratio)
+    print("strategy for _setup_single_adapter: %s." % strategy)
     _dynamo4626.set_strategy(_deployer, strategy, 0, sender=_deployer)
+
+    # Now add the pool.
+    _dynamo4626.add_pool(_adapter, sender=_deployer)    
 
     # Jiggle around transfer rights here for test purposes.
     werc20 = _project.ERC20.at(_adapter.wrappedAsset())
@@ -574,7 +577,7 @@ def test_single_adapter_brakes_target_balance_txs(project, deployer, dynamo4626,
     assert first_pool.target == 2000
     assert first_pool.delta == 1000
 
-    assert False
+    #assert False
 
     # Knock the first pool's current value down as if there was a loss in that LP.
     pools = [copy.deepcopy(x) for x in pool_txs]
@@ -612,7 +615,7 @@ def test_single_adapter_brakes_target_balance_txs(project, deployer, dynamo4626,
     pools = [x for x in pool_txs]
     #pools[0] = tuple(new_pool_state) 
 
-    #assert False
+    assert False
 
     # Pretend to add another 1000.
     # No tx should be generated for the adapter as the brakes are applied due to the loss.
@@ -638,7 +641,9 @@ def test_single_adapter_brakes(project, deployer, dynamo4626, pool_adapterA, poo
     d4626_assets, pool_states, total_assets, total_ratios = dynamo4626.getCurrentBalances()
 
     assert d4626_assets == 0
+    assert pool_states[0].adapter == pool_adapterA
     assert pool_states[0].current == 1000
+    assert pool_states[0].last_value == 1000
     assert pool_states[0].ratio == 1 
     assert pool_states[0].target == 0
     assert pool_states[0].delta== 0
@@ -656,7 +661,9 @@ def test_single_adapter_brakes(project, deployer, dynamo4626, pool_adapterA, poo
     d4626_assets, pool_states, total_assets, total_ratios = dynamo4626.getCurrentBalances()
 
     assert d4626_assets == 1000
+    assert pool_states[0].adapter == pool_adapterA    
     assert pool_states[0].current == 400
+    assert pool_states[0].last_value == 1000    
     assert pool_states[0].ratio == 0 # Now has been blocked! 
     assert pool_states[0].target == 0
     assert pool_states[0].delta== 0
@@ -671,17 +678,22 @@ def test_single_adapter_brakes(project, deployer, dynamo4626, pool_adapterA, poo
     d4626_assets, pool_states, total_assets, total_ratios = dynamo4626.getCurrentBalances()
 
     assert d4626_assets == 0
-    assert pool_states[0].current == 400
+    assert pool_states[0].adapter == pool_adapterA    
+    assert pool_states[0].current == 0
+    assert pool_states[0].last_value == 0
     assert pool_states[0].ratio == 0 
     assert pool_states[0].target == 0
     assert pool_states[0].delta== 0
 
-    assert pool_states[1].current == 1000
+    assert pool_states[1].adapter == pool_adapterB
+    assert pool_states[1].current == 1400
+    assert pool_states[1].last_value == 1400
     assert pool_states[1].ratio == 1 
     assert pool_states[1].target == 0
     assert pool_states[1].delta== 0
     assert total_assets == 1400
     assert total_ratios == 1 
+
 
 @dataclass
 class DTx:
@@ -690,6 +702,7 @@ class DTx:
 
 def countif(l):
     return sum(1 for y in [x for x in l if x.delta!=0])
+
 
 def test_insertion_sort():    
 
@@ -721,4 +734,4 @@ def test_insertion_sort():
     print("\n\nordered_txs = %s" % ordered_txs)
     print("sorted(transactions) = %s" % sorted(transactions, key=lambda x: x.delta))
     assert all([x[0].delta == x[1].delta for x in zip(ordered_txs, sorted(transactions, key=lambda x: x.delta))])
-    
+

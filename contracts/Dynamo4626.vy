@@ -182,7 +182,7 @@ def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], 
         self.strategy[strategy.adapter] = plan
 
     # Rebalance vault according to new strategy.
-    self._balanceAdapters(0, convert(MAX_POOLS, uint8))
+    # TODO BDM : should this be separate? self._balanceAdapters(0, convert(MAX_POOLS, uint8))
 
     log StrategyActivation(_strategies, _proposer)
 
@@ -875,6 +875,7 @@ def _adapter_deposit(_adapter: address, _asset_amount: uint256):
 
 @internal
 def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: address):
+
     current_balance : uint256 = ERC20(asset).balanceOf(_adapter)
     balbefore : uint256 = ERC20(asset).balanceOf(_withdraw_to)
     response: Bytes[32] = empty(Bytes[32])
@@ -909,11 +910,22 @@ def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: a
     #assert False, "Here we are 902!"
 
     balafter : uint256 = ERC20(asset).balanceOf(_withdraw_to)
+
     assert balafter != balbefore, "NOTHING CHANGED!"
+
+    #if _asset_amount == 400:
+    #    res : String[180] = concat("balafter = ", uint2str(balafter), " balbefore = ", uint2str(balbefore) )
+    #    assert False, res
+
     assert balafter - balbefore == _asset_amount, "DIDN'T GET OUR ASSETS BACK!"
     
     # Update our last_asset_value in our strategy for protection against LP exploits.
-    self.strategy[_adapter].last_asset_value = balafter
+    self.strategy[_adapter].last_asset_value = self._poolAssets(_adapter)
+
+
+# BDM - get rid of this.
+#@external
+#def adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: address): self._adapter_withdraw(_adapter, _asset_amount, _withdraw_to)
 
 
 @internal
