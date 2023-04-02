@@ -1,4 +1,5 @@
 import copy
+from dataclasses import dataclass
 
 import pytest
 import ape
@@ -682,3 +683,24 @@ def test_single_adapter_brakes(project, deployer, dynamo4626, pool_adapterA, poo
     assert total_assets == 1400
     assert total_ratios == 1 
 
+@dataclass
+class DTx:
+    adapter: str = ZERO_ADDRESS
+    delta: int = 0
+
+def test_insertion_sort():    
+
+    transactions = [DTx(x[0],x[1]) for x in [('0x123',-5),('0x456',4),('0x876',-25),('0x543',15)]]
+
+    #for dtx in [DTx(x) for x in transactions:
+
+
+
+    # test sorted order
+    last_item = None
+    for pos, tx in enumerate(sorted(transactions, key=lambda x: x.delta)):
+        if pos==0:
+            last_item = tx
+            continue
+        assert last_item.delta <= tx.delta, "%s not <= %s!" % (last_item, tx)
+        last_item = tx

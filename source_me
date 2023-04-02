@@ -3,8 +3,8 @@
 # for your Alchemy API below then run: `source source_me` in your shell. 
 #
 
-export WEB3_ETHEREUM_MAINNET_ALCHEMY_API_KEY=<PUT YOUR ALCHEMY API KEY HERE!!!>
-export WEB3_ALCHEMY_API_KEY=<PUT YOUR ALCHEMY API KEY HERE!!!>
+export WEB3_ETHEREUM_MAINNET_ALCHEMY_API_KEY=rmrr6rVlDSKKSZB5Npk2As2VZDwcU60s
+export WEB3_ALCHEMY_API_KEY=rmrr6rVlDSKKSZB5Npk2As2VZDwcU60s
 
 nvm install 16.16.0
 
@@ -13,6 +13,5 @@ then
     echo Starting hardhat from Ethereum main net block 15936703.
     npx hardhat   node   --fork https://eth-mainnet.alchemyapi.io/v2/$WEB3_ETHEREUM_MAINNET_ALCHEMY_API_KEY --fork-block-number 15936703 | tee rpc_output.txt &
 fi
-
 
 
