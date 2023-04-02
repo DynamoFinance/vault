@@ -688,20 +688,50 @@ class DTx:
     adapter: str = ZERO_ADDRESS
     delta: int = 0
 
+def countif(l):
+    return sum(1 for y in [x for x in l if x.delta!=0])
+
 def test_insertion_sort():    
 
     transactions = [DTx(x[0],x[1]) for x in [('0x123',-5),('0x456',4),('0x876',-25),('0x543',15)]]
 
-    #for dtx in [DTx(x) for x in transactions:
+    ordered_txs = [DTx()] * MAX_POOLS
+
+    for next_tx in transactions:
+        if next_tx.delta == 0: continue # No txs allowed that do nothing.
+        for pos in range(MAX_POOLS):
+            if ordered_txs[pos].delta == 0: # Empty position, take it.
+                ordered_txs[pos]=next_tx
+                print("first ordered_txs = %s\n" % ordered_txs)
+                break
+            elif ordered_txs[pos].delta > next_tx.delta: # Move everything right and insert here.
+                for npos in range(MAX_POOLS):
+                    next_pos = MAX_POOLS - 1 - npos
+                    if next_pos == pos: break
+                    if ordered_txs[next_pos].delta == 0: continue
+                    ordered_txs[next_pos+1] = ordered_txs[next_pos]
+                    
+                ordered_txs[pos]=next_tx
+                print("ordered_txs = %s\n" % ordered_txs)
+                break
 
 
+
+    # test got them all
+    assert countif(transactions) == countif(ordered_txs), "Didn't get all txs."
 
     # test sorted order
     last_item = None
     #for pos, tx in enumerate(sorted(transactions, key=lambda x: x.delta)):
-    for pos, tx in enumerate(transactions, key=lambda x: x.delta):
+    for pos, tx in enumerate(ordered_txs):
         if pos==0:
             last_item = tx
             continue
+        if tx.delta == 0 and last_item.delta != 0: continue    
         assert last_item.delta <= tx.delta, "%s not <= %s!" % (last_item, tx)
         last_item = tx
+
+    print("\n\nordered_txs = %s" % ordered_txs)
+    print("sorted(transactions) = %s" % sorted(transactions, key=lambda x: x.delta))
+    assert all([x[0].delta == x[1].delta for x in zip(ordered_txs, sorted(transactions, key=lambda x: x.delta))])
+    
