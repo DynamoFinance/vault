@@ -585,11 +585,15 @@ def _getCurrentBalances() -> (uint256, BalancePool[MAX_POOLS], uint256, uint256)
     for pool in self.dlending_pools:
         pool_balances[pos].adapter = pool
         pool_balances[pos].current = self._poolAssets(pool)
-        plan : AdapterValue = self.strategy[pool]
-        pool_balances[pos].ratio = plan.ratio
-        pool_balances[pos].last_value = plan.last_asset_value
         total_balance += pool_balances[pos].current
-        total_ratios += pool_balances[pos].ratio
+
+        plan : AdapterValue = self.strategy[pool]
+
+        pool_balances[pos].ratio = plan.ratio
+
+        total_ratios += plan.ratio
+        pool_balances[pos].last_value = plan.last_asset_value
+        
         pos += 1
 
     return current_local_asset_balance, pool_balances, total_balance, total_ratios

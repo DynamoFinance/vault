@@ -539,7 +539,7 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
     assert max_redeem == pytest.approx(0), "Still got %s shares left to redeem!" % max_redeem
 
 
-def test_single_adapter_brakes_target_balance_txs(project, deployer, dynamo4626, pool_adapterA, pool_adapterB, dai, trader):
+def test_single_adapter_brakes_target_balance_txs(project, deployer, dynamo4626, pool_adapterA, pool_adapterB, pool_adapterC, dai, trader):
     _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
 
     # Trader needs to allow the 4626 contract to take funds.
@@ -577,12 +577,15 @@ def test_single_adapter_brakes_target_balance_txs(project, deployer, dynamo4626,
     assert first_pool.target == 2000
     assert first_pool.delta == 1000
 
-    #assert False
+    # Adjust as if it happened.
+    first_pool.current = 2000
+    first_pool.last_value = 2000
+    first_pool.target = 0
+    first_pool.delta = 0
+    pools[0]=first_pool
 
-    # Knock the first pool's current value down as if there was a loss in that LP.
-    pools = [copy.deepcopy(x) for x in pool_txs]
-    pools[0].current = 500
-
+    # Knock the first pool's current value down as if there was a loss of 400 in that LP.
+    pools[0].current = 1600
 
     # Pretend to add another 1000.
     # No tx should be generated for the adapter as the brakes are applied due to the loss.
@@ -590,15 +593,15 @@ def test_single_adapter_brakes_target_balance_txs(project, deployer, dynamo4626,
 
     assert blocked_adapters[0] == pool_adapterA    
 
-    assert pool_txs[0][ADAPTER] == ZERO_ADDRESS
+    assert pool_txs[0].adapter == ZERO_ADDRESS
     assert pool_txs[0].current == 0
-    assert pool_txs[0][LAST_VALUE] == 0
+    assert pool_txs[0].last_value == 0
     assert pool_txs[0].ratio == 0    
     assert pool_txs[0].target == 0
     assert pool_txs[0].delta== 0
 
-
-    pools = [x for x in pool_states]
+    # Pretend pool_adapterA has been kicked out.
+    pools[0].ratio = 0
 
     # Pretend to add another adapter.
     pools[1].adapter = pool_adapterB
@@ -609,23 +612,23 @@ def test_single_adapter_brakes_target_balance_txs(project, deployer, dynamo4626,
     pools[1].delta = 0
 
 
-
     next_assets, moved, tx_count, pool_txs, blocked_adapters = dynamo4626.getTargetBalances(0, 2000, 1, pools, 0)
 
-    pools = [x for x in pool_txs]
-    #pools[0] = tuple(new_pool_state) 
+    # All the funds should be moved into pool_adapterB.
 
-    assert False
+    assert pool_txs[0].adapter == pool_adapterA
+    assert pool_txs[0].current == 1600
+    assert pool_txs[0].last_value == 2000
+    assert pool_txs[0].ratio == 0    
+    assert pool_txs[0].target == 0
+    assert pool_txs[0].delta== -1600
 
-    # Pretend to add another 1000.
-    # No tx should be generated for the adapter as the brakes are applied due to the loss.
-    next_assets, moved, tx_count, pool_txs, blocked_adapters = dynamo4626.getTargetBalances(0, 2000, 1, pools, 0)
-
-    assert pool_txs[0][ADAPTER] == pool_adapterB.address
-    assert pool_txs[0].current == 1000
-    assert pool_txs[0][LAST_VALUE] == 0
-    assert pool_txs[0].target == 1000
-    assert pool_txs[0].delta== 1000
+    assert pool_txs[1].adapter == pool_adapterB
+    assert pool_txs[1].current == 0
+    assert pool_txs[1].last_value == 0
+    assert pool_txs[1].ratio == 1    
+    assert pool_txs[1].target == 2000
+    assert pool_txs[1].delta== 2000
 
 
 def test_single_adapter_brakes(project, deployer, dynamo4626, pool_adapterA, pool_adapterB, dai, trader):
