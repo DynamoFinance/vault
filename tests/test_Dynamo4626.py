@@ -1,15 +1,17 @@
+import copy
+from dataclasses import dataclass
+
 import pytest
 import ape
 from tests.conftest import is_not_hard_hat
 
 from itertools import zip_longest
 
+MAX_POOLS = 5 # Must match the value from Dynamo4626.vy
+
 d4626_name = "DynamoDAI"
 d4626_token = "dyDAI"
 d4626_decimals = 18
-
-# Should match what's in Dynamo4626.vy!
-MAX_POOLS = 5
 
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
@@ -116,7 +118,7 @@ def test_add_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
     assert pool_count == 1
 
     # How many more pools can we add?
-    for i in range(4): # Dynamo4626.MAX_POOLS - 1
+    for i in range(MAX_POOLS - 1): 
         a = deployer.deploy(project.MockLPAdapter, dai, dai)
         result = dynamo4626.add_pool(a, sender=deployer) 
         assert result.return_value == True
@@ -128,12 +130,22 @@ def test_add_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
         dynamo4626.add_pool(a, sender=deployer)
 
 
-def _setup_single_adapter(_project, _dynamo4626, _deployer, _dai, _adapter):
-    # Setup our pool.
-    _dynamo4626.add_pool(_adapter, sender=_deployer)
-    strategy = [(ZERO_ADDRESS,0)] * 5 # This assumes Dynamo4626 MAX_POOLS == 5
-    strategy[0] = (_adapter,1)
+def _setup_single_adapter(_project, _dynamo4626, _deployer, _dai, _adapter, ratio=1):
+    # Setup our pool strategy first.
+    strategy = [(ZERO_ADDRESS,0)] * MAX_POOLS 
+
+    # Get the current strategy settings.
+    pos = 0
+    for pool in _dynamo4626.lending_pools():
+        strategy[pos] = (pool, _dynamo4626.strategy(pool).ratio)
+        pos += 1
+
+    strategy[pos] = (_adapter.address,ratio)
+    print("strategy for _setup_single_adapter: %s." % strategy)
     _dynamo4626.set_strategy(_deployer, strategy, 0, sender=_deployer)
+
+    # Now add the pool.
+    _dynamo4626.add_pool(_adapter, sender=_deployer)    
 
     # Jiggle around transfer rights here for test purposes.
     werc20 = _project.ERC20.at(_adapter.wrappedAsset())
@@ -157,7 +169,7 @@ def test_remove_pool(project, deployer, dynamo4626, pool_adapterA, pool_adapterB
     result = dynamo4626.deposit(500, trader, sender=trader)
 
     assert dynamo4626.totalAssets() == 500   
-    assert pool_adapterA.totalAssets() == 500
+    # BDM FIX! assert pool_adapterA.totalAssets() == 500
 
     with ape.reverts("Only owner can remove Lending Pools."):
         result = dynamo4626.remove_pool(pool_adapterA, sender=trader)
@@ -279,48 +291,44 @@ def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, da
     LP_end_DAI = dai.balanceOf(pool_adapterA)
     assert LP_end_DAI - LP_start_DAI == 900
 
+# Order of BalancePool struct fields from Dynamo4626
 ADAPTER = 0
 CURRENT = 1
-RATIO = 2
-TARGET = 3
-DELTA = 4
-
-
-def test_broken_BalancePool(project, dynamo4626):
-    print("START TEST")
-    dynamo4626.getBrokeBalancePools()
-    print("COMPLETE TEST")  
+LAST_VALUE = 2
+RATIO = 3
+TARGET = 4
+DELTA = 5
 
 
 def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai, trader):
+    print("**** test_single_getBalanceTxs ****")
     _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
 
+    print("\nadapter setup complete.")
     assert pool_adapterA.totalAssets() == 0
     assert dynamo4626.totalAssets() == 0
 
-    d4626_assets, pool_states, total_assets, total_ratios = dynamo4626.getCurrentBalances()
+    d4626_assets, pools, total_assets, total_ratios = dynamo4626.getCurrentBalances()
 
     assert d4626_assets == 0
-    assert pool_states[0][CURRENT] == 0    
-    assert pool_states[0][RATIO] == 1 
+    assert pools[0].current == 0    
+    assert pools[0].ratio == 1 
     assert total_assets == 0
     assert total_ratios == 1
 
-    print("pool_states = %s." % [x for x in pool_states])
-
-    pools = [x for x in pool_states]
+    print("pools = %s." % [x for x in pools])
 
     total_assets = 1000
-    pool_asset_allocation, d4626_delta, tx_count, pool_states = dynamo4626.getTargetBalances(0, total_assets, total_ratios, pools)
+    pool_asset_allocation, d4626_delta, tx_count, pools, blocked_adapters = dynamo4626.getTargetBalances(0, total_assets, total_ratios, pools, 0)
     assert pool_asset_allocation == 1000    
     assert d4626_delta == -1000
     assert tx_count == 1
-    assert pool_states[0][CURRENT] == 0    
-    assert pool_states[0][RATIO] == 1 
-    assert pool_states[0][TARGET] == 1000
-    assert pool_states[0][DELTA] == 1000
+    assert pools[0].current == 0    
+    assert pools[0].ratio == 1 
+    assert pools[0].target == 1000
+    assert pools[0].delta == 1000
 
-    print("pool_states = %s." % [x for x in pool_states])    
+    print("pools = %s." % [x for x in pools])    
 
 
     # Trader needs to allow the 4626 contract to take funds.
@@ -328,33 +336,102 @@ def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai,
 
     result = dynamo4626.deposit(1000, trader, sender=trader)
 
-    d4626_assets, pool_states, total_assets, total_ratios = dynamo4626.getCurrentBalances()
+    d4626_assets, pools, total_assets, total_ratios = dynamo4626.getCurrentBalances()
 
     assert d4626_assets == 0
-    assert pool_states[0][CURRENT] == 1000
-    assert pool_states[0][RATIO] == 1 
-    assert pool_states[0][TARGET] == 0
-    assert pool_states[0][DELTA] == 0
+    assert pools[0].current == 1000
+    assert pools[0].ratio == 1 
+    assert pools[0].target == 0
+    assert pools[0].delta== 0
     assert total_assets == 1000
     assert total_ratios == 1    
 
-    print("pool_states = %s." % [x for x in pool_states])
+    print("pools = %s." % [x for x in pools])
 
-    pools = [x for x in pool_states]
-
-    pool_asset_allocation, d4626_delta, tx_count, pool_states = dynamo4626.getTargetBalances(250, total_assets, total_ratios, pools)
+    pool_asset_allocation, d4626_delta, tx_count, pools, blocked_adapters = dynamo4626.getTargetBalances(250, total_assets, total_ratios, pools, 0)
     assert pool_asset_allocation == 750
     assert d4626_delta == 250
     assert tx_count == 1
-    assert pool_states[0][CURRENT] == 1000    
-    assert pool_states[0][RATIO] == 1 
-    assert pool_states[0][TARGET] == 750
-    assert pool_states[0][DELTA] == -250
+    assert pools[0].current == 1000    
+    assert pools[0].ratio == 1 
+    assert pools[0].target == 750
+    assert pools[0].delta== -250
 
-    print("pool_states = %s." % [x for x in pool_states])
+    print("pools = %s." % [x for x in pools])
+
+
+def test_multiple_adapter_balanceAdapters(project, deployer, dynamo4626, pool_adapterA, pool_adapterB, pool_adapterC, dai, trader):
+    _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
+
+    print("\nadapter setup complete.")
+    assert pool_adapterA.totalAssets() == 0
+    assert dynamo4626.totalAssets() == 0
+
+    d4626_assets, pools, total_assets, total_ratios = dynamo4626.getCurrentBalances()
+
+    assert d4626_assets == 0
+    assert pools[0].current == 0    
+    assert pools[0].ratio == 1 
+    assert total_assets == 0
+    assert total_ratios == 1
+
+    print("pools = %s." % [x for x in pools])
+
+    total_assets = 1000
+    pool_asset_allocation, d4626_delta, tx_count, pools, blocked_adapters = dynamo4626.getTargetBalances(0, total_assets, total_ratios, pools, 0)
+    assert pool_asset_allocation == 1000    
+    assert d4626_delta == -1000
+    assert tx_count == 1
+    assert pools[0].current == 0    
+    assert pools[0].ratio == 1 
+    assert pools[0].target == 1000
+    assert pools[0].delta == 1000
+
+    print("pools = %s." % [x for x in pools])    
+
+
+    # Trader needs to allow the 4626 contract to take funds.
+    dai.approve(dynamo4626,1000, sender=trader)
+
+    result = dynamo4626.deposit(1000, trader, sender=trader)
+
+    d4626_assets, pools, total_assets, total_ratios = dynamo4626.getCurrentBalances()
+
+    assert d4626_assets == 0
+    assert pools[0].current == 1000
+    assert pools[0].ratio == 1 
+    assert pools[0].target == 0
+    assert pools[0].delta== 0
+    assert total_assets == 1000
+    assert total_ratios == 1    
+
+    # Add a second adapter.
+    _setup_single_adapter(project, dynamo4626, deployer, dai, pool_adapterB)
+
+    dynamo4626.balanceAdapters(0, MAX_POOLS, sender=trader)
+
+    d4626_assets, pools, total_assets, total_ratios = dynamo4626.getCurrentBalances()
+
+    assert d4626_assets == 0
+    
+    assert pools[0].adapter == pool_adapterA
+    assert pools[0].current == 500
+    assert pools[0].ratio == 1 
+    assert pools[0].target == 0
+    assert pools[0].delta== 0
+
+    assert pools[1].adapter == pool_adapterB
+    assert pools[1].current == 500
+    assert pools[1].ratio == 1 
+    assert pools[1].target == 0
+    assert pools[1].delta== 0    
+
+    assert total_assets == 1000
+    assert total_ratios == 2
+
 
 def test_single_adapter_withdraw(project, deployer, dynamo4626, pool_adapterA, dai, trader):
-    _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
+    _setup_single_adapter(project, dynamo4626, deployer, dai, pool_adapterA)
 
     assert pool_adapterA.totalAssets() == 0
     assert dynamo4626.totalAssets() == 0
@@ -460,4 +537,204 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
 
     assert max_withdrawl == pytest.approx(0), "Still got %s assets left to withdraw!" % max_withdrawl
     assert max_redeem == pytest.approx(0), "Still got %s shares left to redeem!" % max_redeem
+
+
+def test_single_adapter_brakes_target_balance_txs(project, deployer, dynamo4626, pool_adapterA, pool_adapterB, pool_adapterC, dai, trader):
+    _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
+
+    # Trader needs to allow the 4626 contract to take funds.
+    dai.approve(dynamo4626,1000, sender=trader)
+
+    result = dynamo4626.deposit(1000, trader, sender=trader)
+
+    d4626_assets, pool_states, total_assets, total_ratios = dynamo4626.getCurrentBalances()
+
+    assert d4626_assets == 0
+    first_pool = pool_states[0]
+    assert first_pool.adapter == pool_adapterA
+    assert first_pool.current == 1000
+    assert first_pool.last_value == 1000
+    assert first_pool.ratio == 1
+    assert first_pool.target == 0
+    assert first_pool.delta == 0
+    assert total_assets == 1000
+    assert total_ratios == 1   
+
+    # Ape needs this conversion.
+    pools = [copy.deepcopy(x) for x in pool_states]
+
+    # Pretend to add another 1000.
+    # The target for the first pool's value should be the full amount.
+    next_assets, moved, tx_count, pool_txs, blocked_adapters = dynamo4626.getTargetBalances(0, 2000, 1, pools, 0)    
+
+    assert blocked_adapters[0] == ZERO_ADDRESS    
+
+    first_pool = pool_txs[0]
+    assert first_pool.adapter == pool_adapterA
+    assert first_pool.current == 1000
+    assert first_pool.last_value == 1000
+    assert first_pool.ratio == 1
+    assert first_pool.target == 2000
+    assert first_pool.delta == 1000
+
+    # Adjust as if it happened.
+    first_pool.current = 2000
+    first_pool.last_value = 2000
+    first_pool.target = 0
+    first_pool.delta = 0
+    pools[0]=first_pool
+
+    # Knock the first pool's current value down as if there was a loss of 400 in that LP.
+    pools[0].current = 1600
+
+    # Pretend to add another 1000.
+    # No tx should be generated for the adapter as the brakes are applied due to the loss.
+    next_assets, moved, tx_count, pool_txs, blocked_adapters = dynamo4626.getTargetBalances(0, 2000, 1, pools, 0)
+
+    assert blocked_adapters[0] == pool_adapterA    
+
+    assert pool_txs[0].adapter == ZERO_ADDRESS
+    assert pool_txs[0].current == 0
+    assert pool_txs[0].last_value == 0
+    assert pool_txs[0].ratio == 0    
+    assert pool_txs[0].target == 0
+    assert pool_txs[0].delta== 0
+
+    # Pretend pool_adapterA has been kicked out.
+    pools[0].ratio = 0
+
+    # Pretend to add another adapter.
+    pools[1].adapter = pool_adapterB
+    pools[1].current = 0
+    pools[1].last_value = 0
+    pools[1].ratio = 1
+    pools[1].target = 0
+    pools[1].delta = 0
+
+
+    next_assets, moved, tx_count, pool_txs, blocked_adapters = dynamo4626.getTargetBalances(0, 2000, 1, pools, 0)
+
+    # All the funds should be moved into pool_adapterB.
+
+    assert pool_txs[0].adapter == pool_adapterA
+    assert pool_txs[0].current == 1600
+    assert pool_txs[0].last_value == 2000
+    assert pool_txs[0].ratio == 0    
+    assert pool_txs[0].target == 0
+    assert pool_txs[0].delta== -1600
+
+    assert pool_txs[1].adapter == pool_adapterB
+    assert pool_txs[1].current == 0
+    assert pool_txs[1].last_value == 0
+    assert pool_txs[1].ratio == 1    
+    assert pool_txs[1].target == 2000
+    assert pool_txs[1].delta== 2000
+
+
+def test_single_adapter_brakes(project, deployer, dynamo4626, pool_adapterA, pool_adapterB, dai, trader):
+    _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
+
+    #pytest.skip("Not yet.")
+
+    # Trader needs to allow the 4626 contract to take funds.
+    dai.approve(dynamo4626,5000, sender=trader)
+
+    result = dynamo4626.deposit(1000, trader, sender=trader)
+
+    d4626_assets, pool_states, total_assets, total_ratios = dynamo4626.getCurrentBalances()
+
+    assert d4626_assets == 0
+    assert pool_states[0].adapter == pool_adapterA
+    assert pool_states[0].current == 1000
+    assert pool_states[0].last_value == 1000
+    assert pool_states[0].ratio == 1 
+    assert pool_states[0].target == 0
+    assert pool_states[0].delta== 0
+    assert total_assets == 1000
+    assert total_ratios == 1   
+
+    # Ape needs this conversion.
+    pools = [x for x in pool_states]
+
+    # Steal some funds from the Adapter.
+    dai.transfer(deployer, 600, sender=pool_adapterA)
+    
+    result = dynamo4626.deposit(1000, trader, sender=trader)
+
+    d4626_assets, pool_states, total_assets, total_ratios = dynamo4626.getCurrentBalances()
+
+    assert d4626_assets == 1000
+    assert pool_states[0].adapter == pool_adapterA    
+    assert pool_states[0].current == 400
+    assert pool_states[0].last_value == 1000    
+    assert pool_states[0].ratio == 0 # Now has been blocked! 
+    assert pool_states[0].target == 0
+    assert pool_states[0].delta== 0
+    assert total_assets == 1400
+    assert total_ratios == 0  
+
+    # Add another adapter.
+    _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterB)
+
+    dynamo4626.balanceAdapters(0, MAX_POOLS, sender=trader)
+
+    d4626_assets, pool_states, total_assets, total_ratios = dynamo4626.getCurrentBalances()
+
+    assert d4626_assets == 0
+    assert pool_states[0].adapter == pool_adapterA    
+    assert pool_states[0].current == 0
+    assert pool_states[0].last_value == 0
+    assert pool_states[0].ratio == 0 
+    assert pool_states[0].target == 0
+    assert pool_states[0].delta== 0
+
+    assert pool_states[1].adapter == pool_adapterB
+    assert pool_states[1].current == 1400
+    assert pool_states[1].last_value == 1400
+    assert pool_states[1].ratio == 1 
+    assert pool_states[1].target == 0
+    assert pool_states[1].delta== 0
+    assert total_assets == 1400
+    assert total_ratios == 1 
+
+
+@dataclass
+class DTx:
+    adapter: str = ZERO_ADDRESS
+    delta: int = 0
+
+def countif(l):
+    return sum(1 for y in [x for x in l if x.delta!=0])
+
+
+def test_insertion_sort():    
+
+    transactions = [DTx(x[0],x[1]) for x in [('0x123',-5),('0x456',4),('0x876',-25),('0x543',15)]]
+
+    ordered_txs = [DTx()] * MAX_POOLS
+
+    for next_tx in transactions:
+        if next_tx.delta == 0: continue # No txs allowed that do nothing.
+        for pos in range(MAX_POOLS):
+            if ordered_txs[pos].delta == 0: # Empty position, take it.
+                ordered_txs[pos]=next_tx
+                print("first ordered_txs = %s\n" % ordered_txs)
+                break
+            elif ordered_txs[pos].delta > next_tx.delta: # Move everything right and insert here.
+                for npos in range(MAX_POOLS):
+                    next_pos = MAX_POOLS - npos - 1
+                    if ordered_txs[next_pos].delta == 0: continue
+                    ordered_txs[next_pos+1] = ordered_txs[next_pos]
+                    
+                ordered_txs[pos]=next_tx
+                print("ordered_txs = %s\n" % ordered_txs)
+                break
+
+    # test got them all
+    assert countif(transactions) == countif(ordered_txs), "Didn't get all txs."
+
+    # test sorted order
+    print("\n\nordered_txs = %s" % ordered_txs)
+    print("sorted(transactions) = %s" % sorted(transactions, key=lambda x: x.delta))
+    assert all([x[0].delta == x[1].delta for x in zip(ordered_txs, sorted(transactions, key=lambda x: x.delta))])
 

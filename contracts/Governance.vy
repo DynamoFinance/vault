@@ -1,5 +1,13 @@
 # @version 0.3.7
 
+"""
+
+@title Governance Contract
+@license MIT
+@author BiggestLab
+@notice Governance for Dynamo Vault
+
+"""
 event StrategyWithdrawal:
     Nonce: uint256
     vault: address
@@ -39,33 +47,33 @@ event VaultSwap:
     OldVaultAddress: indexed(address)
     NewVaultAddress: indexed(address)
 
+#LPRatios
 
-#Weights
 struct AdapterStrategy:
     adapter: address
     ratio: uint256
 
 struct ProposedStrategy:
-    Weights: AdapterStrategy[MAX_POOLS]
+    LPRatios: AdapterStrategy[MAX_POOLS]
     APYNow: uint256
     APYPredicted: uint256    
 
 event StrategyProposal:
     strategy : Strategy
     ProposerAddress: address
-    Weights: AdapterStrategy[MAX_POOLS]
+    LPRatios: AdapterStrategy[MAX_POOLS]
     vault: address
 
 event StrategyActivation:
     strategy: Strategy
     ProposerAddress: address
-    Weights: AdapterStrategy[MAX_POOLS]
+    LPRatios: AdapterStrategy[MAX_POOLS]
     vault: address
 
 struct Strategy:
     Nonce: uint256
     ProposerAddress: address
-    Weights: AdapterStrategy[MAX_POOLS]
+    LPRatios: AdapterStrategy[MAX_POOLS]
     APYNow: uint256
     APYPredicted: uint256
     TSubmitted: uint256
@@ -85,8 +93,10 @@ MIN_PROPOSER_PAYOUT: constant(uint256) = 0
 LGov: public(DynArray[address, MAX_GUARDS])
 TDelay: public(uint256)
 no_guards: public(uint256)
+
 CurrentStrategyByVault: public(HashMap[address, Strategy])
 PendingStrategyByVault: public(HashMap[address, Strategy])
+
 VotesGCByVault: public(HashMap[address, HashMap[address, address]])
 MIN_GUARDS: constant(uint256) = 1
 NextNonceByVault: public(HashMap[address, uint256])
@@ -100,6 +110,11 @@ interface DynamoVault:
 
 @external
 def __init__(contractOwner: address, _tdelay: uint256):
+    """
+    @notice The function provides a way to initialize the contract
+    @param contractOwner Governance Contract Owner
+    @param _tdelay Time delay until a proposed strategy can be replaced
+    """
     self.contractOwner = contractOwner
     self.TDelay = _tdelay
     if _tdelay == empty(uint256):
@@ -108,6 +123,12 @@ def __init__(contractOwner: address, _tdelay: uint256):
 
 @external
 def submitStrategy(strategy: ProposedStrategy, vault: address) -> uint256:
+    """
+    @notice This function provides a way to Propose a Strategy for a specific Vault
+    @param strategy The Proposed Strategy (for a Vault) to evaluate 
+    @param vault The vault address (for the Proposed Strategy) to evaluate
+    @return The nonce for a strategy submitted for a specific vault
+    """
     if self.NextNonceByVault[vault] == 0:
         self.NextNonceByVault[vault] += 1
 
@@ -145,7 +166,7 @@ def submitStrategy(strategy: ProposedStrategy, vault: address) -> uint256:
     self.NextNonceByVault[vault] += 1
 
     strat.ProposerAddress = msg.sender
-    strat.Weights = strategy.Weights
+    strat.LPRatios = strategy.LPRatios
     strat.APYNow = strategy.APYNow
     strat.APYPredicted = strategy.APYPredicted
     strat.TSubmitted = block.timestamp
@@ -158,13 +179,20 @@ def submitStrategy(strategy: ProposedStrategy, vault: address) -> uint256:
 
     self.PendingStrategyByVault[vault] = strat
 
-    log StrategyProposal(strat, msg.sender, strat.Weights, vault)
+    log StrategyProposal(strat, msg.sender, strat.LPRatios, vault)
 
     return strat.Nonce
 
 
 @external
 def withdrawStrategy(Nonce: uint256, vault: address):
+    """
+    @notice This function provides a way to withdraw a proposed strategy for a specific vault
+    @param Nonce Integer (for the Proposed Strategy, by Vault) to evaluate
+    @param vault The vault address (for the Proposed Strategy) to evaluate
+    """
+    pending_strat : Strategy = self.PendingStrategyByVault[vault]
+
     # No using a Strategy function without a vault
     assert len(self.VaultList) > 0, "Cannot call Strategy function with no vault"
 
@@ -172,13 +200,13 @@ def withdrawStrategy(Nonce: uint256, vault: address):
     assert vault in self.VaultList, "vault not in vault list!"  
 
     #Check to see that the pending strategy is not the current strategy
-    assert (self.CurrentStrategyByVault[vault].Nonce != self.PendingStrategyByVault[vault].Nonce), "Cannot withdraw Current Strategy"
+    assert (self.CurrentStrategyByVault[vault].Nonce != pending_strat.Nonce), "Cannot withdraw Current Strategy"
 
     #Check to see that the pending strategy's nonce matches the nonce we want to withdraw
-    assert self.PendingStrategyByVault[vault].Nonce == Nonce, "Cannot Withdraw Strategy if its not Pending Strategy"
+    assert pending_strat.Nonce == Nonce, "Cannot Withdraw Strategy if its not Pending Strategy"
 
     #Check to see that sender is eligible to withdraw
-    assert self.PendingStrategyByVault[vault].ProposerAddress == msg.sender
+    assert pending_strat.ProposerAddress == msg.sender
 
     #Withdraw Pending Strategy
     self.PendingStrategyByVault[vault].Withdrawn = True
@@ -188,6 +216,13 @@ def withdrawStrategy(Nonce: uint256, vault: address):
 
 @external
 def endorseStrategy(Nonce: uint256, vault: address):
+    """
+    @notice This function provides a way to vote for a proposed strategy for a specific vault
+    @param Nonce Integer (for the Proposed Strategy, by Vault) to evaluate
+    @param vault The vault address (for the Proposed Strategy) to evaluate
+    """
+    pending_strat : Strategy = self.PendingStrategyByVault[vault]
+
     # No using a Strategy function without a vault
     assert len(self.VaultList) > 0, "Cannot call Strategy function with no vault"
 
@@ -195,17 +230,17 @@ def endorseStrategy(Nonce: uint256, vault: address):
     assert vault in self.VaultList, "vault not in vault list!"  
 
     #Check to see that the pending strategy is not the current strategy
-    assert self.CurrentStrategyByVault[vault].Nonce != self.PendingStrategyByVault[vault].Nonce, "Cannot Endorse Strategy thats already  Strategy"
+    assert self.CurrentStrategyByVault[vault].Nonce != pending_strat.Nonce, "Cannot Endorse Strategy thats already  Strategy"
 
     #Check to see that the pending strategy's nonce matches the nonce we want to endorse
-    assert self.PendingStrategyByVault[vault].Nonce == Nonce, "Cannot Endorse Strategy if its not Pending Strategy"
+    assert pending_strat.Nonce == Nonce, "Cannot Endorse Strategy if its not Pending Strategy"
 
     #Check to see that sender is eligible to vote
     assert msg.sender in self.LGov, "Sender is not eligible to vote"
 
     #Check to see that sender has not already voted
-    assert msg.sender not in self.PendingStrategyByVault[vault].VotesReject
-    assert msg.sender not in self.PendingStrategyByVault[vault].VotesEndorse
+    assert msg.sender not in pending_strat.VotesReject
+    assert msg.sender not in pending_strat.VotesEndorse
 
     #Vote to endorse strategy
     self.PendingStrategyByVault[vault].VotesEndorse.append(msg.sender)
@@ -215,6 +250,13 @@ def endorseStrategy(Nonce: uint256, vault: address):
 
 @external
 def rejectStrategy(Nonce: uint256, vault: address):
+    """
+    @notice This function provides a way to vote against a proposed strategy for a specific vault
+    @param Nonce Integer (for the Proposed Strategy, by Vault) to evaluate
+    @param vault The vault address (for the Proposed Strategy) to evaluate
+    """
+    pending_strat : Strategy = self.PendingStrategyByVault[vault]
+
     # No using a Strategy function without a vault
     assert len(self.VaultList) > 0, "Cannot call Strategy function with no vault"
 
@@ -222,27 +264,33 @@ def rejectStrategy(Nonce: uint256, vault: address):
     assert vault in self.VaultList, "vault not in vault list!"  
 
     #Check to see that the pending strategy is not the current strategy
-    assert self.CurrentStrategyByVault[vault].Nonce != self.PendingStrategyByVault[vault].Nonce, "Cannot Reject Strategy thats already Current Strategy"
+    assert self.CurrentStrategyByVault[vault].Nonce != pending_strat.Nonce, "Cannot Reject Strategy thats already Current Strategy"
 
     #Check to see that the pending strategy's nonce matches the nonce we want to reject
-    assert self.PendingStrategyByVault[vault].Nonce == Nonce, "Cannot Reject Strategy if its not Pending Strategy"
+    assert pending_strat.Nonce == Nonce, "Cannot Reject Strategy if its not Pending Strategy"
 
     #Check to see that sender is eligible to vote
     assert msg.sender in self.LGov
 
     #Check to see that sender has not already voted
-    pending_strat : Strategy = self.PendingStrategyByVault[vault]
     assert msg.sender not in pending_strat.VotesReject
     assert msg.sender not in pending_strat.VotesEndorse
 
     #Vote to reject strategy
-    pending_strat.VotesReject.append(msg.sender)
+    self.PendingStrategyByVault[vault].VotesReject.append(msg.sender)
 
     log StrategyVote(Nonce, vault, msg.sender, True)
 
 
 @external
 def activateStrategy(Nonce: uint256, vault: address):
+    """
+    @notice This function provides a way to activate a proposed strategy (for a specific vault) which becomes the current strategy
+    @param Nonce Integer (for the Proposed Strategy, by Vault) to evaluate
+    @param vault The vault address (for the Proposed Strategy) to evaluate
+    """
+    pending_strat : Strategy = self.PendingStrategyByVault[vault]
+
     # No using a Strategy function without a vault
     assert len(self.VaultList) > 0, "Cannot call Strategy function with no vault"
 
@@ -250,27 +298,31 @@ def activateStrategy(Nonce: uint256, vault: address):
     assert vault in self.VaultList, "vault not in vault list!"  
 
     #Confirm there is a currently pending strategy
-    assert (self.CurrentStrategyByVault[vault].Nonce != self.PendingStrategyByVault[vault].Nonce)
-    assert (self.PendingStrategyByVault[vault].Withdrawn == False)
+    assert (self.CurrentStrategyByVault[vault].Nonce != pending_strat.Nonce)
+    assert (pending_strat.Withdrawn == False)
 
     #Confirm strategy is approved by guards
-    assert (len(self.PendingStrategyByVault[vault].VotesEndorse) >= len(self.LGov)/2) or \
-           ((self.PendingStrategyByVault[vault].TSubmitted + self.TDelay) < block.timestamp)
-    assert len(self.PendingStrategyByVault[vault].VotesReject) < len(self.PendingStrategyByVault[vault].VotesEndorse)
+    assert (len(pending_strat.VotesEndorse) >= len(self.LGov)/2) or \
+           ((pending_strat.TSubmitted + self.TDelay) < block.timestamp)
+    assert len(pending_strat.VotesReject) < len(pending_strat.VotesEndorse)
 
     #Confirm Pending Strategy is the Strategy we want to activate
-    assert self.PendingStrategyByVault[vault].Nonce == Nonce
+    assert pending_strat.Nonce == Nonce
 
     #Make Current Strategy and Activate Strategy
     self.CurrentStrategyByVault[vault] = self.PendingStrategyByVault[vault]
 
-    DynamoVault(vault).set_strategy(self.CurrentStrategyByVault[vault].ProposerAddress, self.CurrentStrategyByVault[vault].Weights, MIN_PROPOSER_PAYOUT)
+    DynamoVault(vault).set_strategy(self.CurrentStrategyByVault[vault].ProposerAddress, self.CurrentStrategyByVault[vault].LPRatios, MIN_PROPOSER_PAYOUT)
 
-    log StrategyActivation(self.CurrentStrategyByVault[vault], self.CurrentStrategyByVault[vault].ProposerAddress, self.CurrentStrategyByVault[vault].Weights, vault)
+    log StrategyActivation(self.CurrentStrategyByVault[vault], self.CurrentStrategyByVault[vault].ProposerAddress, self.CurrentStrategyByVault[vault].LPRatios, vault)
  
 
 @external
 def addGuard(GuardAddress: address):
+    """
+    @notice This function provides a way to add a guard to the contract's government
+    @param GuardAddress The guard's address (to add to the contract's government) to evaluate
+    """
     #Check to see that sender is the contract owner
     assert msg.sender == self.contractOwner, "Cannot add guard unless you are contract owner"
 
@@ -291,6 +343,10 @@ def addGuard(GuardAddress: address):
 
 @external
 def removeGuard(GuardAddress: address):
+    """
+    @notice This function provides a way to remove a guard to the contract's government
+    @param GuardAddress The guard's address (to remove from the contract's government) to evaluate
+    """
     #Check to see that sender is the contract owner
     assert msg.sender == self.contractOwner, "Cannot remove guard unless you are contract owner"
 
@@ -321,6 +377,11 @@ def removeGuard(GuardAddress: address):
 
 @external
 def swapGuard(OldGuardAddress: address, NewGuardAddress: address):
+    """
+    @notice This function provides a way to swap a guard from the contract's government with a new guard
+    @param OldGuardAddress The guard's address (to swap out from the contract's government) to evaluate
+    @param NewGuardAddress The guard's address (to swap into the contract's government) to evaluate
+    """
     #Check that the sender is authorized to swap a guard
     assert msg.sender == self.contractOwner, "Cannot swap guard unless you are contract owner"
 
@@ -347,6 +408,11 @@ def swapGuard(OldGuardAddress: address, NewGuardAddress: address):
 
 @external
 def replaceGovernance(NewGovernance: address, vault: address):
+    """
+    @notice This function provides a way to replace this governance contract out with a new governance contract (per vault)
+    @param NewGovernance The new governance contract's address to evaluate
+    @param vault A vault address (for this governance contract) to evaluate
+    """
     VoteCount: uint256 = 0
     Voter: address = msg.sender
     TotalGuards: uint256 = len(self.LGov)
@@ -388,6 +454,10 @@ def replaceGovernance(NewGovernance: address, vault: address):
 
 @external
 def addVault(vault: address): 
+    """
+    @notice This function provides a way to add a vault to the list of vaults governed by this contract
+    @param vault A vault address (to add to this governance contract) to evaluate
+    """
     # Must be Contract Owner to add vault
     assert msg.sender == self.contractOwner
 
@@ -409,6 +479,10 @@ def addVault(vault: address):
 
 @external
 def removeVault(vault: address):
+    """
+    @notice This function provides a way to remove a vault from the list of vaults governed by this contract
+    @param vault A vault address (to remove from this governance contract) to evaluate
+    """
     # Must be Contract owner to remove vault
     assert msg.sender == self.contractOwner
 
@@ -440,6 +514,11 @@ def removeVault(vault: address):
 
 @external
 def swapVault(OldVaultAddress: address, NewVaultAddress: address):
+    """
+    @notice This function provides a way to swap a vault (on the list of vaults governed by this contract) out with a new vault
+    @param OldVaultAddress the vault to replace.
+    @param NewVaultAddress the vault replacing the old one..
+    """
     #Check that the sender is authorized to swap vault
     assert msg.sender == self.contractOwner
 
@@ -463,3 +542,4 @@ def swapVault(OldVaultAddress: address, NewVaultAddress: address):
 
     # Log Vault Swap
     log VaultSwap(OldVaultAddress, NewVaultAddress)
+    
