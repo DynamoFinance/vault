@@ -750,19 +750,18 @@ def getCurrentBalances() -> (uint256, BalancePool[MAX_POOLS], uint256, uint256):
 
 
 @internal
-@pure
+@view
 def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS], _min_outgoing_tx: uint256) -> (uint256, int256, uint256, BalancePool[MAX_POOLS], address[MAX_POOLS]):
 
     response: Bytes[40*32] = empty(Bytes[40*32])
     result_ok: bool = empty(bool)
 
-    getTargetBalances_method_id : Union[Bytes[4], bytes4] = method_id(getTargetBalances(uint256, uint256, uint256, BalancePool[MAX_POOLS], uint256))
-    parameters: Bytes[32] = _abi_encode(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances, _min_outgoing_tx, method_id=getTargetBalances_method_id)
+    parameters: Bytes[1092] = _abi_encode(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances, _min_outgoing_tx, method_id=method_id('getTargetBalances(uint256,uint256,uint256,BalancePool[MAX_POOLS],uint256)'))
 
-    result_ok, response = raw_call(self.funds_allocator, paramters, max_outsize=32, is_static_call=True, revert_on_failure=False)
+    result_ok, response = raw_call(self.funds_allocator, parameters, max_outsize=32, is_static_call=True, revert_on_failure=False)
 
     assert result_ok, "_getTargetBalances raw_call failed!"
-    return response
+    return _abi_decode(response, (uint256, int256, uint256, BalancePool[MAX_POOLS], address[MAX_POOLS]))
 
     # # WHAT IF THE _d4626_asset_target is larger than the total assets?!?!?
     # assert _d4626_asset_target <= _total_assets, "Not enough assets to fulfill d4626 target goals!"
@@ -840,7 +839,7 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
 
 
 @external
-@pure 
+@view 
 def getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS], _min_outgoing_tx: uint256) -> (uint256, int256, uint256, BalancePool[MAX_POOLS], address[MAX_POOLS]): 
     """
     @dev    Returns: 

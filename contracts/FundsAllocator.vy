@@ -10,10 +10,38 @@
 
 MAX_POOLS : constant(uint256) = 5 
 
+total_assets_deposited: public(uint256)
+total_assets_withdrawn: public(uint256)
+total_yield_fees_claimed: public(uint256)
+total_strategy_fees_claimed: public(uint256)
+
+struct AdapterStrategy:
+    adapter: address
+    ratio: uint256
+
+owner: address
+governance: address
+funds_allocator: address
+current_proposer: address
+min_proposer_payout: uint256
+
+dlending_pools : public(DynArray[address, MAX_POOLS])
+
+totalSupply: public(uint256)
+balanceOf: public(HashMap[address, uint256])
+allowance: public(HashMap[address, HashMap[address, uint256]])
+
+# Maps adapter address (not LP address) to ratios.
+struct AdapterValue:
+    ratio: uint256
+    last_asset_value: uint256
+
+strategy: public(HashMap[address, AdapterValue])
+
+
 struct BalanceTX:
     qty: int256
     adapter: address
-
 
 struct BalancePool:
     adapter: address
@@ -132,39 +160,39 @@ def getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _tot
     return self._getTargetBalances(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances, _min_outgoing_tx)
 
 
-@internal
-@view
-def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> (BalanceTX[MAX_POOLS], address[MAX_POOLS]): 
-    # _BDM TODO : max_txs is ignored for now.    
-    pool_txs : BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
-    blocked_adapters : address[MAX_POOLS] = empty(address[MAX_POOLS])
+# @internal
+# @view
+# def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> (BalanceTX[MAX_POOLS], address[MAX_POOLS]): 
+#     # _BDM TODO : max_txs is ignored for now.    
+#     pool_txs : BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
+#     blocked_adapters : address[MAX_POOLS] = empty(address[MAX_POOLS])
 
-    # If there are no pools then nothing to do.
-    if len(self.dlending_pools) == 0: return pool_txs, blocked_adapters
+#     # If there are no pools then nothing to do.
+#     if len(self.dlending_pools) == 0: return pool_txs, blocked_adapters
 
-    # Setup current state of vault & pools & strategy.
-    d4626_assets: uint256 = 0
-    pool_states: BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
-    total_assets: uint256 = 0
-    total_ratios: uint256 = 0
-    d4626_assets, pool_states, total_assets, total_ratios = self._getCurrentBalances()
+#     # Setup current state of vault & pools & strategy.
+#     d4626_assets: uint256 = 0
+#     pool_states: BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
+#     total_assets: uint256 = 0
+#     total_ratios: uint256 = 0
+#     d4626_assets, pool_states, total_assets, total_ratios = self._getCurrentBalances()
 
-    # What's the optimal outcome for our vault/pools?
-    pool_assets_allocated : uint256 = 0
-    d4626_delta : int256 = 0
-    tx_count : uint256 = 0
+#     # What's the optimal outcome for our vault/pools?
+#     pool_assets_allocated : uint256 = 0
+#     d4626_delta : int256 = 0
+#     tx_count : uint256 = 0
 
-    pool_assets_allocated, d4626_delta, tx_count, pool_states, blocked_adapters = self._getTargetBalances(_target_asset_balance, total_assets, total_ratios, pool_states, self.min_proposer_payout)
+#     pool_assets_allocated, d4626_delta, tx_count, pool_states, blocked_adapters = self._getTargetBalances(_target_asset_balance, total_assets, total_ratios, pool_states, self.min_proposer_payout)
 
-    pos : uint256 = 0
-    for tx_bal in pool_states:
-        pool_txs[pos] = BalanceTX({qty: tx_bal.delta, adapter: tx_bal.adapter})
-        pos += 1
+#     pos : uint256 = 0
+#     for tx_bal in pool_states:
+#         pool_txs[pos] = BalanceTX({qty: tx_bal.delta, adapter: tx_bal.adapter})
+#         pos += 1
 
-    return pool_txs, blocked_adapters
+#     return pool_txs, blocked_adapters
 
 
-@external
-@view
-def getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> (BalanceTX[MAX_POOLS], address[MAX_POOLS]): 
-    return self._getBalanceTxs( _target_asset_balance, _max_txs )
+# @external
+# @view
+# def getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> (BalanceTX[MAX_POOLS], address[MAX_POOLS]): 
+#     return self._getBalanceTxs( _target_asset_balance, _max_txs )
