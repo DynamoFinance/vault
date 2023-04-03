@@ -756,11 +756,11 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
     response: Bytes[40*32] = empty(Bytes[40*32])
     result_ok: bool = empty(bool)
 
-    parameters: Bytes[1092] = _abi_encode(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances, _min_outgoing_tx, method_id=method_id('getTargetBalances(uint256,uint256,uint256,BalancePool[MAX_POOLS],uint256)'))
+    parameters: Bytes[1280] = _abi_encode(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances, _min_outgoing_tx, method_id=method_id('getTargetBalances(uint256,uint256,uint256,BalancePool[MAX_POOLS],uint256)'))
 
-    result_ok, response = raw_call(self.funds_allocator, parameters, max_outsize=32, is_static_call=True, revert_on_failure=False)
+    result_ok, response = raw_call(self.funds_allocator, parameters, max_outsize=1280, is_static_call=True, revert_on_failure=False)
 
-    assert result_ok, "_getTargetBalances raw_call failed!"
+    assert result_ok == True, "_getTargetBalances raw_call failed!"
     return _abi_decode(response, (uint256, int256, uint256, BalancePool[MAX_POOLS], address[MAX_POOLS]))
 
     # # WHAT IF THE _d4626_asset_target is larger than the total assets?!?!?
