@@ -460,4 +460,3 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
 
     assert max_withdrawl == pytest.approx(0), "Still got %s assets left to withdraw!" % max_withdrawl
     assert max_redeem == pytest.approx(0), "Still got %s shares left to redeem!" % max_redeem
-

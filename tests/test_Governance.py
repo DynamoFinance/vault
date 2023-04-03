@@ -67,14 +67,20 @@ def dai(project, owner, accounts):
 @pytest.fixture
 def governance_contract(owner, project, accounts):
 
-    owner, operator, someoneelse, someone, newcontract, currentvault = accounts[:6]
+    owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
 
-    # deploy the contract with the initial value as a constructor argument
+    vcontracttwo = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, ERC20ASSET, POOLS, governance_contract)
 
     gcontract = owner.deploy(project.Governance, owner, 21600)
 
-    return gcontract  
+@pytest.fixture
+def vault_contract_three(governance_contract, owner, project, accounts):
 
+    owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
+
+    vcontractthree = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, ERC20ASSET, POOLS, governance_contract)
+
+    return vcontractthree
 
 # def add_adapters_to_vault(vault, owner, pools):
 #     for pool in pools:
