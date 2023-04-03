@@ -753,11 +753,8 @@ def getCurrentBalances() -> (uint256, BalancePool[MAX_POOLS], uint256, uint256):
 @pure
 def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS], _min_outgoing_tx: uint256) -> (uint256, int256, uint256, BalancePool[MAX_POOLS], address[MAX_POOLS]):
 
-    # Is this likely to be an actual ERC20 contract?
-    response: Bytes[32] = empty(Bytes[32])
+    response: Bytes[40*32] = empty(Bytes[40*32])
     result_ok: bool = empty(bool)
-    #result_ok, response = raw_call(_erc20asset, _abi_encode(self, method_id=method_id("balanceOf(address)")), max_outsize=32, value=convert(self, uint256), is_static_call=True, revert_on_failure=False)
-    assert result_ok == True, "Doesn't appear to be an ERC20 contract."
 
     getTargetBalances_method_id : Union[Bytes[4], bytes4] = method_id(getTargetBalances(uint256, uint256, uint256, BalancePool[MAX_POOLS], uint256))
     parameters: Bytes[32] = _abi_encode(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances, _min_outgoing_tx, method_id=getTargetBalances_method_id)
