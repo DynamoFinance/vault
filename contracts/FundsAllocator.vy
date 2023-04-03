@@ -53,7 +53,7 @@ struct BalancePool:
 
 
 @internal
-@pure
+@view
 def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS], _min_outgoing_tx: uint256) -> (uint256, int256, uint256, BalancePool[MAX_POOLS], address[MAX_POOLS]):
     """
     @dev    Returns: 
@@ -155,7 +155,7 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
 
 
 @external
-@pure 
+@view
 def getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS], _min_outgoing_tx: uint256) -> (uint256, int256, uint256, BalancePool[MAX_POOLS], address[MAX_POOLS]): 
     return self._getTargetBalances(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances, _min_outgoing_tx)
 

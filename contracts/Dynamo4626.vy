@@ -753,7 +753,8 @@ def getCurrentBalances() -> (uint256, BalancePool[MAX_POOLS], uint256, uint256):
 @view
 def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS], _min_outgoing_tx: uint256) -> (uint256, int256, uint256, BalancePool[MAX_POOLS], address[MAX_POOLS]):
 
-    response: Bytes[40*32] = empty(Bytes[40*32])
+    #response: Bytes[40*32] = empty(Bytes[40*32])
+    response: Bytes[2048] = empty(Bytes[2048])
     result_ok: bool = empty(bool)
 
     parameters: Bytes[1280] = _abi_encode(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances, _min_outgoing_tx, method_id=method_id('getTargetBalances(uint256,uint256,uint256,BalancePool[MAX_POOLS],uint256)'))
