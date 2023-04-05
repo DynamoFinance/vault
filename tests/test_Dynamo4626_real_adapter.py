@@ -20,13 +20,16 @@ d4626_name = "DynamoDAI"
 d4626_token = "dyDAI"
 d4626_decimals = 18
 
+
 @pytest.fixture
 def deployer(accounts):
     return accounts[0]
 
+
 @pytest.fixture
 def trader(accounts):
     return accounts[1]
+
 
 @pytest.fixture
 def adai(project, deployer, trader, ensure_hardhat):
@@ -39,6 +42,7 @@ def edai(project, deployer, trader, ensure_hardhat):
     project.eToken.at("0xbb0D4bb654a21054aF95456a3B29c63e8D1F4c0a")
     project.IRMClassStable.at("0x42ec0eb1d2746A9f2739D7501C5d5608bdE9eE89")
     return project.eToken.at(EDAI)
+
 
 @pytest.fixture
 def dai(project, deployer, trader, ensure_hardhat):
@@ -59,11 +63,13 @@ def dai(project, deployer, trader, ensure_hardhat):
     # print(dai.balanceOf(trader))
     return project.ERC20.at(DAI)
 
+
 @pytest.fixture
 def euler_adapter(project, deployer, dai, ensure_hardhat):
     ca = deployer.deploy(project.eulerAdapter, dai, EDAI, EULER)
     #we run tests against interface
     return project.LPAdapter.at(ca)
+
 
 @pytest.fixture
 def aave_adapter(project, deployer, dai, ensure_hardhat):
@@ -71,10 +77,12 @@ def aave_adapter(project, deployer, dai, ensure_hardhat):
     #we run tests against interface
     return project.LPAdapter.at(aa)
 
+
 @pytest.fixture
 def dynamo4626(project, deployer, dai):
     v = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, [], deployer)    
     return v
+
 
 def test_single_adapter_aave(project, deployer, dynamo4626, aave_adapter, dai, trader, ensure_hardhat, adai):
     dynamo4626.add_pool(aave_adapter, sender=deployer)

@@ -58,9 +58,12 @@ sequenceDiagram
     participant eth as Ethereum Mainnet
   
     autonumber
+    u-->u: _set_strategy(_proposer, _strategy, min_proposer_payout)
+
+    Note over u, a4626: The assets deposited must be greater than the min_proposer_payout dictated by the strategy.
     u->>a4626:deposit(assets = 500, dest = Investor)
 
-        note over a4626, asset: We must first move the funds into the contract's balance so _getBalanceTxs will know how to best re-adjust.     
+        Note over a4626, asset: We must first move the funds into the contract's balance so _getBalanceTxs will know how to best re-adjust.     
         a4626->>asset: transferFrom(from=Investor, to=a4626, amt=500)
 
         Note over asset: balanceOf[Investor]-=500<br>balanceOf[d<Token>4626]+=500
