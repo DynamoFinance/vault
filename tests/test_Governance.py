@@ -40,6 +40,12 @@ def dai(project, owner, accounts):
     ua = owner.deploy(project.ERC20, "DAI", "DAI", 18, 0, owner)
     return ua
 
+
+@pytest.fixture
+def funds_alloc(project, owner):
+    f = owner.deploy(project.FundsAllocator)
+    return f
+
 # @pytest.fixture
 # def pool_adapterA(project, owner, dai):
 #     wdai = owner.deploy(project.ERC20, "aWDAI", "aWDAI", 18, 0, owner)
@@ -84,38 +90,38 @@ def governance_contract(owner, project, accounts):
 
 
 @pytest.fixture
-def vault_contract_one(governance_contract, owner, project, accounts, dai):
+def vault_contract_one(governance_contract, owner, project, accounts, dai, funds_alloc):
 
     owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
 
-    vcontractone = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, dai, POOLS, governance_contract)
+    vcontractone = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, dai, POOLS, governance_contract, funds_alloc)
 
     return vcontractone
 
 @pytest.fixture
-def vault_contract_two(governance_contract, owner, project, accounts, dai):
+def vault_contract_two(governance_contract, owner, project, accounts, dai, funds_alloc):
 
     owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
 
-    vcontracttwo = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, dai, POOLS, governance_contract)
+    vcontracttwo = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, dai, POOLS, governance_contract, funds_alloc)
 
     return vcontracttwo
 
 @pytest.fixture
-def vault_contract_three(governance_contract, owner, project, accounts, dai):
+def vault_contract_three(governance_contract, owner, project, accounts, dai, funds_alloc):
 
     owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
 
-    vcontractthree = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, dai, POOLS, governance_contract)
+    vcontractthree = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, dai, POOLS, governance_contract, funds_alloc)
 
     return vcontractthree
 
 @pytest.fixture
-def vault_contract_four(governance_contract, owner, project, accounts, dai):
+def vault_contract_four(governance_contract, owner, project, accounts, dai, funds_alloc):
 
     owner, operator, someoneelse, someone, newcontract, currentvault, currentgovernance = accounts[:7]
 
-    vcontractfour = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, dai, POOLS, governance_contract)
+    vcontractfour = owner.deploy(project.Dynamo4626, NAME, SYMBOL, DECIMALS, dai, POOLS, governance_contract, funds_alloc)
 
     return vcontractfour
 
