@@ -42,7 +42,7 @@ struct AdapterStrategy:
 
 owner: address
 governance: address
-funds_allocator: address
+funds_allocator: public(address)
 current_proposer: address
 min_proposer_payout: uint256
 
@@ -752,11 +752,9 @@ def getCurrentBalances() -> (uint256, BalancePool[MAX_POOLS], uint256, uint256):
 @internal
 @pure
 def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS], _min_outgoing_tx: uint256) -> (uint256, int256, uint256, BalancePool[MAX_POOLS], address[MAX_POOLS]):
-
     # #response: Bytes[40*32] = empty(Bytes[40*32])
     # response: Bytes[2048] = empty(Bytes[2048])
     # result_ok: bool = empty(bool)
-
     # parameters: Bytes[1280] = _abi_encode(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances, _min_outgoing_tx, method_id=method_id('getTargetBalances(uint256,uint256,uint256,BalancePool[MAX_POOLS],uint256)'))
 
     # result_ok, response = raw_call(self.funds_allocator, parameters, max_outsize=1280, is_static_call=True, revert_on_failure=False)
@@ -870,6 +868,10 @@ def getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _tot
 
 @internal
 @view
+# pre-requisites:
+#   1) establish that if len(self.dlending_pools) > 0
+#   2) pass in pool_states & blocked_adapters ala getTargetBalances.
+#
 def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> (BalanceTX[MAX_POOLS], address[MAX_POOLS]): 
     # _BDM TODO : max_txs is ignored for now.    
     pool_txs : BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
