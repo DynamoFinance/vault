@@ -149,28 +149,28 @@ def getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _tot
     return self._getTargetBalances(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances, _min_outgoing_tx)
 
 
-# @internal
-# @pure
-# def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8, _min_proposer_payout: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_states: BalancePool[MAX_POOLS]) -> (BalanceTX[MAX_POOLS], address[MAX_POOLS]): 
-#     # _BDM TODO : max_txs is ignored for now.    
-#     pool_txs : BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
-#     blocked_adapters : address[MAX_POOLS] = empty(address[MAX_POOLS])
-#     pool_states: BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
-#     pool_assets_allocated : uint256 = 0
-#     d4626_delta : int256 = 0
-#     tx_count : uint256 = 0
+@internal
+@pure
+def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8, _min_proposer_payout: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_states: BalancePool[MAX_POOLS]) -> (BalanceTX[MAX_POOLS], address[MAX_POOLS]): 
+    # _BDM TODO : max_txs is ignored for now.    
+    pool_txs : BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
+    blocked_adapters : address[MAX_POOLS] = empty(address[MAX_POOLS])
+    pool_states: BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
+    pool_assets_allocated : uint256 = 0
+    d4626_delta : int256 = 0
+    tx_count : uint256 = 0
 
-#     pool_assets_allocated, d4626_delta, tx_count, pool_states, blocked_adapters = self._getTargetBalances(_target_asset_balance, _total_assets, _total_ratios, _pool_states, _min_proposer_payout)
+    pool_assets_allocated, d4626_delta, tx_count, pool_states, blocked_adapters = self._getTargetBalances(_target_asset_balance, _total_assets, _total_ratios, _pool_states, _min_proposer_payout)
 
-#     pos : uint256 = 0
-#     for tx_bal in pool_states:
-#         pool_txs[pos] = BalanceTX({qty: tx_bal.delta, adapter: tx_bal.adapter})
-#         pos += 1
+    pos : uint256 = 0
+    for tx_bal in pool_states:
+        pool_txs[pos] = BalanceTX({qty: tx_bal.delta, adapter: tx_bal.adapter})
+        pos += 1
 
-#     return pool_txs, blocked_adapters
+    return pool_txs, blocked_adapters
 
 
-# @external
-# @view
-# def getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8, _min_proposer_payout: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_states: BalancePool[MAX_POOLS]) -> (BalanceTX[MAX_POOLS], address[MAX_POOLS]):  
-#     return self._getBalanceTxs( _target_asset_balance, _max_txs, _min_proposer_payout, _total_assets, _total_ratios, _pool_states )
+@external
+@view
+def getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8, _min_proposer_payout: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_states: BalancePool[MAX_POOLS]) -> (BalanceTX[MAX_POOLS], address[MAX_POOLS]):  
+    return self._getBalanceTxs( _target_asset_balance, _max_txs, _min_proposer_payout, _total_assets, _total_ratios, _pool_states )
