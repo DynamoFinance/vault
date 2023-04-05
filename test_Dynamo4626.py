@@ -211,20 +211,18 @@ def _setup_single_adapter(_project, _dynamo4626, _deployer, _dai, _adapter):
     _dai.setApprove(_adapter, _dynamo4626, (1<<256)-1, sender=_deployer)
 
 
-def _setup_multi_adapters(_project, _dynamo4626, _deployer, _dai, _adapters, _strategy):
-   
-    for adapter in _adapters:
-        # Setup our pool.
-        _dynamo4626.add_pool(adapter, sender=_deployer)
-        _dynamo4626.set_strategy(_deployer, _strategy, 0, sender=_deployer)
+def _setup_multi_adapters(_project, _dynamo4626, _deployer, _dai, _adapter, strategy):
+   # Setup our pool.
+    _dynamo4626.add_pool(_adapter, sender=_deployer)
+    _dynamo4626.set_strategy(_deployer, strategy, 0, sender=_deployer)
 
-        # Jiggle around transfer rights here for test purposes.
-        werc20 = _project.ERC20.at(adapter.wrappedAsset())
-        if werc20.minter() != _dynamo4626:
-            werc20.transferMinter(_dynamo4626, sender=_deployer)    
-        werc20.setApprove(adapter, _dynamo4626, (1<<256)-1, sender=_dynamo4626) 
-        _dai.setApprove(_dynamo4626, adapter, (1<<256)-1, sender=_deployer)
-        _dai.setApprove(adapter, _dynamo4626, (1<<256)-1, sender=_deployer)
+    # Jiggle around transfer rights here for test purposes.
+    werc20 = _project.ERC20.at(_adapter.wrappedAsset())
+    if werc20.minter() != _dynamo4626:
+        werc20.transferMinter(_dynamo4626, sender=_deployer)    
+    werc20.setApprove(_adapter, _dynamo4626, (1<<256)-1, sender=_dynamo4626) 
+    _dai.setApprove(_dynamo4626, _adapter, (1<<256)-1, sender=_deployer)
+    _dai.setApprove(_adapter, _dynamo4626, (1<<256)-1, sender=_deployer)
 
 
 def test_min_tx_sizes(project, deployer, dynamo4626, pool_adapterA, trader, dai):
@@ -488,9 +486,9 @@ def test_multi_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, poo
     strategy[0] = (pool_adapterA, 1)
     strategy[1] = (pool_adapterB, 1)
     strategy[2] = (pool_adapterC, 1)
-    adapters = [pool_adapterA, pool_adapterB, pool_adapterC]
+    adapter = [pool_adapterA, pool_adapterB, pool_adapterC]
 
-    _setup_multi_adapters(project, dynamo4626, deployer, dai, adapters, strategy)
+    _setup_multi_adapters(project, dynamo4626, deployer, dai, adapter, strategy)
 
     d4626_start_DAI = dai.balanceOf(dynamo4626)
     LP_start_DAI = dai.balanceOf(pool_adapterA)
