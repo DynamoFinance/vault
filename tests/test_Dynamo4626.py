@@ -13,13 +13,16 @@ MAX_POOLS = 5
 
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
+
 @pytest.fixture
 def deployer(accounts):
     return accounts[0]
 
+
 @pytest.fixture
 def trader(accounts):
     return accounts[1]
+
 
 @pytest.fixture
 def dai(project, deployer, trader):
@@ -128,27 +131,11 @@ def test_add_pool(project, deployer, dynamo4626, pool_adapterA, trader, dai):
         dynamo4626.add_pool(a, sender=deployer)
 
 
-def _setup_single_adapter(_project, _dynamo4626, _deployer, _dai, _adapter):
-    # Setup our pool.
-    _dynamo4626.add_pool(_adapter, sender=_deployer)
-    strategy = [(ZERO_ADDRESS,0)] * 5 # This assumes Dynamo4626 MAX_POOLS == 5
-    strategy[0] = (_adapter,1)
-    _dynamo4626.set_strategy(_deployer, strategy, 0, sender=_deployer)
-
-    # Jiggle around transfer rights here for test purposes.
-    werc20 = _project.ERC20.at(_adapter.wrappedAsset())
-    if werc20.minter() != _dynamo4626:
-        werc20.transferMinter(_dynamo4626, sender=_deployer)
-    werc20.setApprove(_adapter, _dynamo4626, (1<<256)-1, sender=_dynamo4626) 
-    _dai.setApprove(_dynamo4626, _adapter, (1<<256)-1, sender=_deployer)
-    _dai.setApprove(_adapter, _dynamo4626, (1<<256)-1, sender=_deployer)
-
-
 def test_remove_pool(project, deployer, dynamo4626, pool_adapterA, pool_adapterB, trader, dai):
     _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
 
     # Trader needs to allow the 4626 contract to take funds.
-    dai.approve(dynamo4626,1000, sender=trader)
+    dai.approve(dynamo4626, 1000, sender=trader)
 
     assert dynamo4626.totalAssets() == 0
     assert pool_adapterA.totalAssets() == 0  
@@ -198,7 +185,7 @@ def test_remove_pool(project, deployer, dynamo4626, pool_adapterA, pool_adapterB
 
     print("HERE 5")
 
-    result = dynamo4626.remove_pool(pool_adapterB, False, sender=deployer) 
+    result = dynamo4626.remove_pool(pool_adapterB, False, sender=deployer)
        
     print("HERE 6")
 
@@ -208,12 +195,42 @@ def test_remove_pool(project, deployer, dynamo4626, pool_adapterA, pool_adapterB
     assert pool_adapterB.totalAssets() == 0 
 
 
+def _setup_single_adapter(_project, _dynamo4626, _deployer, _dai, _adapter):
+    # Setup our pool.
+    _dynamo4626.add_pool(_adapter, sender=_deployer)
+    strategy = [(ZERO_ADDRESS,0)] * 5 # This assumes Dynamo4626 MAX_POOLS == 5
+    strategy[0] = (_adapter, 1)
+    _dynamo4626.set_strategy(_deployer, strategy, 0, sender=_deployer)
+
+    # Jiggle around transfer rights here for test purposes.
+    werc20 = _project.ERC20.at(_adapter.wrappedAsset())
+    if werc20.minter() != _dynamo4626:
+        werc20.transferMinter(_dynamo4626, sender=_deployer)
+    werc20.setApprove(_adapter, _dynamo4626, (1<<256)-1, sender=_dynamo4626) 
+    _dai.setApprove(_dynamo4626, _adapter, (1<<256)-1, sender=_deployer)
+    _dai.setApprove(_adapter, _dynamo4626, (1<<256)-1, sender=_deployer)
+
+
+def _setup_multi_adapters(_project, _dynamo4626, _deployer, _dai, _adapter, strategy):
+   # Setup our pool.
+    _dynamo4626.add_pool(_adapter, sender=_deployer)
+    _dynamo4626.set_strategy(_deployer, strategy, 0, sender=_deployer)
+
+    # Jiggle around transfer rights here for test purposes.
+    werc20 = _project.ERC20.at(_adapter.wrappedAsset())
+    if werc20.minter() != _dynamo4626:
+        werc20.transferMinter(_dynamo4626, sender=_deployer)    
+    werc20.setApprove(_adapter, _dynamo4626, (1<<256)-1, sender=_dynamo4626) 
+    _dai.setApprove(_dynamo4626, _adapter, (1<<256)-1, sender=_deployer)
+    _dai.setApprove(_adapter, _dynamo4626, (1<<256)-1, sender=_deployer)
+
+
 def test_min_tx_sizes(project, deployer, dynamo4626, pool_adapterA, trader, dai):
     pytest.skip("TODO: Not implemented yet.")    
 
 
 def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, dai, trader):
-    _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
+    _setup_single_adapter(project, dynamo4626, deployer, dai, pool_adapterA)
 
     d4626_start_DAI = dai.balanceOf(dynamo4626)
     LP_start_DAI = dai.balanceOf(pool_adapterA)
@@ -222,7 +239,7 @@ def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, da
     trade_start_dyDAI = dynamo4626.balanceOf(trader)
 
     # Trader needs to allow the 4626 contract to take funds.
-    dai.approve(dynamo4626,1000, sender=trader)
+    dai.approve(dynamo4626, 1000, sender=trader)
 
     if is_not_hard_hat():
         pytest.skip("Not on hard hat Ethereum snapshot.")
@@ -279,6 +296,7 @@ def test_single_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, da
     LP_end_DAI = dai.balanceOf(pool_adapterA)
     assert LP_end_DAI - LP_start_DAI == 900
 
+
 ADAPTER = 0
 CURRENT = 1
 RATIO = 2
@@ -324,7 +342,7 @@ def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai,
 
 
     # Trader needs to allow the 4626 contract to take funds.
-    dai.approve(dynamo4626,1000, sender=trader)
+    dai.approve(dynamo4626, 1000, sender=trader)
 
     result = dynamo4626.deposit(1000, trader, sender=trader)
 
@@ -353,15 +371,16 @@ def test_single_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, dai,
 
     print("pool_states = %s." % [x for x in pool_states])
 
+
 def test_single_adapter_withdraw(project, deployer, dynamo4626, pool_adapterA, dai, trader):
-    _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
+    _setup_single_adapter(project, dynamo4626, deployer, dai, pool_adapterA)
 
     assert pool_adapterA.totalAssets() == 0
     assert dynamo4626.totalAssets() == 0
 
 
     # Trader needs to allow the 4626 contract to take funds.
-    dai.approve(dynamo4626,1000, sender=trader)
+    dai.approve(dynamo4626, 1000, sender=trader)
 
     result = dynamo4626.deposit(1000, trader, sender=trader)
 
@@ -388,12 +407,12 @@ def test_single_adapter_withdraw(project, deployer, dynamo4626, pool_adapterA, d
 
 
 def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool_adapterA, dai, trader):
-    _setup_single_adapter(project,dynamo4626, deployer, dai, pool_adapterA)
+    _setup_single_adapter(project, dynamo4626, deployer, dai, pool_adapterA)
 
     assert dai.balanceOf(trader) == 1000000000 
 
     # Trader needs to allow the 4626 contract to take funds.
-    dai.approve(dynamo4626,1000, sender=trader)
+    dai.approve(dynamo4626, 1000, sender=trader)
 
     assert dai.balanceOf(dynamo4626) == 0
 
@@ -460,3 +479,118 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
 
     assert max_withdrawl == pytest.approx(0), "Still got %s assets left to withdraw!" % max_withdrawl
     assert max_redeem == pytest.approx(0), "Still got %s shares left to redeem!" % max_redeem
+
+
+def test_multi_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, pool_adapterB, pool_adapterC, dai, trader):
+    strategy = [(ZERO_ADDRESS,0)] * 5 # This assumes Dynamo4626 MAX_POOLS == 5
+    strategy[0] = (pool_adapterA, 1)
+    strategy[1] = (pool_adapterB, 1)
+    strategy[2] = (pool_adapterC, 1)
+    adapter = [pool_adapterA, pool_adapterB, pool_adapterC]
+
+    _setup_multi_adapters(project, dynamo4626, deployer, dai, adapter, strategy)
+
+    d4626_start_DAI = dai.balanceOf(dynamo4626)
+    LP_start_DAI = dai.balanceOf(pool_adapterA)
+
+    trade_start_DAI = project.ERC20.at(pool_adapterA.originalAsset()).balanceOf(trader)
+    trade_start_dyDAI = dynamo4626.balanceOf(trader)
+
+    # Trader needs to allow the 4626 contract to take funds.
+    dai.approve(dynamo4626, 1000, sender=trader)
+
+    if is_not_hard_hat():
+        pytest.skip("Not on hard hat Ethereum snapshot.")
+
+    assert dynamo4626.totalAssets() == 0
+    print(pool_adapterA.totalAssets())
+    assert pool_adapterA.totalAssets() == 0
+
+    assert dynamo4626.convertToAssets(75) == 75
+    assert dynamo4626.convertToShares(55) == 55
+
+    result = dynamo4626.deposit(500, trader, sender=trader)
+
+    assert dynamo4626.totalAssets() == 500
+    assert pool_adapterA.totalAssets() == 500     
+    print(pool_adapterA.totalAssets())
+
+    assert result.return_value == 500        
+
+    assert dynamo4626.balanceOf(trader) == 500
+
+    assert dynamo4626.convertToAssets(75) == 75
+    assert dynamo4626.convertToShares(55) == 55    
+
+    trade_end_DAI = project.ERC20.at(pool_adapterA.originalAsset()).balanceOf(trader)
+    trade_end_dyDAI = dynamo4626.balanceOf(trader)
+
+    assert trade_start_DAI - trade_end_DAI == 500
+    assert trade_end_dyDAI - trade_start_dyDAI == 500
+    
+    d4626_end_DAI = dai.balanceOf(dynamo4626)
+
+    # DAI should have just passed through the 4626 pool.
+    assert d4626_end_DAI == d4626_start_DAI
+
+    LP_end_DAI = dai.balanceOf(pool_adapterA)
+    assert LP_end_DAI - LP_start_DAI == 500
+
+    # Now do it again!
+    result = dynamo4626.deposit(400, trader, sender=trader)
+    assert result.return_value == 400      
+
+    assert dynamo4626.balanceOf(trader) == 900
+
+    trade_end_DAI = project.ERC20.at(pool_adapterA.originalAsset()).balanceOf(trader)
+    trade_end_dyDAI = dynamo4626.balanceOf(trader)
+
+    assert trade_start_DAI - trade_end_DAI == 900
+    assert trade_end_dyDAI - trade_start_dyDAI == 900
+    
+    d4626_end_DAI = dai.balanceOf(dynamo4626)
+
+    # DAI should have just passed through the 4626 pool.
+    assert d4626_end_DAI == d4626_start_DAI
+
+    LP_end_DAI = dai.balanceOf(pool_adapterA)
+    assert LP_end_DAI - LP_start_DAI == 900
+
+    assert dai.balanceOf(pool_adapterA) == dai.balanceOf(pool_adapterB) == dai.balanceOf(pool_adapterC)
+
+
+# def test_multi_adapter_withdraw(project, deployer, dynamo4626, pool_adapterA, pool_adapterB, pool_adapterC, dai, trader):
+#     strategy = [(ZERO_ADDRESS,0)] * 5 # This assumes Dynamo4626 MAX_POOLS == 5
+#     strategy[0] = (pool_adapterA,1)
+
+#     _setup_multi_adapters(project, dynamo4626, deployer, dai, pool_adapterA, strategy)
+    
+#     assert pool_adapterA.totalAssets() == 0
+#     assert dynamo4626.totalAssets() == 0
+
+
+#     # Trader needs to allow the 4626 contract to take funds.
+#     dai.approve(dynamo4626, 1000, sender=trader)
+
+#     result = dynamo4626.deposit(1000, trader, sender=trader)
+
+#     assert pool_adapterA.totalAssets() == 1000
+#     assert dynamo4626.totalAssets() == 1000
+
+#     if is_not_hard_hat():
+#         pytest.skip("Not on hard hat Ethereum snapshot.")
+
+#     print("dynamo4626.deposit(1000, trader, sender=trader) = %s." % result.return_value)
+#     assert result.return_value == 1000   
+
+
+#     # There have been no earnings so shares & assets should map 1:1.
+#     assert dynamo4626.convertToShares(250) == 250  
+#     assert dynamo4626.convertToAssets(250) == 250  
+
+#     result = dynamo4626.withdraw(250, trader, trader, sender=trader)
+
+#     assert pool_adapterA.totalAssets() == 750
+#     assert dynamo4626.totalAssets() == 750
+
+#     assert result.return_value == 250
