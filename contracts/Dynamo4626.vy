@@ -109,12 +109,13 @@ event PoolLoss:
 def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20asset : address, _pools: DynArray[address, MAX_POOLS], _governance: address, _funds_allocator: address):
     """
     @notice The function provides a way to initialize the contract
-    @param _name Name for token to evaluate
-    @param _symbol Symbol for token to evaluate
-    @param _decimals Decimal amount for token to evaluate
-    @param _erc20asset Address for Token Contract to evaluate
-    @param _pools List of addresses for Pools to evaluate
-    @param _governance Governance Contract address to evaluate
+    @param _name Name for shares token
+    @param _symbol Symbol for shares token
+    @param _decimals Decimal amount for our shares token 
+    @param _erc20asset Address for Token Contract
+    @param _pools List of addresses for Pools 
+    @param _governance Governance Contract address
+    @param _funds_allocator contract address
     """
     assert MAX_BALTX_DEPOSIT <= MAX_POOLS, "Invalid contract pre-conditions."
     assert _governance != empty(address), "Governance cannot be null address."
@@ -153,6 +154,21 @@ def replaceGovernanceContract(_new_governance: address) -> bool:
     assert _new_governance != empty(address), "Governance cannot be null address."
 
     self.governance = _new_governance    
+
+    # TODO - emit GovernanceContractReplaced event!
+
+    return True
+
+
+@external
+def replaceFundsAllocator(_new_funds_allocator: address) -> bool:
+    assert msg.sender == self.owner, "Only owner can change the funds allocation contract!"
+    assert _new_funds_allocator != empty(address), "FundsAllocator cannot be null address."
+
+    self.funds_allocator = _new_funds_allocator
+
+    # TODO - emit FundsAllocatorContractReplaced event!
+
     return True
 
 
