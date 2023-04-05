@@ -520,7 +520,10 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
 
     print("Got here #1.")
 
-    pools = dynamo4626.getBalanceTxs(max_withdrawl, 5, sender=trader)   
+    # Setup current state of vault & pools & strategy.
+    cd4626_assets, cpool_states, ctotal_assets, ctotal_ratios = dynamo4626.getCurrentBalances()
+
+    pools = dynamo4626.getBalanceTxs(max_withdrawl, 5, 0, ctotal_assets, ctotal_ratios, cpool_states, sender=trader)   
 
     print("pools = %s." % [x for x in pools])
 

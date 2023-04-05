@@ -867,32 +867,29 @@ def getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _tot
 
 
 @internal
-@view
-# pre-requisites:
-#   1) establish that if len(self.dlending_pools) > 0
-#   2) pass in pool_states & blocked_adapters ala getTargetBalances.
-#
-def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> (BalanceTX[MAX_POOLS], address[MAX_POOLS]): 
+@pure
+def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8, _min_proposer_payout: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_states: BalancePool[MAX_POOLS]) -> (BalanceTX[MAX_POOLS], address[MAX_POOLS]): 
     # _BDM TODO : max_txs is ignored for now.    
     pool_txs : BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
     blocked_adapters : address[MAX_POOLS] = empty(address[MAX_POOLS])
 
-    # If there are no pools then nothing to do.
-    if len(self.dlending_pools) == 0: return pool_txs, blocked_adapters
+    # BDM - move this out of here so we can be pure.
+    # # If there are no pools then nothing to do.
+    # if len(self.dlending_pools) == 0: return pool_txs, blocked_adapters
 
-    # Setup current state of vault & pools & strategy.
-    d4626_assets: uint256 = 0
+    # # Setup current state of vault & pools & strategy.
+    # d4626_assets: uint256 = 0
     pool_states: BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
-    total_assets: uint256 = 0
-    total_ratios: uint256 = 0
-    d4626_assets, pool_states, total_assets, total_ratios = self._getCurrentBalances()
+    # #total_assets: uint256 = 0
+    # #total_ratios: uint256 = 0
+    # d4626_assets, pool_states, total_assets, total_ratios = self._getCurrentBalances()
 
     # What's the optimal outcome for our vault/pools?
     pool_assets_allocated : uint256 = 0
     d4626_delta : int256 = 0
     tx_count : uint256 = 0
 
-    pool_assets_allocated, d4626_delta, tx_count, pool_states, blocked_adapters = self._getTargetBalances(_target_asset_balance, total_assets, total_ratios, pool_states, self.min_proposer_payout)
+    pool_assets_allocated, d4626_delta, tx_count, pool_states, blocked_adapters = self._getTargetBalances(_target_asset_balance, _total_assets, _total_ratios, _pool_states, _min_proposer_payout)
 
     pos : uint256 = 0
     for tx_bal in pool_states:
@@ -904,8 +901,8 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> (Balance
 
 @external
 @view
-def getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8) -> (BalanceTX[MAX_POOLS], address[MAX_POOLS]): 
-    return self._getBalanceTxs( _target_asset_balance, _max_txs )
+def getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8, _min_proposer_payout: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_states: BalancePool[MAX_POOLS]) -> (BalanceTX[MAX_POOLS], address[MAX_POOLS]):  
+    return self._getBalanceTxs( _target_asset_balance, _max_txs, _min_proposer_payout, _total_assets, _total_ratios, _pool_states )
 
 
 @internal
@@ -918,7 +915,17 @@ def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALT
     txs: BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
     blocked_adapters: address[MAX_POOLS] = empty(address[MAX_POOLS])
 
-    txs, blocked_adapters = self._getBalanceTxs( _target_asset_balance, _max_txs )
+    # If there are no pools then nothing to do.
+    if len(self.dlending_pools) == 0: return 
+
+    # Setup current state of vault & pools & strategy.
+    d4626_assets: uint256 = 0
+    pool_states: BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
+    total_assets: uint256 = 0
+    total_ratios: uint256 = 0
+    d4626_assets, pool_states, total_assets, total_ratios = self._getCurrentBalances()
+
+    txs, blocked_adapters = self._getBalanceTxs( _target_asset_balance, _max_txs, self.min_proposer_payout, total_assets, total_ratios, pool_states )
 
     # If there are blocked_adapters then set their strategy ratios to zero.
     for adapter in blocked_adapters:
