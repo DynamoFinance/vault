@@ -1007,7 +1007,9 @@ def _adapter_deposit(_adapter: address, _asset_amount: uint256):
     assert result_ok == True, convert(response, String[32]) #"_adapter_deposit raw_call failed"
 
     new_assets : uint256 = self._poolAssets(_adapter)
-    assert _asset_amount + starting_assets == new_assets, "Didn't move the assets into our adapter!"
+    #Allow to get one less than what we deposited to account for rounding issues
+    #TODO: move this to adapter
+    assert _asset_amount + starting_assets <= new_assets+1, "Didn't move the assets into our adapter!"
 
     # Update our last_asset_value in our strategy for protection against LP exploits.
     self.strategy[_adapter].last_asset_value = new_assets
