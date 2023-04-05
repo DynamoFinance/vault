@@ -752,101 +752,6 @@ def getCurrentBalances() -> (uint256, BalancePool[MAX_POOLS], uint256, uint256):
     return self._getCurrentBalances()
 
 
-@internal
-@view
-def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS], _min_outgoing_tx: uint256) -> (uint256, int256, uint256, BalancePool[MAX_POOLS], address[MAX_POOLS]):
-    
-    return FundsAllocator(self.funds_allocator).getTargetBalances(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances, _min_outgoing_tx)
-
-    # #response: Bytes[40*32] = empty(Bytes[40*32])
-    # response: Bytes[2048] = empty(Bytes[2048])
-    # result_ok: bool = empty(bool)
-    # parameters: Bytes[1280] = _abi_encode(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances, _min_outgoing_tx, method_id=method_id('getTargetBalances(uint256,uint256,uint256,BalancePool[MAX_POOLS],uint256)'))
-
-    # result_ok, response = raw_call(self.funds_allocator, parameters, max_outsize=1280, is_static_call=True, revert_on_failure=False)
-
-    # assert result_ok == True, "_getTargetBalances raw_call failed!"
-    # return _abi_decode(response, (uint256, int256, uint256, BalancePool[MAX_POOLS], address[MAX_POOLS]))
-
-
-
-
-
-    # # WHAT IF THE _d4626_asset_target is larger than the total assets?!?!?
-    # assert _d4626_asset_target <= _total_assets, "Not enough assets to fulfill d4626 target goals!"
-
-    # total_pool_target_assets : uint256 = _total_assets - _d4626_asset_target
-
-    # pool_assets_allocated : uint256 = 0 
-    # d4626_delta : int256 = 0
-    # tx_count: uint256 = 0
-
-    # # We have to copy from the old list into a new one to update values. (NOT THE MOST EFFICIENT OPTION.)
-    # pools : BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
-    # blocked_adapters : address[MAX_POOLS] = empty(address[MAX_POOLS])
-    # blocked_pos : uint256 = 0
-
-    # # Any funds that should have been moved into an LPAdapter but weren't due to invalid txs.
-    # leftover_assets : int256 = 0
-
-    # for pos in range(MAX_POOLS):
-    #     pool : BalancePool = _pool_balances[pos]
-    #     if pool.adapter == empty(address): break
-
-    #     # If the pool has been removed from the strategy then we must empty it!
-    #     if pool.ratio == 0:
-    #         pool.target = 0
-    #         pool.delta = convert(pool.current, int256) * -1 # Withdraw it all!
-    #     else:
-    #         pool.target = (total_pool_target_assets * pool.ratio) / _total_ratios      
-    #         pool.delta = convert(pool.target, int256) - convert(pool.current, int256)            
-
-    #         # Check for valid outgoing txs here.
-    #         if pool.delta > 0:
-    #             # Is an outgoing tx > min size?
-    #             if pool.delta < convert(_min_outgoing_tx, int256): 
-    #                 leftover_assets += pool.delta
-    #                 pool.delta = 0
-    #             # Is the LP possibly compromised for an outgoing tx?
-    #             if pool.current < pool.last_value:
-    #                 # We've lost value in this adapter! Don't give it more money!
-    #                 leftover_assets += pool.delta
-    #                 blocked_adapters[blocked_pos] = pool.adapter
-    #                 blocked_pos += 1
-    #                 pool.delta = 0 # This will result in no tx being generated.
-
-    #     pool_result : int256 = convert(pool.current, int256) + pool.delta
-    #     assert pool_result >= 0, "Pool resulting balance can't be less than zero!"
-    #     pool_assets_allocated += convert(pool_result, uint256)
-
-
-    #     d4626_delta += pool.delta * -1
-    #     #if pool.delta != 0: tx_count += 1
-    #     # Don't insert a tx if there's nothing to transfer.
-    #     if pool.delta == 0: continue
-
-    #     tx_count += 1
-
-    #     if pos == 0:
-    #         pools[pos]=pool
-    #     else:
-    #         for npos in range(MAX_POOLS):
-    #             if pools[npos].delta == 0:  # Empty position, take it.
-    #                 pools[npos] = pool
-    #                 break
-    #             if pools[npos].delta > pool.delta: # Move everything right and insert here.
-    #                 for mpos in range(MAX_POOLS):
-    #                     next_pos : uint256 = MAX_POOLS - npos - 1 
-    #                     if pools[next_pos].delta == 0: continue
-    #                     pools[next_pos+1] = pools[next_pos]
-
-    #                 pools[npos] = pool
-    #                 break
-
-    # # Check to make sure we hit our _d4626_asset_target in the end!
-    # return pool_assets_allocated, d4626_delta, tx_count, pools, blocked_adapters
-
-
 @external
 @view
 def getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS], _min_outgoing_tx: uint256) -> (uint256, int256, uint256, BalancePool[MAX_POOLS], address[MAX_POOLS]): 
@@ -874,32 +779,12 @@ def getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _tot
 
     """    
     return FundsAllocator(self.funds_allocator).getTargetBalances(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances, _min_outgoing_tx)
-    #return self._getTargetBalances(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances, _min_outgoing_tx)
 
 
 @internal
 @view
 def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8, _min_proposer_payout: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_states: BalancePool[MAX_POOLS]) -> (BalanceTX[MAX_POOLS], address[MAX_POOLS]): 
-
     return FundsAllocator(self.funds_allocator).getBalanceTxs( _target_asset_balance, _max_txs, _min_proposer_payout, _total_assets, _total_ratios, _pool_states)
-
-
-    # # _BDM TODO : max_txs is ignored for now.    
-    # pool_txs : BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
-    # blocked_adapters : address[MAX_POOLS] = empty(address[MAX_POOLS])
-    # pool_states: BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
-    # pool_assets_allocated : uint256 = 0
-    # d4626_delta : int256 = 0
-    # tx_count : uint256 = 0
-
-    # pool_assets_allocated, d4626_delta, tx_count, pool_states, blocked_adapters = self._getTargetBalances(_target_asset_balance, _total_assets, _total_ratios, _pool_states, _min_proposer_payout)
-
-    # pos : uint256 = 0
-    # for tx_bal in pool_states:
-    #     pool_txs[pos] = BalanceTX({qty: tx_bal.delta, adapter: tx_bal.adapter})
-    #     pos += 1
-
-    # return pool_txs, blocked_adapters
 
 
 @external
@@ -1047,37 +932,14 @@ def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: a
         revert_on_failure=False
         )
 
-    #if _asset_amount == 1890:
-    #    assert False, "Got here 841!"       
-
-    # TODO - interpret response as revert msg in case this assertion fails.
-    #if result_ok != True:
-    #    res : String[32] = convert(response, String[32])
-    #    assert False, concat("res = ", res)
-
     assert result_ok == True, "withdraw raw_call failed!"
 
-    #if _asset_amount == 1890:
-
-    #assert False, "Here we are 902!"
-
     balafter : uint256 = ERC20(asset).balanceOf(_withdraw_to)
-
     assert balafter != balbefore, "NOTHING CHANGED!"
-
-    #if _asset_amount == 400:
-    #    res : String[180] = concat("balafter = ", uint2str(balafter), " balbefore = ", uint2str(balbefore) )
-    #    assert False, res
-
     assert balafter - balbefore == _asset_amount, "DIDN'T GET OUR ASSETS BACK!"
     
     # Update our last_asset_value in our strategy for protection against LP exploits.
     self.strategy[_adapter].last_asset_value = self._poolAssets(_adapter)
-
-
-# BDM - get rid of this.
-#@external
-#def adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: address): self._adapter_withdraw(_adapter, _asset_amount, _withdraw_to)
 
 
 @internal
@@ -1140,16 +1002,6 @@ def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint
 
     # Owner has adequate shares?
     assert self.balanceOf[_owner] >= shares, "Owner has inadequate shares for this withdraw."
-    #assert xcbal >= shares, xxmsg
-    # if xcbal >= shares:
-    # #    assert False, "Got here."
-    #     #xcbal : uint256 = self.balanceOf[_owner]
-    #     assert False, "EHERE!"
-    #     assert False, "Got here."
-    #     cbal: String[78] = uint2str(xcbal)
-    #     #assert False, "Got here."
-    #     xmsg : String[169] = concat("has: ", uint2str(self.balanceOf[_owner]), " needs: ", uint2str(shares))
-    #     assert False, xmsg
 
     # Withdrawl is handled by someone other than the owner?
     if msg.sender != _owner:

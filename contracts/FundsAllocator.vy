@@ -10,15 +10,6 @@
 
 MAX_POOLS : constant(uint256) = 5 
 
-struct AdapterStrategy:
-    adapter: address
-    ratio: uint256
-
-# Maps adapter address (not LP address) to ratios.
-struct AdapterValue:
-    ratio: uint256
-    last_asset_value: uint256
-
 struct BalanceTX:
     qty: int256
     adapter: address
@@ -35,16 +26,6 @@ struct BalancePool:
 @internal
 @pure
 def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS], _min_outgoing_tx: uint256) -> (uint256, int256, uint256, BalancePool[MAX_POOLS], address[MAX_POOLS]):
-    # #response: Bytes[40*32] = empty(Bytes[40*32])
-    # response: Bytes[2048] = empty(Bytes[2048])
-    # result_ok: bool = empty(bool)
-    # parameters: Bytes[1280] = _abi_encode(_d4626_asset_target, _total_assets, _total_ratios, _pool_balances, _min_outgoing_tx, method_id=method_id('getTargetBalances(uint256,uint256,uint256,BalancePool[MAX_POOLS],uint256)'))
-
-    # result_ok, response = raw_call(self.funds_allocator, parameters, max_outsize=1280, is_static_call=True, revert_on_failure=False)
-
-    # assert result_ok == True, "_getTargetBalances raw_call failed!"
-    # return _abi_decode(response, (uint256, int256, uint256, BalancePool[MAX_POOLS], address[MAX_POOLS]))
-
     # WHAT IF THE _d4626_asset_target is larger than the total assets?!?!?
     assert _d4626_asset_target <= _total_assets, "Not enough assets to fulfill d4626 target goals!"
 
