@@ -77,9 +77,14 @@ def gho(project, deployer, trader, ensure_hardhat):
     return ua
 
 @pytest.fixture
-def ddai4626(project, deployer, trader, dai, ensure_hardhat):
+def funds_alloc(project, deployer):
+    f = deployer.deploy(project.FundsAllocator)
+    return f
+
+@pytest.fixture
+def ddai4626(project, deployer, trader, dai, ensure_hardhat, funds_alloc):
     aave_adapter = deployer.deploy(project.aaveAdapter, AAVE_LENDING_POOL, DAI, ADAI)
-    dynamo4626 = deployer.deploy(project.Dynamo4626, "DynamoDAI", "dyDAI", 18, dai, [], deployer)
+    dynamo4626 = deployer.deploy(project.Dynamo4626, "DynamoDAI", "dyDAI", 18, dai, [], deployer, funds_alloc)
     dynamo4626.add_pool(aave_adapter, sender=deployer)
     strategy = [(ZERO_ADDRESS,0)] * 5 # This assumes Dynamo4626 MAX_POOLS == 5
     strategy[0] = (aave_adapter,1)
@@ -104,9 +109,9 @@ def fraxpair(project, ensure_hardhat):
 
 
 @pytest.fixture
-def dfrax4626(project, deployer, trader, frax, ensure_hardhat):
+def dfrax4626(project, deployer, trader, frax, ensure_hardhat, funds_alloc):
     fa = deployer.deploy(project.fraxlendAdapter, BTC_FRAX_PAIR, FRAX)
-    dynamo4626 = deployer.deploy(project.Dynamo4626, "DynamoFRAX", "dyFRAX", 18, frax, [], deployer)
+    dynamo4626 = deployer.deploy(project.Dynamo4626, "DynamoFRAX", "dyFRAX", 18, frax, [], deployer, funds_alloc)
     dynamo4626.add_pool(fa, sender=deployer)
     strategy = [(ZERO_ADDRESS,0)] * 5 # This assumes Dynamo4626 MAX_POOLS == 5
     strategy[0] = (fa,1)

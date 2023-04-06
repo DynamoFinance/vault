@@ -34,6 +34,11 @@ def vault(project, ensure_hardhat):
     return project.Vault.at(VAULT)
 
 @pytest.fixture
+def funds_alloc(project, deployer):
+    f = deployer.deploy(project.FundsAllocator)
+    return f
+
+@pytest.fixture
 def dai(project, deployer, trader, ensure_hardhat):
     dai = project.DAI.at(DAI)
     # print("wards", dai.wards(deployer))
@@ -62,8 +67,8 @@ def aave_adapter(project, deployer, dai, ensure_hardhat):
     return project.LPAdapter.at(aa)
 
 @pytest.fixture
-def ddai4626(project, deployer, trader, dai, ensure_hardhat, aave_adapter):
-    dynamo4626 = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, [], deployer)
+def ddai4626(project, deployer, trader, dai, ensure_hardhat, aave_adapter,funds_alloc):
+    dynamo4626 = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, [], deployer, funds_alloc)
     dynamo4626.add_pool(aave_adapter, sender=deployer)
     strategy = [(ZERO_ADDRESS,0)] * 5 # This assumes Dynamo4626 MAX_POOLS == 5
     strategy[0] = (aave_adapter,1)
