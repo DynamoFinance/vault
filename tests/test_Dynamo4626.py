@@ -51,10 +51,14 @@ def pool_adapterC(project, deployer, dai):
     c = deployer.deploy(project.MockLPAdapter, dai, wdai)
     return c    
 
+@pytest.fixture
+def funds_alloc(project, deployer):
+    f = deployer.deploy(project.FundsAllocator)
+    return f
 
 @pytest.fixture
-def dynamo4626(project, deployer, dai, trader):
-    v = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, [], deployer)    
+def dynamo4626(project, deployer, dai, trader, funds_alloc):
+    v = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, [], deployer, funds_alloc)    
     return v
 
 
@@ -76,9 +80,9 @@ def test_basic_initialization(project, deployer, dynamo4626):
     assert dynamo4626.decimals(sender=deployer) == d4626_decimals
 
 
-def test_initial_pools_initialization(project, deployer, dai, pool_adapterA, pool_adapterB, pool_adapterC):
+def test_initial_pools_initialization(project, deployer, dai, pool_adapterA, pool_adapterB, pool_adapterC, funds_alloc):
     pools = [pool_adapterA, pool_adapterB, pool_adapterC]
-    dynamo = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, pools, deployer)    
+    dynamo = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, pools, deployer, funds_alloc)    
 
     # This should fail because we can't add the same pool twice!
     for pool in pools:
@@ -516,7 +520,10 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
 
     print("Got here #1.")
 
-    pools = dynamo4626.getBalanceTxs(max_withdrawl, 5, sender=trader)   
+    # Setup current state of vault & pools & strategy.
+    cd4626_assets, cpool_states, ctotal_assets, ctotal_ratios = dynamo4626.getCurrentBalances()
+
+    pools = dynamo4626.getBalanceTxs(max_withdrawl, 5, 0, ctotal_assets, ctotal_ratios, cpool_states, sender=trader)   
 
     print("pools = %s." % [x for x in pools])
 

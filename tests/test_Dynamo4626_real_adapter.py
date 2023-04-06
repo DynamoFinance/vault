@@ -74,8 +74,13 @@ def aave_adapter(project, deployer, dai, ensure_hardhat):
     return project.LPAdapter.at(aa)
 
 @pytest.fixture
-def dynamo4626(project, deployer, dai):
-    v = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, [], deployer)    
+def funds_alloc(project, deployer):
+    f = deployer.deploy(project.FundsAllocator)
+    return f
+
+@pytest.fixture
+def dynamo4626(project, deployer, dai, trader, funds_alloc):
+    v = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, [], deployer, funds_alloc)    
     return v
 
 def test_single_adapter_aave(project, deployer, dynamo4626, aave_adapter, dai, trader, ensure_hardhat, adai):
