@@ -2,7 +2,7 @@
 """
 @title Dynamo4626 Multi-Vault
 @license MIT
-@author BiggestLab
+@author BiggestLab (https://biggestlab.io) Benjamin Scherrey, Morgan Baugh, Sajal Kayan
 """
 
 from vyper.interfaces import ERC20
@@ -34,33 +34,35 @@ symbol: public(immutable(String[32]))
 decimals: public(immutable(uint8))
 asset: public(immutable(address))
 
-total_assets_deposited: public(uint256)
-total_assets_withdrawn: public(uint256)
-total_yield_fees_claimed: public(uint256)
-total_strategy_fees_claimed: public(uint256)
-
-struct AdapterStrategy:
-    adapter: address
-    ratio: uint256
-
+# Controlling & Governance DAOs/Wallets
 owner: address
 governance: address
 funds_allocator: public(address)
+dlending_pools : public(DynArray[address, MAX_POOLS])
+
+
+# Strategy Management
 current_proposer: address
 min_proposer_payout: uint256
 
-dlending_pools : public(DynArray[address, MAX_POOLS])
-
-totalSupply: public(uint256)
-balanceOf: public(HashMap[address, uint256])
-allowance: public(HashMap[address, HashMap[address, uint256]])
-
-# Maps adapter address (not LP address) to ratios.
 struct AdapterValue:
     ratio: uint256
     last_asset_value: uint256
 
 strategy: public(HashMap[address, AdapterValue])
+
+
+# Summary Financial History of the Vault
+total_assets_deposited: public(uint256)
+total_assets_withdrawn: public(uint256)
+total_yield_fees_claimed: public(uint256)
+total_strategy_fees_claimed: public(uint256)
+
+
+# ERC20 Representation of Vault Shares
+totalSupply: public(uint256)
+balanceOf: public(HashMap[address, uint256])
+allowance: public(HashMap[address, HashMap[address, uint256]])
 
 
 event PoolAdded:
@@ -93,6 +95,10 @@ event Withdraw:
     owner: indexed(address)
     assets: uint256
     shares: uint256 
+
+struct AdapterStrategy:
+    adapter: address
+    ratio: uint256    
 
 event StrategyActivation:
     strategy: AdapterStrategy[MAX_POOLS]
