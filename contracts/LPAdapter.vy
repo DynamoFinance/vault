@@ -1,4 +1,9 @@
 # @version 0.3.7
+"""
+@title Dynamo4626 Multi-Vault
+@license MIT
+@author BiggestLab (https://biggestlab.io) Sajal Kayan, Benjamin Scherrey
+"""
 
 
 #Declaring interface in this format allows it to be "compiled", so we can use its ABI from python side

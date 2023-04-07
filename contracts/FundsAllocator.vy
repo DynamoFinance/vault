@@ -2,8 +2,9 @@
 """
 @title Adapter Fund Allocation Logic
 @license MIT
-@author BiggestLab
+@author BiggestLab (https://biggestlab.io) Benjamin Scherrey
 """
+
 ##
 ## Must match Dynamo4626.vy
 ##
@@ -26,7 +27,6 @@ struct BalancePool:
 @internal
 @pure
 def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS], _min_outgoing_tx: uint256) -> (uint256, int256, uint256, BalancePool[MAX_POOLS], address[MAX_POOLS]):
-    # WHAT IF THE _d4626_asset_target is larger than the total assets?!?!?
     assert _d4626_asset_target <= _total_assets, "Not enough assets to fulfill d4626 target goals!"
 
     total_pool_target_assets : uint256 = _total_assets - _d4626_asset_target
@@ -39,9 +39,6 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
     pools : BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
     blocked_adapters : address[MAX_POOLS] = empty(address[MAX_POOLS])
     blocked_pos : uint256 = 0
-
-    # Any funds that should have been moved into an LPAdapter but weren't due to invalid txs.
-    leftover_assets : int256 = 0
 
     for pos in range(MAX_POOLS):
         pool : BalancePool = _pool_balances[pos]
@@ -57,14 +54,14 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
 
             # Check for valid outgoing txs here.
             if pool.delta > 0:
+
                 # Is an outgoing tx > min size?
-                if pool.delta < convert(_min_outgoing_tx, int256): 
-                    leftover_assets += pool.delta
+                if pool.delta < convert(_min_outgoing_tx, int256):         
                     pool.delta = 0
+
                 # Is the LP possibly compromised for an outgoing tx?
                 if pool.current < pool.last_value:
                     # We've lost value in this adapter! Don't give it more money!
-                    leftover_assets += pool.delta
                     blocked_adapters[blocked_pos] = pool.adapter
                     blocked_pos += 1
                     pool.delta = 0 # This will result in no tx being generated.
@@ -73,9 +70,8 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
         assert pool_result >= 0, "Pool resulting balance can't be less than zero!"
         pool_assets_allocated += convert(pool_result, uint256)
 
-
         d4626_delta += pool.delta * -1
-        #if pool.delta != 0: tx_count += 1
+
         # Don't insert a tx if there's nothing to transfer.
         if pool.delta == 0: continue
 
@@ -97,7 +93,6 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
                     pools[npos] = pool
                     break
 
-    # Check to make sure we hit our _d4626_asset_target in the end!
     return pool_assets_allocated, d4626_delta, tx_count, pools, blocked_adapters
 
 
