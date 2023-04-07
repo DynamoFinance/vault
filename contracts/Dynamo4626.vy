@@ -994,15 +994,7 @@ def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint
 
     # How many shares does it take to get the requested asset amount?
     shares: uint256 = self._convertToShares(_asset_amount)
-
-    #result_str : String[103] = concat("Not 1890 assets : ", uint2str(_asset_amount))
-    #assert False, result_str
-
-    #assert shares == 1000, result_str
-
     xcbal : uint256 = self.balanceOf[_owner]
-
-    #xxmsg : String[275] = concat("Owner has ", uint2str(xcbal), " shares but needs ", uint2str(shares), ".")
 
     # Owner has adequate shares?
     assert self.balanceOf[_owner] >= shares, "Owner has inadequate shares for this withdraw."
@@ -1022,8 +1014,6 @@ def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint
     # Make sure we have enough assets to send to _receiver.
     self._balanceAdapters( _asset_amount )
 
-    #assert False, "Got here!"    
-
     assert ERC20(asset).balanceOf(self) >= _asset_amount, "ERROR - 4626 DOESN'T HAVE ENOUGH BALANCE TO WITHDRAW!"
 
     # Now send assets to _receiver.
@@ -1032,7 +1022,7 @@ def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint
     # Update all-time assets withdrawn for yield tracking.
     self.total_assets_withdrawn += _asset_amount
 
-    # TODO: emit Withdrawl event!
+    log Withdraw(msg.sender, _receiver, _owner, _asset_amount, shares)
 
     return shares
 
@@ -1043,7 +1033,7 @@ def withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint2
     @param _asset_amount Number amount of assets to evaluate
     @param _receiver Address of receiver to evaluate
     @param _owner Address of owner of assets to evaluate
-    @return Asset amount withdrawn to receiver
+    @return Share amount withdrawn to receiver
     """
     return self._withdraw(_asset_amount,_receiver,_owner)
 
