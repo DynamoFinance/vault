@@ -517,7 +517,7 @@ def _claim_fees(_yield : FeeType, _asset_amount: uint256, _current_assets : uint
         self.total_strategy_fees_claimed += prop_fee
     else:
         assert False, "Invalid FeeType!"
-        
+
     ERC20(asset).transfer(msg.sender, claim_amount)
 
     return claim_amount
@@ -723,8 +723,6 @@ def redeem(_share_amount: uint256, _receiver: address, _owner: address) -> uint2
     @return Asset qty withdrawn
     """
     assetqty: uint256 = self._convertToAssets(_share_amount)
-    #if assetqty == 100911382350000000000000:
-    #    assert False, "Matches!"
     return self._withdraw(assetqty, _receiver, _owner)
 
 
@@ -825,16 +823,10 @@ def _getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8, _min_propos
 def getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8, _min_proposer_payout: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_states: BalancePool[MAX_POOLS]) -> (BalanceTX[MAX_POOLS], address[MAX_POOLS]):  
     return FundsAllocator(self.funds_allocator).getBalanceTxs( _target_asset_balance, _max_txs, _min_proposer_payout, _total_assets, _total_ratios, _pool_states)
 
-    #return self._getBalanceTxs( _target_asset_balance, _max_txs, _min_proposer_payout, _total_assets, _total_ratios, _pool_states )
-
 
 @internal
 def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALTX_DEPOSIT ):
-
-    #assert False, "_balanceAdapters"
-
     # Make sure we have enough assets to send to _receiver.
-    # txs: DynArray[BalanceTX, MAX_POOLS] = empty(DynArray[BalanceTX, MAX_POOLS])
     txs: BalanceTX[MAX_POOLS] = empty(BalanceTX[MAX_POOLS])
     blocked_adapters: address[MAX_POOLS] = empty(address[MAX_POOLS])
 
@@ -869,26 +861,11 @@ def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALT
         if dtx.qty > 0 and dtx.qty >= convert(self.min_proposer_payout, int256):
             # Move funds into the lending pool's adapter.
             assert ERC20(asset).balanceOf(self) >= convert(dtx.qty, uint256), "_balanceAdapters d4626 insufficient assets!"
-            # TODO : check for deposit failure. If it's due to going beyond
-            #        the adapter's maxDeposit() limit, try again with lower limit.
             self._adapter_deposit(dtx.adapter, convert(dtx.qty, uint256))
 
         elif dtx.qty < 0:
             # Liquidate funds from lending pool's adapter.
-            qty: uint256 = convert(dtx.qty * -1, uint256)
-
-            # TODO : check for withdraw failure. If it's due to going beyond
-            #        the adapter's maxWithdraw limit then try again with lower limit.
-            # TODO:  We also have to check to see if we short the 4626 balance, where
-            #        the necessary funds will come from! Otherwise this may need to revert.
-            #assert ERC20(asset).balanceOf(dtx.adapter) >= qty, "_balanceAdapters adapter insufficient assets!"
-
-            # BDM
-            #if ERC20(asset).balanceOf(dtx.adapter) < qty:
-            #    missing: uint256 = qty - ERC20(asset).balanceOf(dtx.adapter)                 
-            #    xmsg: String[274] = concat("Missing ", uint2str(missing), " assets to do ", uint2str(qty), " from ", uint2str(ERC20(asset).balanceOf(dtx.adapter)), " adapter tx.")
-            #    assert False, xmsg
-                 
+            qty: uint256 = convert(dtx.qty * -1, uint256)         
             self._adapter_withdraw(dtx.adapter, qty, self)
 
 
@@ -937,8 +914,8 @@ def _adapter_deposit(_adapter: address, _asset_amount: uint256):
     assert result_ok == True, convert(response, String[32]) #"_adapter_deposit raw_call failed"
 
     new_assets : uint256 = self._poolAssets(_adapter)
+
     #Allow to get one less than what we deposited to account for rounding issues
-    #TODO: move this to adapter
     assert _asset_amount + starting_assets <= new_assets+1, "Didn't move the assets into our adapter!"
 
     # Update our last_asset_value in our strategy for protection against LP exploits.
@@ -952,9 +929,6 @@ def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: a
     balbefore : uint256 = ERC20(asset).balanceOf(_withdraw_to)
     response: Bytes[32] = empty(Bytes[32])
     result_ok: bool = False
-
-    #result_str : String[278] = concat("Not enough assets. Adapter: ", uint2str(convert(_adapter, uint256)), " Have : ", uint2str(current_balance), " need : ", uint2str(_asset_amount))
-    #assert current_balance >= _asset_amount, result_str
 
     assert _adapter != empty(address), "EMPTY ADAPTER!"
     assert _withdraw_to != empty(address), "EMPTY WITHDRAW_TO!"
@@ -989,9 +963,6 @@ def _deposit(_asset_amount: uint256, _receiver: address) -> uint256:
     # Move assets to this contract from caller in one go.
     ERC20(asset).transferFrom(msg.sender, self, _asset_amount)
 
-    #result_str : String[103] = concat("Not 500 _asset_amount : ", uint2str(_asset_amount))
-    #assert _asset_amount == 500, result_str
-
     # It's our intention to move all funds into the lending pools so 
     # our target balance is zero.
     self._balanceAdapters( empty(uint256) )
@@ -1002,11 +973,9 @@ def _deposit(_asset_amount: uint256, _receiver: address) -> uint256:
     # Update all-time assets deposited for yield tracking.
     self.total_assets_deposited += _asset_amount
 
-    result : uint256 = _asset_amount
+    log Deposit(msg.sender, msg.sender, _asset_amount, shares)
 
-    # TODO : emit Deposit event!
-
-    return result
+    return shares
 
 
 @external
@@ -1015,7 +984,7 @@ def deposit(_asset_amount: uint256, _receiver: address) -> uint256:
     @notice This function provides a way to transfer an asset amount from message sender to receiver
     @param _asset_amount Number amount of assets to evaluate
     @param _receiver Address of receiver to evaluate
-    @return Asset amount deposited to receiver
+    @return Share amount deposited to receiver
     """
     return self._deposit(_asset_amount, _receiver)
 
