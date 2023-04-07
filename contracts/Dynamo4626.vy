@@ -109,6 +109,24 @@ event PoolLoss:
     last_value: uint256
     current_value: uint256
 
+event GovernanceChanged:
+    new_governor: indexed(address)
+    old_governor: indexed(address)
+
+event DynamoVaultDeployed:
+    name: indexed(String[64])
+    symbol: indexed(String[32])
+    decimals: uint8
+    asset: indexed(address)
+
+event FundsAllocatorChanged:
+    new_allocator: indexed(address)
+    old_allocator: indexed(address)   
+
+event OwnerChanged:
+    new_owner: indexed(address)
+    old_owner: indexed(address)    
+
     
 
 @external
@@ -143,39 +161,13 @@ def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20ass
     self.funds_allocator = _funds_allocator
     self.totalSupply = 0
 
-    assert len(self.dlending_pools)==0, "HUh?!?!?" # TODO - remove
+    log DynamoVaultDeployed(_name, _symbol, _decimals, _erc20asset)
+    log OwnerChanged(msg.sender, empty(address))
+    log GovernanceChanged(_governance, empty(address))
+    log FundsAllocatorChanged(_funds_allocator, empty(address))
 
     for pool in _pools:
         self._add_pool(pool)        
-
-
-@external
-def replaceGovernanceContract(_new_governance: address) -> bool:
-    """
-    @notice This function provides a way to replace the governance contract with a new governance contract
-    @param _new_governance Address of the new governance contract to evaluate
-    @return True, if governance contract was replaced, False otherwise
-    """
-    assert msg.sender == self.governance, "Only existing Governance contract may replace itself."
-    assert _new_governance != empty(address), "Governance cannot be null address."
-
-    self.governance = _new_governance    
-
-    # TODO - emit GovernanceContractReplaced event!
-
-    return True
-
-
-@external
-def replaceFundsAllocator(_new_funds_allocator: address) -> bool:
-    assert msg.sender == self.owner, "Only owner can change the funds allocation contract!"
-    assert _new_funds_allocator != empty(address), "FundsAllocator cannot be null address."
-
-    self.funds_allocator = _new_funds_allocator
-
-    # TODO - emit FundsAllocatorContractReplaced event!
-
-    return True
 
 
 @external
@@ -188,7 +180,39 @@ def replaceOwner(_new_owner: address) -> bool:
     assert msg.sender == self.owner, "Only existing owner can replace the owner."
     assert _new_owner != empty(address), "Owner cannot be null address."
 
+    log OwnerChanged(_new_owner, self.owner)
+
     self.owner = _new_owner
+    
+    return True
+
+
+@external
+def replaceGovernanceContract(_new_governance: address) -> bool:
+    """
+    @notice This function provides a way to replace the governance contract with a new governance contract
+    @param _new_governance Address of the new governance contract to evaluate
+    @return True, if governance contract was replaced, False otherwise
+    """
+    assert msg.sender == self.governance, "Only existing Governance contract may replace itself."
+    assert _new_governance != empty(address), "Governance cannot be null address."
+
+    log GovernanceChanged(_new_governance, self.governance)
+
+    self.governance = _new_governance    
+
+    return True
+
+
+@external
+def replaceFundsAllocator(_new_funds_allocator: address) -> bool:
+    assert msg.sender == self.owner, "Only owner can change the funds allocation contract!"
+    assert _new_funds_allocator != empty(address), "FundsAllocator cannot be null address."
+
+    log FundsAllocatorChanged(_new_funds_allocator, self.funds_allocator)
+
+    self.funds_allocator = _new_funds_allocator
+
     return True
 
 
@@ -208,12 +232,12 @@ def lending_pools() -> DynArray[address, MAX_POOLS]:
 def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], _min_proposer_payout : uint256) -> bool:
     assert msg.sender == self.governance, "Only Governance DAO may set a new strategy."
     assert _proposer != empty(address), "Proposer can't be null address."
-    # assert False, "failed here"
+
     # Are we replacing the old proposer?
     if self.current_proposer != _proposer:
 
         current_assets : uint256 = self._totalAssets()
-        #assert False, "failed here"
+
         # Is there enough payout to actually do a transaction?
         if self._claimable_fees_available(FeeType.PROPOSER, current_assets) > self.min_proposer_payout:
                 
@@ -232,9 +256,6 @@ def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], 
         plan : AdapterValue = empty(AdapterValue)
         plan.ratio = strategy.ratio
         self.strategy[strategy.adapter] = plan
-
-    # Rebalance vault according to new strategy.
-    # TODO BDM : should this be separate? self._balanceAdapters(0, convert(MAX_POOLS, uint8))
 
     log StrategyActivation(_strategies, _proposer)
 
@@ -255,6 +276,9 @@ def set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], _
 
 @internal 
 def _add_pool(_pool: address) -> bool:    
+    # Is this from the owner?
+    assert msg.sender == self.owner, "Only owner can add new Lending Pools."
+
     # Do we already support this pool?
     assert (_pool in self.dlending_pools) == False, "pool already supported."
 
@@ -264,7 +288,6 @@ def _add_pool(_pool: address) -> bool:
 
     result_ok, response = raw_call(_pool, method_id("maxDeposit()"), max_outsize=32, is_static_call=True, revert_on_failure=False)
     assert (response != empty(Bytes[32])), "Doesn't appear to be an LPAdapter."
-    # TODO : should we check the result_ok result instead or in addition to?
 
     self.dlending_pools.append(_pool)
 
@@ -280,14 +303,14 @@ def add_pool(_pool: address) -> bool:
     @param _pool Address for new pool to evaluate
     @return True if pool was added, False otherwise
     """
-    # Is this from the owner?
-    assert msg.sender == self.owner, "Only owner can add new Lending Pools."
-
     return self._add_pool(_pool)
 
 
 @internal
 def _remove_pool(_pool: address, _rebalance: bool = True) -> bool:
+    # Is this from the owner?    
+    assert msg.sender == self.owner, "Only owner can remove Lending Pools."
+
     if _pool not in self.dlending_pools: return False
 
     # Clear out any strategy ratio this adapter may have.
@@ -323,9 +346,6 @@ def remove_pool(_pool: address, _rebalance: bool = True) -> bool:
     
     @return True if pool was removed, False otherwise
     """
-    # Is this from the owner?
-    assert msg.sender == self.owner, "Only owner can remove Lending Pools."
-
     return self._remove_pool(_pool, _rebalance)
 
 
@@ -337,22 +357,24 @@ def _poolAssets(_pool: address) -> uint256:
 
     assert _pool != empty(address), "EMPTY POOL!!"    
 
-    # TODO: Shouldn't I just 'assetqty += LPAdapter(pool).totalAssets()'???
-    # assetqty += LPAdapter(pool).totalAssets()
-    result_ok, response = raw_call(
-        _pool,
-        method_id("totalAssets()"),
-        max_outsize=32,
-        is_static_call=True,
-        #is_delegate_call=True,
-        revert_on_failure=False
-        )
+    return LPAdapter(_pool).totalAssets()
 
-    if result_ok:
-        return convert(response, uint256)    
+    # # TODO: Shouldn't I just 'assetqty += LPAdapter(pool).totalAssets()'???
+    # # assetqty += LPAdapter(pool).totalAssets()
+    # result_ok, response = raw_call(
+    #     _pool,
+    #     method_id("totalAssets()"),
+    #     max_outsize=32,
+    #     is_static_call=True,
+    #     #is_delegate_call=True,
+    #     revert_on_failure=False
+    #     )
 
-    assert result_ok, "TOTAL ASSETS REVERT!"        
-    return empty(uint256)
+    # if result_ok:
+    #     return convert(response, uint256)    
+
+    # assert result_ok, "TOTAL ASSETS REVERT!"        
+    # return empty(uint256)
 
 
 @internal
