@@ -359,30 +359,12 @@ def _poolAssets(_pool: address) -> uint256:
 
     return LPAdapter(_pool).totalAssets()
 
-    # # TODO: Shouldn't I just 'assetqty += LPAdapter(pool).totalAssets()'???
-    # # assetqty += LPAdapter(pool).totalAssets()
-    # result_ok, response = raw_call(
-    #     _pool,
-    #     method_id("totalAssets()"),
-    #     max_outsize=32,
-    #     is_static_call=True,
-    #     #is_delegate_call=True,
-    #     revert_on_failure=False
-    #     )
-
-    # if result_ok:
-    #     return convert(response, uint256)    
-
-    # assert result_ok, "TOTAL ASSETS REVERT!"        
-    # return empty(uint256)
-
 
 @internal
 @view
 def _totalAssets() -> uint256:
     assetqty : uint256 = ERC20(asset).balanceOf(self)
     for pool in self.dlending_pools:
-        if pool == empty(address): break
         assetqty += self._poolAssets(pool)
 
     return assetqty
@@ -425,6 +407,8 @@ def totalReturns() -> int256:
 @view 
 def _claimable_fees_available(_yield : FeeType, _current_assets : uint256 = 0) -> uint256:
     total_assets : uint256 = _current_assets
+
+    # Only call _totalAssets() if it wasn't passed in.
     if total_assets == 0:
         total_assets = self._totalAssets()
     total_returns : int256 = self._totalReturns(total_assets)
@@ -520,13 +504,20 @@ def _claim_fees(_yield : FeeType, _asset_amount: uint256, _current_assets : uint
 
     # Account for the claim and move the funds.
     if _yield == FeeType.YIELD:
+        assert msg.sender == self.owner, "Only owner may claim yield fees."
         self.total_yield_fees_claimed += claim_amount    
     elif _yield == FeeType.PROPOSER:
+        assert msg.sender == self.current_proposer, "Only curent proposer may claim strategy fees."
         self.total_strategy_fees_claimed += claim_amount        
     elif _yield == FeeType.BOTH:
+        assert msg.sender == self.owner, "Only owner may claim yield fees."
+        assert msg.sender == self.current_proposer, "Only curent proposer may claim strategy fees."        
         prop_fee : uint256 = self._claimable_fees_available(FeeType.PROPOSER, _current_assets)
         self.total_yield_fees_claimed += claim_amount - prop_fee
         self.total_strategy_fees_claimed += prop_fee
+    else:
+        assert False, "Invalid FeeType!"
+        
     ERC20(asset).transfer(msg.sender, claim_amount)
 
     return claim_amount
@@ -539,7 +530,6 @@ def claim_yield_fees(_asset_amount: uint256 = 0) -> uint256:
     @param _asset_amount Number amount of assets to evaluate
     @return Claim fees for yield    
     """
-    assert msg.sender == self.owner, "Only owner may claim yield fees."
     return self._claim_fees(FeeType.YIELD, _asset_amount)
 
 
@@ -550,7 +540,6 @@ def claim_strategy_fees(_asset_amount: uint256 = 0) -> uint256:
     @param _asset_amount Number amount of assets to evaluate
     @return Claim fees for proposer
     """
-    assert msg.sender == self.current_proposer, "Only curent proposer may claim strategy fees."
     return self._claim_fees(FeeType.PROPOSER, _asset_amount)    
 
 
