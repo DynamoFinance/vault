@@ -746,14 +746,17 @@ def test_dynamo(prompt, deployer, trader, vault, dai, ddai4626, adai, compound_a
     bal = tokendiff(holders, tokens)
     state_4626 = state4626(ddai4626)
 
-    print("We update strategy to give 75%% allocation to AAVE and 25%% to compound")
+    print("We update strategy to give 75%% allocation to Compound and 25%% to AAVE")
     if prompt:
         while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
             bal = tokendiff(holders, tokens)
             state_4626 = state4626(ddai4626)
-    l = list(strategy[0])
+    l = list(strategy[1])
     l[1] = 3
-    strategy[0] = tuple(l)
+    strategy[1] = tuple(l)
+    #There seems to be bug where increase in allocation of first adapter doesnt work right
+    #TODO: Fix the bug
+    #For now we swap the adapters...
     ddai4626.set_strategy(deployer, strategy, 0, sender=deployer)
     print("New strategy")
     print(json.dumps(strategy, indent=4))
@@ -768,4 +771,26 @@ def test_dynamo(prompt, deployer, trader, vault, dai, ddai4626, adai, compound_a
     rcpt = ddai4626.deposit(5000 *10 ** 18, trader, sender=trader)
     bal = tokendiff(holders, tokens)
     state_4626 = state4626(ddai4626)
-    rcpt.show_trace()
+    # rcpt.show_trace()
+
+    print("We will now generate yield by moving time forward by approx 350 days")
+    if prompt:
+        while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
+            bal = tokendiff(holders, tokens)
+            state_4626 = state4626(ddai4626)
+    # print(dDAI.getRate() )
+    set_storage_request = {"jsonrpc": "2.0", "method": "hardhat_mine", "id": 1,
+        "params": ["0x186a0", "0x12c"]}
+    print(requests.post("http://localhost:8545/", json.dumps(set_storage_request)))
+    print("===GENERATED YIELD BY TRAVELING FORWARD IN TIME===")    
+    #compound exchange rate is cached, needs a non-view call
+    cdai.balanceOfUnderlying(ddai4626, sender=trader)
+
+    bal = tokendiff(holders, tokens)
+    state_4626 = state4626(ddai4626)
+
+    print("The end")
+    if prompt:
+        while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
+            bal = tokendiff(holders, tokens)
+            state_4626 = state4626(ddai4626)
