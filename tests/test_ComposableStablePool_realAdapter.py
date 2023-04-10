@@ -559,7 +559,13 @@ def test_composable(prompt, deployer, trader, vault, dai, frax, gho, dDAI, dFRAX
         sender=trader
     )
     bal = tokendiff(holders, tokens, bal)
-    return
+
+
+    print("Trader will swap 500 DAI --> dDAI --> dUSD (batch swap)")
+    if prompt:
+        while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
+            bal = tokendiff(holders, tokens)
+    
 
     #Trader gets back 222 DAI from initial investment of 200 DAI
 
@@ -602,4 +608,8 @@ def test_composable(prompt, deployer, trader, vault, dai, frax, gho, dDAI, dFRAX
         999999999999999999, #uint256 deadline
         sender=trader
     )
-    bal = tokendiff(holders, tokens, bal)
+    bal = tokendiff(holders, tokens)
+    print("The end")
+    if prompt:
+        while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
+            bal = tokendiff(holders, tokens)
