@@ -55,6 +55,7 @@ struct AdapterStrategy:
 
 struct ProposedStrategy:
     LPRatios: AdapterStrategy[MAX_POOLS]
+    min_proposer_payout: uint256
     APYNow: uint256
     APYPredicted: uint256    
 
@@ -62,18 +63,21 @@ event StrategyProposal:
     strategy : Strategy
     ProposerAddress: address
     LPRatios: AdapterStrategy[MAX_POOLS]
+    min_proposer_payout: uint256
     vault: address
 
 event StrategyActivation:
     strategy: Strategy
     ProposerAddress: address
     LPRatios: AdapterStrategy[MAX_POOLS]
+    min_proposer_payout: uint256
     vault: address
 
 struct Strategy:
     Nonce: uint256
     ProposerAddress: address
     LPRatios: AdapterStrategy[MAX_POOLS]
+    min_proposer_payout: uint256
     APYNow: uint256
     APYPredicted: uint256
     TSubmitted: uint256
@@ -89,7 +93,7 @@ contractOwner: public(address)
 MAX_GUARDS: constant(uint256) = 2
 MAX_POOLS: constant(uint256) = 5
 MAX_VAULTS: constant(uint256) = 3
-MIN_PROPOSER_PAYOUT: constant(uint256) = 0
+DEFAULT_MIN_PROPOSER_PAYOUT: constant(uint256) = 0  # TODO: Need a reasonable value here based on expected gas costs of paying proposal fees.
 LGov: public(DynArray[address, MAX_GUARDS])
 TDelay: public(uint256)
 no_guards: public(uint256)
@@ -167,6 +171,7 @@ def submitStrategy(strategy: ProposedStrategy, vault: address) -> uint256:
 
     strat.ProposerAddress = msg.sender
     strat.LPRatios = strategy.LPRatios
+    strat.min_proposer_payout = strategy.min_proposer_payout
     strat.APYNow = strategy.APYNow
     strat.APYPredicted = strategy.APYPredicted
     strat.TSubmitted = block.timestamp
@@ -179,7 +184,7 @@ def submitStrategy(strategy: ProposedStrategy, vault: address) -> uint256:
 
     self.PendingStrategyByVault[vault] = strat
 
-    log StrategyProposal(strat, msg.sender, strat.LPRatios, vault)
+    log StrategyProposal(strat, msg.sender, strat.LPRatios, strategy.min_proposer_payout, vault)
 
     return strat.Nonce
 
@@ -312,9 +317,9 @@ def activateStrategy(Nonce: uint256, vault: address):
     #Make Current Strategy and Activate Strategy
     self.CurrentStrategyByVault[vault] = self.PendingStrategyByVault[vault]
 
-    DynamoVault(vault).set_strategy(self.CurrentStrategyByVault[vault].ProposerAddress, self.CurrentStrategyByVault[vault].LPRatios, MIN_PROPOSER_PAYOUT)
+    DynamoVault(vault).set_strategy(self.CurrentStrategyByVault[vault].ProposerAddress, self.CurrentStrategyByVault[vault].LPRatios, pending_strat.min_proposer_payout)
 
-    log StrategyActivation(self.CurrentStrategyByVault[vault], self.CurrentStrategyByVault[vault].ProposerAddress, self.CurrentStrategyByVault[vault].LPRatios, vault)
+    log StrategyActivation(self.CurrentStrategyByVault[vault], self.CurrentStrategyByVault[vault].ProposerAddress, self.CurrentStrategyByVault[vault].LPRatios, pending_strat.min_proposer_payout, vault)
  
 
 @external

@@ -15,6 +15,8 @@ ADAPTER_B_ADDRESS = "0x000000000000000000000000000000000000000b"
 WEIGHTS = [(ADAPTER_A_ADDRESS, 100),(ADAPTER_B_ADDRESS, 1000), [ZERO_ADDRESS,0], [ZERO_ADDRESS,0], [ZERO_ADDRESS,0]]
 WEIGHTSTWO = [(ADAPTER_A_ADDRESS, 150),(ADAPTER_B_ADDRESS, 1500), [ZERO_ADDRESS,0], [ZERO_ADDRESS,0], [ZERO_ADDRESS,0]]
 
+MIN_PROPOSER_PAYOUT = 0
+
 APYNOW = 5
 APYNOWTWO = 6
 APYPREDICTED = 10
@@ -128,8 +130,8 @@ def vault_contract_four(governance_contract, owner, project, accounts, dai, fund
 
 
 def test_submitStrategy(governance_contract, vault_contract_one, accounts, owner):
-    ProposedStrategy = (WEIGHTS, APYNOW, APYPREDICTED)
-    BadStrategy = (WEIGHTS, APYNOW, BADAPYPREDICTED)
+    ProposedStrategy = (WEIGHTS, MIN_PROPOSER_PAYOUT, APYNOW, APYPREDICTED)
+    BadStrategy = (WEIGHTS, MIN_PROPOSER_PAYOUT, APYNOW, BADAPYPREDICTED)
     owner, operator, someoneelse, someone = accounts[:4]
 
     #Test if i can submit strategy with zero guards
@@ -149,8 +151,9 @@ def test_submitStrategy(governance_contract, vault_contract_one, accounts, owner
     logs = list(sp.decode_logs(governance_contract.StrategyProposal))
     assert len(logs) == 1
     assert [x for x in logs[0].strategy[2]] == [tuple(w) for w in WEIGHTS]
-    assert logs[0].strategy[3] == APYNOW
-    assert logs[0].strategy[4] == APYPREDICTED
+    assert logs[0].strategy[3] == MIN_PROPOSER_PAYOUT
+    assert logs[0].strategy[4] == APYNOW
+    assert logs[0].strategy[5] == APYPREDICTED
 
     print("Current timestamp %s" % datetime.fromtimestamp(ape.chain.pending_timestamp))
     print("TDelay %s" % datetime.fromtimestamp(int(governance_contract.TDelay())) )
@@ -175,7 +178,7 @@ def test_submitStrategy(governance_contract, vault_contract_one, accounts, owner
 
 
 def test_withdrawStrategy(governance_contract, vault_contract_one, accounts):
-    ProposedStrategy = (WEIGHTS, APYNOW, APYPREDICTED)
+    ProposedStrategy = (WEIGHTS, MIN_PROPOSER_PAYOUT, APYNOW, APYPREDICTED)
     owner, operator, someoneelse, someone = accounts[:4]
 
     #Add a guard
@@ -229,8 +232,9 @@ def test_withdrawStrategy(governance_contract, vault_contract_one, accounts):
     logs = list(acs.decode_logs(governance_contract.StrategyActivation))
     assert len(logs) == 1
     assert [x for x in logs[0].strategy[2]] == [tuple(w) for w in WEIGHTS]
-    assert logs[0].strategy[3] == APYNOW
-    assert logs[0].strategy[4] == APYPREDICTED
+    assert logs[0].strategy[3] == MIN_PROPOSER_PAYOUT
+    assert logs[0].strategy[4] == APYNOW
+    assert logs[0].strategy[5] == APYPREDICTED
 
     #Test if i can withdraw strategy when its already activated
     with ape.reverts():
@@ -239,7 +243,7 @@ def test_withdrawStrategy(governance_contract, vault_contract_one, accounts):
 
 
 def test_endorseStrategy(governance_contract, vault_contract_one, accounts):
-    ProposedStrategy = (WEIGHTS, APYNOW, APYPREDICTED)
+    ProposedStrategy = (WEIGHTS, MIN_PROPOSER_PAYOUT, APYNOW, APYPREDICTED)
     owner, operator, someoneelse, someone = accounts[:4]
 
     #Add a guard
@@ -295,7 +299,7 @@ def test_endorseStrategy(governance_contract, vault_contract_one, accounts):
 def test_rejectStrategy(governance_contract, vault_contract_one, accounts):
     pytest.skip("Try later.")
 
-    ProposedStrategy = (WEIGHTS, APYNOW, APYPREDICTED)
+    ProposedStrategy = (WEIGHTS, MIN_PROPOSER_PAYOUT, APYNOW, APYPREDICTED)
     owner, operator, someoneelse, someone = accounts[:4]
 
     #Add a guard
@@ -333,7 +337,7 @@ def test_rejectStrategy(governance_contract, vault_contract_one, accounts):
 
 
 def test_activateStrategy(governance_contract, vault_contract_one, accounts):
-    ProposedStrategy = (WEIGHTS, APYNOW, APYPREDICTED)
+    ProposedStrategy = (WEIGHTS, MIN_PROPOSER_PAYOUT, APYNOW, APYPREDICTED)
     owner, operator, someoneelse, someone = accounts[:4]
 
     #Add a guard
@@ -357,8 +361,9 @@ def test_activateStrategy(governance_contract, vault_contract_one, accounts):
     logs = list(acs.decode_logs(governance_contract.StrategyActivation))
     assert len(logs) == 1
     assert [x for x in logs[0].strategy[2]] == [tuple(w) for w in WEIGHTS]
-    assert logs[0].strategy[3] == APYNOW
-    assert logs[0].strategy[4] == APYPREDICTED
+    assert logs[0].strategy[3] == MIN_PROPOSER_PAYOUT
+    assert logs[0].strategy[4] == APYNOW
+    assert logs[0].strategy[5] == APYPREDICTED
 
     #Submit another Strategy
     governance_contract.submitStrategy(ProposedStrategy, vault_contract_one, sender=owner)
@@ -598,8 +603,8 @@ def test_swapVault(governance_contract, vault_contract_one, vault_contract_two, 
 
 
 def test_activateMultipleStrategies(governance_contract, vault_contract_one, vault_contract_two, accounts):
-    ProposedStrategy = (WEIGHTS, APYNOW, APYPREDICTED)
-    ProposedStrategyTwo = (WEIGHTSTWO, APYNOWTWO, APYPREDICTEDTWO)
+    ProposedStrategy = (WEIGHTS, MIN_PROPOSER_PAYOUT, APYNOW, APYPREDICTED)
+    ProposedStrategyTwo = (WEIGHTSTWO, MIN_PROPOSER_PAYOUT, APYNOWTWO, APYPREDICTEDTWO)
     owner, operator, someoneelse, someone = accounts[:4]
 
     assert vault_contract_one != vault_contract_two, "Vaults seem to be the same."
@@ -639,8 +644,9 @@ def test_activateMultipleStrategies(governance_contract, vault_contract_one, vau
     logs = list(acs.decode_logs(governance_contract.StrategyActivation))
     assert len(logs) == 1
     assert [x for x in logs[0].strategy[2]] == [tuple(w) for w in WEIGHTS]
-    assert logs[0].strategy[3] == APYNOW
-    assert logs[0].strategy[4] == APYPREDICTED
+    assert logs[0].strategy[3] == MIN_PROPOSER_PAYOUT
+    assert logs[0].strategy[4] == APYNOW
+    assert logs[0].strategy[5] == APYPREDICTED
 
     print("Got here 6!")
 
@@ -671,8 +677,9 @@ def test_activateMultipleStrategies(governance_contract, vault_contract_one, vau
     logs = list(acq.decode_logs(governance_contract.StrategyActivation))
     assert len(logs) == 1
     assert [x for x in logs[0].strategy[2]] == [tuple(w) for w in WEIGHTSTWO]
-    assert logs[0].strategy[3] == APYNOWTWO
-    assert logs[0].strategy[4] == APYPREDICTEDTWO
+    assert logs[0].strategy[3] == MIN_PROPOSER_PAYOUT
+    assert logs[0].strategy[4] == APYNOWTWO
+    assert logs[0].strategy[5] == APYPREDICTEDTWO
     
     #Check to see if strategies have correct values
     gc_one = governance_contract.CurrentStrategyByVault(vault_contract_one)
