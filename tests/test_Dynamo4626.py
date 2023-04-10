@@ -226,7 +226,7 @@ def test_remove_pool(project, deployer, dynamo4626, pool_adapterA, pool_adapterB
     assert dynamo4626.totalAssets() == 500   
     assert pool_adapterB.totalAssets() == 0 
 
-
+# So which one are we using? 'Cuz there's another setup_single_adapter function up top.
 def _setup_single_adapter(_project, _dynamo4626, _deployer, _dai, _adapter):
     # Setup our pool.
     _dynamo4626.add_pool(_adapter, sender=_deployer)
