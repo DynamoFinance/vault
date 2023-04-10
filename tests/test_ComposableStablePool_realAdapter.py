@@ -408,7 +408,8 @@ def test_composable(prompt, deployer, trader, vault, dai, frax, gho, dDAI, dFRAX
     bal = tokendiff(holders, tokens)
     print("Trader will now perform initial join to composable stable pool by supplying 1 dDAI, 1 dFRAX, 1 dGHO")
     if prompt:
-        input("enter to continue")
+        while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
+            bal = tokendiff(holders, tokens)
     #Invest some LP tokens into the stable pool 
     #No idea where 5192296858534827628530496329000000 figure came from
     #Copied init args from https://etherscan.io/tx/0x9a23e5a994b1b8bab3b9fa28a7595ef64aa0d4dd115ae5c41e802f0d84aa4a71
@@ -445,7 +446,8 @@ def test_composable(prompt, deployer, trader, vault, dai, frax, gho, dDAI, dFRAX
     bal = tokendiff(holders, tokens, bal)
     print("Trader will now supply following to dUSD pool : 200 dDAI, 150 dFRAX, 100 dGHO")
     if prompt:
-        input("enter to continue")
+        while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
+            bal = tokendiff(holders, tokens)
     #Lets add some more... 200 dDAI, 150 dFRAX and 100 dGHO for < 450 dUSD (because of fees)
     join_tokens = [t.address for t in [dDAI, dFRAX, dGHO, dUSD]]
     join_tokens.sort()
@@ -484,7 +486,8 @@ def test_composable(prompt, deployer, trader, vault, dai, frax, gho, dDAI, dFRAX
     #100000 blocks; 300 seconds per block
     print("We will now generate yield by moving time forward by approx 350 days")
     if prompt:
-        input("enter to continue")
+        while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
+            bal = tokendiff(holders, tokens)
     # print(dDAI.getRate() )
     set_storage_request = {"jsonrpc": "2.0", "method": "hardhat_mine", "id": 1,
         "params": ["0x186a0", "0x12c"]}
@@ -508,7 +511,8 @@ def test_composable(prompt, deployer, trader, vault, dai, frax, gho, dDAI, dFRAX
 
     print("Trader will swap 200 dUSD for dDAI")
     if prompt:
-        input("enter to continue")
+        while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
+            bal = tokendiff(holders, tokens)
 
 
     #Swap 200 dUSD for dDAI
@@ -536,7 +540,8 @@ def test_composable(prompt, deployer, trader, vault, dai, frax, gho, dDAI, dFRAX
     bal = tokendiff(holders, tokens, bal)
     print("Trader will swap 148 dDAI for DAI")
     if prompt:
-        input("enter to continue")
+        while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
+            bal = tokendiff(holders, tokens)
     #Swap 148 dDAI for DAI
     struct_single_swap = (
         dDAI.getPoolId(), #bytes32 poolId
@@ -554,7 +559,13 @@ def test_composable(prompt, deployer, trader, vault, dai, frax, gho, dDAI, dFRAX
         sender=trader
     )
     bal = tokendiff(holders, tokens, bal)
-    return
+
+
+    print("Trader will swap 500 DAI --> dDAI --> dUSD (batch swap)")
+    if prompt:
+        while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
+            bal = tokendiff(holders, tokens)
+    
 
     #Trader gets back 222 DAI from initial investment of 200 DAI
 
@@ -597,4 +608,8 @@ def test_composable(prompt, deployer, trader, vault, dai, frax, gho, dDAI, dFRAX
         999999999999999999, #uint256 deadline
         sender=trader
     )
-    bal = tokendiff(holders, tokens, bal)
+    bal = tokendiff(holders, tokens)
+    print("The end")
+    if prompt:
+        while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
+            bal = tokendiff(holders, tokens)
