@@ -789,8 +789,61 @@ def test_dynamo(prompt, deployer, trader, vault, dai, ddai4626, adai, compound_a
     bal = tokendiff(holders, tokens)
     state_4626 = state4626(ddai4626)
 
-    print("The end")
+    print("We will now simulate aave getting hacked by reducing our asset balance at AAVE")
     if prompt:
         while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
             bal = tokendiff(holders, tokens)
             state_4626 = state4626(ddai4626)
+
+    impersonate_request = {"jsonrpc": "2.0", "method": "hardhat_impersonateAccount", "id": 1,
+        "params": [ddai4626.address]}
+    
+    print(requests.post("http://localhost:8545/", json.dumps(impersonate_request)))
+
+    #allocate some ETH to 4626 so we can issue tx from it
+    set_bal_req = {"jsonrpc": "2.0", "method": "hardhat_setBalance", "id": 1,
+        "params": [ddai4626.address, "0x1158E460913D00000"]}
+    print(requests.post("http://localhost:8545/", json.dumps(set_bal_req)))
+
+    tx_request = {
+        "jsonrpc": "2.0",
+        "method": "eth_sendTransaction",
+        "id": 1,
+        "params": [
+            {
+                "from": ddai4626.address,
+                "to": adai.address,
+                "gas": "0xF4240", # 1000000
+                "gasPrice": "0x9184e72a000", # 10000000000000
+                "value": "0x0", # 0
+                #transfer(0x0000000000000000000000000000000000000000, 20,000 * 10**18)
+                "data": "0xa9059cbb000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000043c33c1937564800000"
+            }
+        ]
+    }
+    print(requests.post("http://localhost:8545/", json.dumps(tx_request)))
+
+    bal = tokendiff(holders, tokens)
+    state_4626 = state4626(ddai4626)
+
+    print("Trader will now deposit 5,000 DAI, after aave lost value")
+    if prompt:
+        while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
+            bal = tokendiff(holders, tokens)
+            state_4626 = state4626(ddai4626)
+    
+    rcpt = ddai4626.deposit(5000 *10 ** 18, trader, sender=trader)
+    bal = tokendiff(holders, tokens)
+    state_4626 = state4626(ddai4626)
+    for log in rcpt.decode_logs(ddai4626.PoolLoss.abi):
+        print(log)
+
+    print("Trader will now deposit another 5,000 DAI")
+    if prompt:
+        while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
+            bal = tokendiff(holders, tokens)
+            state_4626 = state4626(ddai4626)
+    
+    rcpt = ddai4626.deposit(5000 *10 ** 18, trader, sender=trader)
+    bal = tokendiff(holders, tokens)
+    state_4626 = state4626(ddai4626)
