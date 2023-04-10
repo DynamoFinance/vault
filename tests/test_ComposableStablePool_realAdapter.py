@@ -746,14 +746,14 @@ def test_dynamo(prompt, deployer, trader, vault, dai, ddai4626, adai, compound_a
     bal = tokendiff(holders, tokens)
     state_4626 = state4626(ddai4626)
 
-    print("We update strategy to give 75%% allocation to Compound and 25%% to AAVE")
+    print("We update strategy to give 75%% allocation to AAVE and 25%% to Compound")
     if prompt:
         while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
             bal = tokendiff(holders, tokens)
             state_4626 = state4626(ddai4626)
-    l = list(strategy[1])
+    l = list(strategy[0])
     l[1] = 3
-    strategy[1] = tuple(l)
+    strategy[0] = tuple(l)
     #There seems to be bug where increase in allocation of first adapter doesnt work right
     #TODO: Fix the bug
     #For now we swap the adapters...
