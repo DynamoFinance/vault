@@ -32,6 +32,15 @@ def ensure_hardhat():
     requests.post("http://localhost:8545/", json.dumps(reset_request))
 
 
+def pytest_addoption(parser):
+    parser.addoption(
+        '--prompt', action='store', default=False, help='Prompt between runs'
+    )
+
+@pytest.fixture
+def prompt(request):
+    return request.config.getoption('--prompt')
+
 
 # @pytest.fixture(scope="session")
 # def receiver(accounts):

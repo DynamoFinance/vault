@@ -6,6 +6,8 @@ from web3 import Web3
 import requests, json
 import eth_abi
 
+MAX_POOLS = 5 # Must match Dynamo4626.vy MAX_POOLS
+
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 DAI = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
 
@@ -52,7 +54,7 @@ def dai(project, deployer, trader, ensure_hardhat):
     #background info https://mixbytes.io/blog/modify-ethereum-storage-hardhats-mainnet-fork
     #Dai contract has  minters in first slot mapping (address => uint) public wards;
     abi_encoded = eth_abi.encode(['address', 'uint256'], [deployer.address, 0])
-    storage_slot = Web3.solidityKeccak(["bytes"], ["0x" + abi_encoded.hex()]).hex()
+    storage_slot = Web3.solidity_keccak(["bytes"], ["0x" + abi_encoded.hex()]).hex()
 
     set_storage_request = {"jsonrpc": "2.0", "method": "hardhat_setStorageAt", "id": 1,
         "params": [DAI, storage_slot, "0x" + eth_abi.encode(["uint256"], [1]).hex()]}
@@ -79,14 +81,19 @@ def aave_adapter(project, deployer, dai, ensure_hardhat):
 
 
 @pytest.fixture
-def dynamo4626(project, deployer, dai):
-    v = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, [], deployer)    
+def funds_alloc(project, deployer):
+    f = deployer.deploy(project.FundsAllocator)
+    return f
+
+@pytest.fixture
+def dynamo4626(project, deployer, dai, trader, funds_alloc):
+    v = deployer.deploy(project.Dynamo4626, d4626_name, d4626_token, d4626_decimals, dai, [], deployer, funds_alloc)    
     return v
 
 
 def test_single_adapter_aave(project, deployer, dynamo4626, aave_adapter, dai, trader, ensure_hardhat, adai):
     dynamo4626.add_pool(aave_adapter, sender=deployer)
-    strategy = [(ZERO_ADDRESS,0)] * 5 # This assumes Dynamo4626 MAX_POOLS == 5
+    strategy = [(ZERO_ADDRESS,0)] * MAX_POOLS
     strategy[0] = (aave_adapter,1)    
     dynamo4626.set_strategy(deployer, strategy, 0, sender=deployer)
 
