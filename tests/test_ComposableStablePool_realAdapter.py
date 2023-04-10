@@ -18,7 +18,9 @@ AAVE_LENDING_POOL = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2"
 ADAI = "0x018008bfb33d285247A21d44E50697654f754e63"
 BTC_FRAX_PAIR = "0x32467a5fc2d72D21E8DCe990906547A2b012f382"
 
+CDAI = "0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643"
 
+MAX_POOLS = 5 # Must match the value from Dynamo4626.vy
 
 
 @pytest.fixture
@@ -81,6 +83,14 @@ def funds_alloc(project, deployer):
     f = deployer.deploy(project.FundsAllocator)
     return f
 
+
+@pytest.fixture
+def compound_adapter(project, deployer, dai, ensure_hardhat):
+    ca = deployer.deploy(project.compoundAdapter, dai, CDAI)
+    #we run tests against interface
+    return project.LPAdapter.at(ca)
+
+
 @pytest.fixture
 def ddai4626(project, deployer, trader, dai, ensure_hardhat, funds_alloc):
     aave_adapter = deployer.deploy(project.aaveAdapter, AAVE_LENDING_POOL, DAI, ADAI)
@@ -91,7 +101,7 @@ def ddai4626(project, deployer, trader, dai, ensure_hardhat, funds_alloc):
 
     dynamo4626.set_strategy(deployer, strategy, 0, sender=deployer)
     #Grant allowance for trader
-    dai.approve(dynamo4626, 100000 *10 ** 18, sender=trader)
+    dai.approve(dynamo4626, 10000000 *10 ** 18, sender=trader)
     #Transfer some to trader.
     assert dai.allowance(trader, dynamo4626) >= 100000 *10 ** 18, "dynamo4626 does not have allowance"
     assert dai.balanceOf(trader) >= 100000 *10 ** 18, "trader is broke"
@@ -366,6 +376,9 @@ def tokendiff(holders, tokens, prev={}):
         idx = 0
         for token in tokens.keys():
             bal = tokens[token].balanceOf(holders[user]) / 10**18
+            #special case for cdai
+            if tokens[token].address == CDAI:
+                bal = bal * tokens[token].exchangeRateStored() / 10**18 
             prev_bal = prev_user.get(token, 0)
             if prev_bal > bal:
                 line = "{bal:,.2f} (\033[91m{delta:+,.2f}\033[0m)".format(token=token, bal=bal, delta=bal - prev_bal)
@@ -377,7 +390,7 @@ def tokendiff(holders, tokens, prev={}):
             table_data[idx] += [line]
             prev_user[token] = bal
         prev[user] = prev_user
-    table_instance = SingleTable(table_data, "title")
+    table_instance = SingleTable(table_data, "Token balances")
     print(table_instance.table)
     return prev
 
@@ -613,3 +626,146 @@ def test_composable(prompt, deployer, trader, vault, dai, frax, gho, dDAI, dFRAX
     if prompt:
         while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
             bal = tokendiff(holders, tokens)
+
+
+def state4626(ddai4626, prev={}):
+    # if prev.get("owner") is None:
+    #     prev["owner"] = ddai4626.owner()
+    # if prev.get("governance") is None:
+    #     prev["governance"] = ddai4626.governance()
+    # print("=== 4626 internal state ===")
+    table_data = [["method", "value"]]
+    for m in ["totalSupply", "totalAssets", "totalReturns", "total_assets_deposited", "total_assets_withdrawn", "total_yield_fees_claimed", "total_strategy_fees_claimed", "claimable_yield_fees_available", "claimable_strategy_fees_available"]:
+        prev_bal = prev.get(m, 0) 
+        method = getattr(ddai4626, m)
+        bal = method() / 10**18
+        # print(m, bal)
+        if prev_bal > bal:
+            line = "{bal:,.2f} (\033[91m{delta:+,.2f}\033[0m)".format(bal=bal, delta=bal - prev_bal)
+        elif bal > prev_bal:
+            line = "{bal:,.2f} (\033[92m{delta:+,.2f}\033[0m)".format(bal=bal, delta=bal - prev_bal)
+        else:
+            line = "{bal:,.2f} ({delta:+,.2f})".format(bal=bal, delta=bal - prev_bal)
+        table_data += [[m, line]]
+        prev[m] = bal
+    table_instance = SingleTable(table_data, "4626 state")
+    print(table_instance.table)
+    return prev
+    # print(ddai4626.totalSupply())
+    # print(ddai4626.total_assets_deposited())
+    # print(ddai4626.total_assets_withdrawn())
+    # print(ddai4626.total_yield_fees_claimed())
+    # print(ddai4626.total_strategy_fees_claimed())
+
+@pytest.fixture
+def cdai(project, deployer, trader, ensure_hardhat):
+    return project.cToken.at(CDAI)
+
+def test_dynamo(prompt, deployer, trader, vault, dai, ddai4626, adai, compound_adapter, cdai):
+    holders = {
+        "trader": trader,
+        "owner": deployer,
+        "4626": ddai4626
+    }
+    tokens = {
+        "DAI": dai,
+        "dyDAI": ddai4626,
+        "aDAI": adai,
+        "cDAI(DAI-equivalent)": cdai
+    }
+    print("==== Initial balances ====")
+    print("ddai4626 has been deployed with single adapter(aave) with trader having deposited 100,000 DAI")
+    bal = tokendiff(holders, tokens)
+    state_4626 = state4626(ddai4626)
+    print("We will now add compound adapter to the strategy and allocate 50-50 between the 2 adapters")
+    if prompt:
+        while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
+            bal = tokendiff(holders, tokens)
+            state_4626 = state4626(ddai4626)
+    
+    strategy = [(ZERO_ADDRESS,0)] * MAX_POOLS
+    pos = 0
+    for pool in ddai4626.lending_pools():
+        strategy[pos] = (pool, ddai4626.strategy(pool).ratio)
+        pos += 1
+    strategy[pos] = (compound_adapter.address, 1)
+    ddai4626.set_strategy(deployer, strategy, 0, sender=deployer)
+    ddai4626.add_pool(compound_adapter, sender=deployer)    
+
+    print("New strategy")
+    print(json.dumps(strategy, indent=4))
+    bal = tokendiff(holders, tokens)
+    state_4626 = state4626(ddai4626)
+
+    print("We will now trigger a manual balancing transaction to re-adjust the money as adapters changed")
+    if prompt:
+        while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
+            bal = tokendiff(holders, tokens)
+            state_4626 = state4626(ddai4626)
+    rcpt = ddai4626.balanceAdapters(0, sender=deployer)
+    # rcpt.show_trace()
+    bal = tokendiff(holders, tokens)
+    state_4626 = state4626(ddai4626)
+
+
+    print("Trader will now deposit 10,000 DAI")
+    if prompt:
+        while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
+            bal = tokendiff(holders, tokens)
+            state_4626 = state4626(ddai4626)
+    
+    ddai4626.deposit(10000 *10 ** 18, trader, sender=trader)
+    bal = tokendiff(holders, tokens)
+    state_4626 = state4626(ddai4626)
+
+
+    print("We will now generate yield by moving time forward by approx 350 days")
+    if prompt:
+        while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
+            bal = tokendiff(holders, tokens)
+            state_4626 = state4626(ddai4626)
+    # print(dDAI.getRate() )
+    set_storage_request = {"jsonrpc": "2.0", "method": "hardhat_mine", "id": 1,
+        "params": ["0x186a0", "0x12c"]}
+    print(requests.post("http://localhost:8545/", json.dumps(set_storage_request)))
+    print("===GENERATED YIELD BY TRAVELING FORWARD IN TIME===")    
+    #compound exchange rate is cached, needs a non-view call
+    cdai.balanceOfUnderlying(ddai4626, sender=trader)
+
+    bal = tokendiff(holders, tokens)
+    state_4626 = state4626(ddai4626)
+
+
+    print("Trader will now withdraw 50,000 DAI")
+    if prompt:
+        while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
+            bal = tokendiff(holders, tokens)
+            state_4626 = state4626(ddai4626)
+
+    ddai4626.withdraw(50000 *10 ** 18, trader, trader, sender=trader)
+    bal = tokendiff(holders, tokens)
+    state_4626 = state4626(ddai4626)
+
+    print("We update strategy to give 75%% allocation to AAVE and 25%% to compound")
+    if prompt:
+        while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
+            bal = tokendiff(holders, tokens)
+            state_4626 = state4626(ddai4626)
+    l = list(strategy[0])
+    l[1] = 3
+    strategy[0] = tuple(l)
+    ddai4626.set_strategy(deployer, strategy, 0, sender=deployer)
+    print("New strategy")
+    print(json.dumps(strategy, indent=4))
+
+
+    print("Trader will now deposit 5,000 DAI, since we didnt explicitly rebalance, this tx will make that happen")
+    if prompt:
+        while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
+            bal = tokendiff(holders, tokens)
+            state_4626 = state4626(ddai4626)
+    
+    rcpt = ddai4626.deposit(5000 *10 ** 18, trader, sender=trader)
+    bal = tokendiff(holders, tokens)
+    state_4626 = state4626(ddai4626)
+    rcpt.show_trace()
