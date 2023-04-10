@@ -433,6 +433,72 @@ def test_multiple_adapter_balanceAdapters(project, deployer, dynamo4626, pool_ad
     assert total_assets == 1000
     assert total_ratios == 2
 
+    # Change the ratios for the strategy.
+    strategy = [(ZERO_ADDRESS,0)] * MAX_POOLS
+    strategy[0] = (pool_adapterA.address, 1)
+    strategy[1] = (pool_adapterB.address, 3)
+
+    #strategy[0] = stratA
+    #strategy[1] = stratB
+
+    dynamo4626.set_strategy(dynamo4626.current_proposer(), strategy, dynamo4626.min_proposer_payout(), sender=deployer)
+
+    dynamo4626.balanceAdapters(0, MAX_POOLS, sender=trader)
+
+    d4626_assets, pools, total_assets, total_ratios = dynamo4626.getCurrentBalances()
+
+    assert d4626_assets == 0
+    
+    assert pools[0].adapter == pool_adapterA
+    assert pools[0].current == 250
+    assert pools[0].ratio == 1 
+    assert pools[0].target == 0
+    assert pools[0].delta== 0
+
+    assert pools[1].adapter == pool_adapterB
+    assert pools[1].current == 750
+    assert pools[1].ratio == 3 
+    assert pools[1].target == 0
+    assert pools[1].delta== 0    
+
+    assert total_assets == 1000
+    assert total_ratios == 4
+
+    # Change the ratios for the strategy.
+    strategy = [(ZERO_ADDRESS,0)] * MAX_POOLS
+    strategy[0] = (pool_adapterA.address, 3)
+    strategy[1] = (pool_adapterB.address, 1)
+
+    #strategy[0] = stratA
+    #strategy[1] = stratB
+
+    dynamo4626.set_strategy(dynamo4626.current_proposer(), strategy, dynamo4626.min_proposer_payout(), sender=deployer)
+
+    dynamo4626.balanceAdapters(0, MAX_POOLS, sender=trader)
+
+    d4626_assets, pools, total_assets, total_ratios = dynamo4626.getCurrentBalances()
+
+    assert d4626_assets == 0
+    
+    assert pools[0].adapter == pool_adapterA
+    assert pools[0].current == 750
+    assert pools[0].ratio == 3 
+    assert pools[0].target == 0
+    assert pools[0].delta== 0
+
+    assert pools[1].adapter == pool_adapterB
+    assert pools[1].current == 250
+    assert pools[1].ratio == 1 
+    assert pools[1].target == 0
+    assert pools[1].delta== 0    
+
+    assert total_assets == 1000
+    assert total_ratios == 4    
+
+
+
+
+
 
 def test_single_adapter_withdraw(project, deployer, dynamo4626, pool_adapterA, dai, trader):
     _setup_single_adapter(project, dynamo4626, deployer, dai, pool_adapterA)

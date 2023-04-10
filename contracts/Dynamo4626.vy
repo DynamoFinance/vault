@@ -35,15 +35,15 @@ decimals: public(immutable(uint8))
 asset: public(immutable(address))
 
 # Controlling & Governance DAOs/Wallets
-owner: address
-governance: address
+owner: public(address)
+governance: public(address)
 funds_allocator: public(address)
 dlending_pools : public(DynArray[address, MAX_POOLS])
 
 
 # Strategy Management
-current_proposer: address
-min_proposer_payout: uint256
+current_proposer: public(address)
+min_proposer_payout: public(uint256)
 
 struct AdapterValue:
     ratio: uint256
