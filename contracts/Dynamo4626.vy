@@ -584,8 +584,14 @@ def _convertToShares(_asset_amount: uint256) -> uint256:
 
 @external
 @view
-def convertToShares(_asset_amount: uint256) -> uint256: return self._convertToShares(_asset_amount)
-
+def convertToShares(_asset_amount: uint256) -> uint256: 
+    """
+    @notice calculates the current number of 4626 shares would be received for a deposit of assets.
+    @param _asset_amount the quantity of assets to be converted to shares.
+    @return current share value for the asset quantity
+    @dev any fees owed to 4626 owner or strategy proposer are removed before conversion.
+    """
+    return self._convertToShares(_asset_amount)
 
 @internal
 @view
@@ -610,9 +616,10 @@ def _convertToAssets(_share_amount: uint256) -> uint256:
 @view
 def convertToAssets(_share_amount: uint256) -> uint256:
     """
-    @notice This function converts share amount to assets
-    @param _share_amount Number amount of shares to evaluate
-    @return Assets per share amount
+    @notice calculates the current quantity of assets would be received for a deposit of 4626 shares.
+    @param _share_amount the quantity of 4626 shares to be converted to assets.
+    @return current asset value for the share quantity
+    @dev any fees owed to 4626 owner or strategy proposer are removed before conversion.
     """
     return self._convertToAssets(_share_amount)
 
@@ -621,7 +628,7 @@ def convertToAssets(_share_amount: uint256) -> uint256:
 @view
 def maxDeposit(_spender: address) -> uint256:
     """
-    @notice This function provides the max deposit per spender 
+    @notice determines the maximum deposit that can be made by this spender.
     @param _spender Address for spender to evaluate
     @return Max deposit amount for the spender
     """
