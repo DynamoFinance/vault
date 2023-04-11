@@ -703,10 +703,10 @@ def test_dynamo(prompt, deployer, trader, vault, dai, ddai4626, adai, compound_a
             bal = tokendiff(holders, tokens)
             state_4626 = state4626(ddai4626)
     rcpt = ddai4626.balanceAdapters(0, sender=deployer)
-    # rcpt.show_trace()
+
     bal = tokendiff(holders, tokens)
     state_4626 = state4626(ddai4626)
-
+    print("gas used: ", rcpt.gas_used)
 
     print("Trader will now deposit 10,000 DAI")
     if prompt:
@@ -714,10 +714,11 @@ def test_dynamo(prompt, deployer, trader, vault, dai, ddai4626, adai, compound_a
             bal = tokendiff(holders, tokens)
             state_4626 = state4626(ddai4626)
     
-    ddai4626.deposit(10000 *10 ** 18, trader, sender=trader)
+    rcpt = ddai4626.deposit(10000 *10 ** 18, trader, sender=trader)
     bal = tokendiff(holders, tokens)
     state_4626 = state4626(ddai4626)
 
+    print("gas used: ", rcpt.gas_used)
 
     print("We will now generate yield by moving time forward by approx 350 days")
     if prompt:
@@ -742,9 +743,10 @@ def test_dynamo(prompt, deployer, trader, vault, dai, ddai4626, adai, compound_a
             bal = tokendiff(holders, tokens)
             state_4626 = state4626(ddai4626)
 
-    ddai4626.withdraw(50000 *10 ** 18, trader, trader, sender=trader)
+    rcpt = ddai4626.withdraw(50000 *10 ** 18, trader, trader, sender=trader)
     bal = tokendiff(holders, tokens)
     state_4626 = state4626(ddai4626)
+    print("gas used: ", rcpt.gas_used)
 
     print("We update strategy to give 75%% allocation to AAVE and 25%% to Compound")
     if prompt:
@@ -772,6 +774,7 @@ def test_dynamo(prompt, deployer, trader, vault, dai, ddai4626, adai, compound_a
     bal = tokendiff(holders, tokens)
     state_4626 = state4626(ddai4626)
     # rcpt.show_trace()
+    print("gas used: ", rcpt.gas_used)
 
     print("We will now generate yield by moving time forward by approx 350 days")
     if prompt:
@@ -837,6 +840,7 @@ def test_dynamo(prompt, deployer, trader, vault, dai, ddai4626, adai, compound_a
     state_4626 = state4626(ddai4626)
     for log in rcpt.decode_logs(ddai4626.PoolLoss.abi):
         print(log)
+    print("gas used: ", rcpt.gas_used)
 
     print("Trader will now deposit another 5,000 DAI")
     if prompt:
@@ -847,3 +851,4 @@ def test_dynamo(prompt, deployer, trader, vault, dai, ddai4626, adai, compound_a
     rcpt = ddai4626.deposit(5000 *10 ** 18, trader, sender=trader)
     bal = tokendiff(holders, tokens)
     state_4626 = state4626(ddai4626)
+    print("gas used: ", rcpt.gas_used)
