@@ -43,8 +43,8 @@ destination - the address of the contract or wallet to receive the value of the 
 owner   - the address of the contract that holds the assets in question.
 
 Transfer - struct for transaction definition containing a signed qty and Adapter addr.
-#### [deposit (assets, destination) -> shares]
 
+#### [deposit (assets, destination) -> shares]
 Deposit fixed number of X assets for destination to receive Y shares representing the new investment.
 Shares will be credited to destination address. 
 ```mermaid
@@ -92,45 +92,13 @@ sequenceDiagram
       
         a4626->u: return Shares  
 ```
-#### [mint (shares, destination) -> assets]
 
+#### [mint (shares, destination) -> assets]
 Deposit X assets where X is determined to be the quantity required to receive Y shares representing the new investment.  
 Shares will be credited to destination address. For DynamoUSD this would be the LinearPool which this
 contract is an AssetManager for.
-```mermaid
-sequenceDiagram
-    participant u as Investor
-    participant a4626 as d<Token>4626
-    participant
-```
-
-#### [test (shares, destination) -> assets]
-```mermaid
-sequenceDiagram
-    participant Object
-    participant Vault1
-    participant Vault2
-    participant FinalApproval
-
-    Object->>Vault1: Request Approval
-    activate Vault1
-    Vault1->>Vault2: Approve
-    activate Vault2
-    Vault2-->>Vault1: Request additional information
-    Vault1->>Vault2: Provide additional information
-    Vault2->>FinalApproval: Approve
-    activate FinalApproval
-    FinalApproval-->>Object: Allow Passage
-    deactivate Vault1
-    deactivate Vault2
-    deactivate FinalApproval
-
-    Note over Vault1: Check for\nvalidity of\nrequest
-    Note over Vault2: Check for\nsufficient funds
-```
 
 #### [redeem (shares, destination, owner) -> assets]
-
 Convert X shares controlled by owner back to Y assets to be credited to destination.
 ```mermaid
 sequenceDiagram
@@ -177,11 +145,10 @@ sequenceDiagram
    
    a4626->>u: return Assets
 ```
-#### [withdraw (assets, destination, owner) -> shares]
 
+#### [withdraw (assets, destination, owner) -> shares]
 Convert X shares controlled by owner where X is determined to be the quantity required to receive Y assets 
 (to be credited to destination) resulting from the share value of the investment.
-
 ```mermaid
 sequenceDiagram
     participant i as Investor
@@ -224,23 +191,22 @@ sequenceDiagram
 ```
 
 ### Dynamo4626 Supporting Functions
-
 There may be matching preview* and max* functions for each of the deposit/mint/redeem/withdraw functions.
 These simply provide read-only outcome 'previews' or maximum values possible given current balances respectively.
+
 ### Dynamo4626 Configuration/Deployment Use Cases
 
 #### [activateStrategy()]
-
 Checks to see if the Governance contract has a new strategy ready to activate. 
 If so, makes it the new current strategy then calls rebalance to put it into effect.
 This function may be called by anyone.
 
 #### [  rebalance(max_gas = 0)]
-
 Compares the current cash & asset values across the lending platforms, computes an
 optimum set of transactions necessary to best meet the current Strategy's desired 
 balances, then proceeds to move assets across the lending platforms to best meet the
 current strategy without exceeding the max_gas limits. If max_gas == 0 then will perform
 required transactions up til the gas limits of the block.
 This function may be called by anyone.
+
 ## Use Cases for Dynamo4626 Lending Platform Adapters
