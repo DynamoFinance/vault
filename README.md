@@ -1,22 +1,38 @@
 ## Installation & Smoke Test
 
-Create a python virtual environment to isolate your project and then execute the following:
+### Prerequisites:
 
-Run a supported version of node.
+1. Signup for free [alchemy account](https://www.alchemy.com/), create a project with ETH mainnet.
 
+2. Edit source_me and put your api key where it says <PUT YOUR ALCHEMY API KEY HERE!!!>
+
+3. Ensure that nvm is installed for node deployments.
+
+4. Create a python virtual environment to isolate your project.
+
+### Initialization
+
+1. Activate your python virtual environment.
+
+2. Get your environment sane: ```source source_me```
+
+3. Install all environmental dependencies: ```make init```
+
+
+### Smoke Test
+
+1. Execute the unit tests: ```./runtests```
+
+If all your tests pass then you're good to go.
+
+
+#### Dealing with Issues
+
+Confirm node is correct. Most problems are due to node.
 ```
-nvm install 16.16.0
+$ node --version
+v16.16.0
 ```
-
-Signup for free [alchemy account](https://www.alchemy.com/), create a project with ETH mainnet and replace `REMOVED` with your api key.
-
-```
-make init
-export WEB3_ETHEREUM_MAINNET_ALCHEMY_API_KEY="REMOVED"
-
-### Setup your node snapshot RPC.
-
-
 
 Make sure nothing is listening on port 8445.
 
@@ -27,7 +43,7 @@ sudo netstat -lntp | grep 8545
 Optionally pre-launch the RPC server (which will block this shell):
 
 ```
-npx hardhat   node   --fork https://eth-mainnet.alchemyapi.io/v2/$WEB3_ETHEREUM_MAINNET_ALCHEMY_API_KEY --fork-block-number 15936703
+npx hardhat   node   --fork https://eth-mainnet.alchemyapi.io/v2/$WEB3_ETHEREUM_MAINNET_ALCHEMY_API_KEY --fork-block-number 17024800
 ```
  
     OR
@@ -42,12 +58,14 @@ source source_me
 If you don't pre-launch the RPC server yourself ape will spin one up but it has a race condition and sometimes fails.
 
 
-### Now in another shell:
+#### Now in another shell:
 
+```
 ape test --network :mainnet-fork:hardhat
 ```
 
-^^ This will fail 50% of the time, I'm working on fixing it.
+^^ This may occasionally fail, I'm working on fixing it.
+
 
 ## Test & Execution Environment 
 
