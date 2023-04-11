@@ -7,6 +7,7 @@ from eth_abi import encode
 
 #ETH Mainnet addrs
 VAULT = "0xBA12222222228d8Ba445958a75a0704d566BF2C8"
+LINEARPOOL_4626_FACTORY = "0x67A25ca2350Ebf4a0C475cA74C257C94a373b828"
 
 @pytest.fixture
 def deployer(accounts):
@@ -90,23 +91,42 @@ def swap(pool_id, vault, intoken, outtoken, amount, trader):
 
 @pytest.fixture
 def dDAI(project, deployer, dai, ddai4626, vault, trader, ensure_hardhat):
-    lp = deployer.deploy(
-        #We are using mock here which hardcodes exchange rate of 1:1
-        #TODO: once we have a somewhat working 4626, we should probably use ERC4626LinearPool
-        project.ERC4626LinearPool,
-        vault,
+    factory = project.ERC4626LinearPoolFactory.at(LINEARPOOL_4626_FACTORY)
+
+    recpt = factory.create(
         "DAI 4626 linear pool",
         "dDAI",
         dai, #mainToken
         ddai4626, #wrappedToken
         2100000000000000000000000, #upperTarget = 2100000.0 DAI (by default lower target is 0, can be raised after enough liquidity is present)
         10000000000000, #swapFeePercentage = 0.001% (10000000000000 = 10^13 ; 10^18/10^13 = 100000; 100 / 100000 = 0.001%)
-        7332168, #pauseWindowDuration
-        2592000, #bufferPeriodDuration
-        deployer
+        deployer, #owner
+        7, #protocolId ?? TODO: ask balancer what this is
+        sender=deployer
     )
-    #Copied some constructor args from https://etherscan.io/token/0x804cdb9116a10bb78768d3252355a1b18067bf8f#code
-    lp.initialize(sender=deployer)
+    lpaddr = None
+    for l in recpt.decode_logs(factory.Erc4626LinearPoolCreated.abi):
+        #find Erc4626LinearPoolCreated
+        lpaddr = l.pool
+    lp = project.ERC4626LinearPool.at(lpaddr)
+
+    # lp = deployer.deploy(
+    #     #We are using mock here which hardcodes exchange rate of 1:1
+    #     #TODO: once we have a somewhat working 4626, we should probably use ERC4626LinearPool
+    #     project.ERC4626LinearPool,
+    #     vault,
+    #     "DAI 4626 linear pool",
+    #     "dDAI",
+    #     dai, #mainToken
+    #     ddai4626, #wrappedToken
+    #     2100000000000000000000000, #upperTarget = 2100000.0 DAI (by default lower target is 0, can be raised after enough liquidity is present)
+    #     10000000000000, #swapFeePercentage = 0.001% (10000000000000 = 10^13 ; 10^18/10^13 = 100000; 100 / 100000 = 0.001%)
+    #     7332168, #pauseWindowDuration
+    #     2592000, #bufferPeriodDuration
+    #     deployer
+    # )
+    # #Copied some constructor args from https://etherscan.io/token/0x804cdb9116a10bb78768d3252355a1b18067bf8f#code
+    # lp.initialize(sender=deployer)
     #Create some liquidity to avoid BAL#004 (ZERO_DIVISION)
     pool_id = lp.getPoolId()
     swap(pool_id, vault, dai, lp, "1000 Ether", trader)
@@ -115,23 +135,42 @@ def dDAI(project, deployer, dai, ddai4626, vault, trader, ensure_hardhat):
 
 @pytest.fixture
 def dFRAX(project, deployer, frax, dfrax4626, vault, trader, ensure_hardhat):
-    lp = deployer.deploy(
-        #We are using mock here which hardcodes exchange rate of 1:1
-        #TODO: once we have a somewhat working 4626, we should probably use ERC4626LinearPool
-        project.ERC4626LinearPool,
-        vault,
+    factory = project.ERC4626LinearPoolFactory.at(LINEARPOOL_4626_FACTORY)
+
+    recpt = factory.create(
         "FRAX 4626 linear pool",
         "dFRAX",
         frax, #mainToken
         dfrax4626, #wrappedToken
         2100000000000000000000000, #upperTarget = 2100000.0 DAI (by default lower target is 0, can be raised after enough liquidity is present)
         10000000000000, #swapFeePercentage = 0.001% (10000000000000 = 10^13 ; 10^18/10^13 = 100000; 100 / 100000 = 0.001%)
-        7332168, #pauseWindowDuration
-        2592000, #bufferPeriodDuration
-        deployer
+        deployer, #owner
+        7, #protocolId ?? TODO: ask balancer what this is
+        sender=deployer
     )
-    #Copied some constructor args from https://etherscan.io/token/0x804cdb9116a10bb78768d3252355a1b18067bf8f#code
-    lp.initialize(sender=deployer)
+    lpaddr = None
+    for l in recpt.decode_logs(factory.Erc4626LinearPoolCreated.abi):
+        #find Erc4626LinearPoolCreated
+        lpaddr = l.pool
+    lp = project.ERC4626LinearPool.at(lpaddr)
+
+    # lp = deployer.deploy(
+    #     #We are using mock here which hardcodes exchange rate of 1:1
+    #     #TODO: once we have a somewhat working 4626, we should probably use ERC4626LinearPool
+    #     project.ERC4626LinearPool,
+    #     vault,
+    #     "FRAX 4626 linear pool",
+    #     "dFRAX",
+    #     frax, #mainToken
+    #     dfrax4626, #wrappedToken
+    #     2100000000000000000000000, #upperTarget = 2100000.0 DAI (by default lower target is 0, can be raised after enough liquidity is present)
+    #     10000000000000, #swapFeePercentage = 0.001% (10000000000000 = 10^13 ; 10^18/10^13 = 100000; 100 / 100000 = 0.001%)
+    #     7332168, #pauseWindowDuration
+    #     2592000, #bufferPeriodDuration
+    #     deployer
+    # )
+    # #Copied some constructor args from https://etherscan.io/token/0x804cdb9116a10bb78768d3252355a1b18067bf8f#code
+    # lp.initialize(sender=deployer)
     #Create some liquidity to avoid BAL#004 (ZERO_DIVISION)
     pool_id = lp.getPoolId()
     swap(pool_id, vault, frax, lp, "1000 Ether", trader)
@@ -140,23 +179,43 @@ def dFRAX(project, deployer, frax, dfrax4626, vault, trader, ensure_hardhat):
 
 @pytest.fixture
 def dGHO(project, deployer, gho, dgho4626, vault, trader, ensure_hardhat):
-    lp = deployer.deploy(
-        #We are using mock here which hardcodes exchange rate of 1:1
-        #TODO: once we have a somewhat working 4626, we should probably use ERC4626LinearPool
-        project.ERC4626LinearPool,
-        VAULT,
+    factory = project.ERC4626LinearPoolFactory.at(LINEARPOOL_4626_FACTORY)
+
+    recpt = factory.create(
         "GHO 4626 linear pool",
         "dGHO",
         gho, #mainToken
         dgho4626, #wrappedToken
         2100000000000000000000000, #upperTarget = 2100000.0 DAI (by default lower target is 0, can be raised after enough liquidity is present)
         10000000000000, #swapFeePercentage = 0.001% (10000000000000 = 10^13 ; 10^18/10^13 = 100000; 100 / 100000 = 0.001%)
-        7332168, #pauseWindowDuration
-        2592000, #bufferPeriodDuration
-        deployer
+        deployer, #owner
+        7, #protocolId ?? TODO: ask balancer what this is
+        sender=deployer
     )
-    #Copied some constructor args from https://etherscan.io/token/0x804cdb9116a10bb78768d3252355a1b18067bf8f#code
-    lp.initialize(sender=deployer)
+    lpaddr = None
+    for l in recpt.decode_logs(factory.Erc4626LinearPoolCreated.abi):
+        #find Erc4626LinearPoolCreated
+        lpaddr = l.pool
+    lp = project.ERC4626LinearPool.at(lpaddr)
+
+
+    # lp = deployer.deploy(
+    #     #We are using mock here which hardcodes exchange rate of 1:1
+    #     #TODO: once we have a somewhat working 4626, we should probably use ERC4626LinearPool
+    #     project.ERC4626LinearPool,
+    #     VAULT,
+    #     "GHO 4626 linear pool",
+    #     "dGHO",
+    #     gho, #mainToken
+    #     dgho4626, #wrappedToken
+    #     2100000000000000000000000, #upperTarget = 2100000.0 DAI (by default lower target is 0, can be raised after enough liquidity is present)
+    #     10000000000000, #swapFeePercentage = 0.001% (10000000000000 = 10^13 ; 10^18/10^13 = 100000; 100 / 100000 = 0.001%)
+    #     7332168, #pauseWindowDuration
+    #     2592000, #bufferPeriodDuration
+    #     deployer
+    # )
+    # #Copied some constructor args from https://etherscan.io/token/0x804cdb9116a10bb78768d3252355a1b18067bf8f#code
+    # lp.initialize(sender=deployer)
     #Create some liquidity to avoid BAL#004 (ZERO_DIVISION)
     pool_id = lp.getPoolId()
     swap(pool_id, vault, gho, lp, "1000 Ether", trader)
@@ -173,8 +232,8 @@ def dUSD(project, deployer, vault, dai, frax, gho, dDAI, dFRAX, dGHO, ensure_har
             "0x97207B095e4D5C9a6e4cfbfcd2C3358E03B90c4A", #protocolFeeProvider: dunno copied from existing pool
             "dUSD", #name
             "dUSD", #symbol
-            [dDAI, dFRAX, dGHO], #tokens
-            [dDAI, dFRAX, dGHO], #rateProviders: Linearpool themselves are oracles
+            [dGHO, dDAI, dFRAX], #tokens
+            [dGHO, dDAI, dFRAX], #rateProviders: Linearpool themselves are oracles
             #Do we need some other price oracle too to account for potential difference in price between stablecoins?
             [0, 0, 0], #tokenRateCacheDurations: Does 0 disable caching?
             [False,False,False], #exemptFromYieldProtocolFeeFlags: ???
@@ -214,7 +273,7 @@ def test_composable_protocol_fee(trader, vault, dai, frax, gho, dDAI, dFRAX, dGH
         trader, #sender
         trader, #recipient
         (
-            [dDAI, dFRAX, dGHO, dUSD], #assets
+            [dGHO, dDAI, dFRAX, dUSD], #assets
             ["1 Ether", "1 Ether", "1 Ether", 5192296858534827628530496329000000], #maxAmountsIn
             encode(['uint256', 'uint256[]'], [
                 0, #JoinKind.INIT
@@ -236,14 +295,14 @@ def test_composable_protocol_fee(trader, vault, dai, frax, gho, dDAI, dFRAX, dGH
         trader, #sender
         trader, #recipient
         (
-            [dDAI, dFRAX, dGHO, dUSD], #assets
-            ["500 Ether", "0 Ether", "0 Ether", '200 Ether'], #maxAmountsIn
+            [dGHO, dDAI, dFRAX, dUSD], #assets
+            ["0 Ether", "500 Ether", "0 Ether", '200 Ether'], #maxAmountsIn
             encode(['uint256', 'uint256[]', 'uint256'], [
                 1, #JoinKind.EXACT_TOKENS_IN_FOR_BPT_OUT
                 (
+                    0*10**18, #dGHO
                     500*10**18, #dDAI
-                    0*10**18, #dFRAX
-                    0*10**18 #dGHO
+                    0*10**18 #dFRAX
                 ), #amountsIn
                 200*10**18 #minimumBPT
             ]  ), #bytes userData
@@ -278,7 +337,7 @@ def test_composable(trader, vault, dai, frax, gho, dDAI, dFRAX, dGHO, dUSD, ddai
         trader, #sender
         trader, #recipient
         (
-            [dDAI, dFRAX, dGHO, dUSD], #assets
+            [dGHO, dDAI, dFRAX, dUSD], #assets
             ["1 Ether", "1 Ether", "1 Ether", 5192296858534827628530496329000000], #maxAmountsIn
             encode(['uint256', 'uint256[]'], [
                 0, #JoinKind.INIT
@@ -300,14 +359,14 @@ def test_composable(trader, vault, dai, frax, gho, dDAI, dFRAX, dGHO, dUSD, ddai
         trader, #sender
         trader, #recipient
         (
-            [dDAI, dFRAX, dGHO, dUSD], #assets
-            ["200 Ether", "150 Ether", "100 Ether", '449 Ether'], #maxAmountsIn
+            [dGHO, dDAI, dFRAX, dUSD], #assets
+            ["100 Ether", "200 Ether", "150 Ether", '449 Ether'], #maxAmountsIn
             encode(['uint256', 'uint256[]', 'uint256'], [
                 1, #JoinKind.EXACT_TOKENS_IN_FOR_BPT_OUT
                 (
+                    100*10**18, #dGHO
                     200*10**18, #dDAI
-                    150*10**18, #dFRAX
-                    100*10**18 #dGHO
+                    150*10**18 #dFRAX
                 ), #amountsIn
                 449*10**18 #minimumBPT
             ]  ), #bytes userData

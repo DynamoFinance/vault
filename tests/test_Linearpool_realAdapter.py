@@ -9,6 +9,7 @@ import eth_abi
 
 #ETH Mainnet addrs
 VAULT = "0xBA12222222228d8Ba445958a75a0704d566BF2C8"
+LINEARPOOL_4626_FACTORY = "0x67A25ca2350Ebf4a0C475cA74C257C94a373b828"
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 DAI = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
 
@@ -90,23 +91,42 @@ def ddai4626(project, deployer, trader, dai, ensure_hardhat, aave_adapter,funds_
 
 @pytest.fixture
 def linear_pool(project, deployer, dai, ddai4626, ensure_hardhat):
-    lp = deployer.deploy(
-        #We are using mock here which hardcodes exchange rate of 1:1
-        #TODO: once we have a somewhat working 4626, we should probably use ERC4626LinearPool
-        project.ERC4626LinearPool,
-        VAULT,
+    factory = project.ERC4626LinearPoolFactory.at(LINEARPOOL_4626_FACTORY)
+
+    recpt = factory.create(
         "DAI 4626 linear pool",
         "dDAI",
         dai, #mainToken
         ddai4626, #wrappedToken
         2100000000000000000000000, #upperTarget = 2100000.0 DAI (by default lower target is 0, can be raised after enough liquidity is present)
         10000000000000, #swapFeePercentage = 0.001% (10000000000000 = 10^13 ; 10^18/10^13 = 100000; 100 / 100000 = 0.001%)
-        7332168, #pauseWindowDuration
-        2592000, #bufferPeriodDuration
-        deployer
+        deployer, #owner
+        7, #protocolId ?? TODO: ask balancer what this is
+        sender=deployer
     )
-    #Copied some constructor args from https://etherscan.io/token/0x804cdb9116a10bb78768d3252355a1b18067bf8f#code
-    lp.initialize(sender=deployer)
+    lpaddr = None
+    for l in recpt.decode_logs(factory.Erc4626LinearPoolCreated.abi):
+        #find Erc4626LinearPoolCreated
+        lpaddr = l.pool
+    lp = project.ERC4626LinearPool.at(lpaddr)
+
+    # lp = deployer.deploy(
+    #     #We are using mock here which hardcodes exchange rate of 1:1
+    #     #TODO: once we have a somewhat working 4626, we should probably use ERC4626LinearPool
+    #     project.ERC4626LinearPool,
+    #     VAULT,
+    #     "DAI 4626 linear pool",
+    #     "dDAI",
+    #     dai, #mainToken
+    #     ddai4626, #wrappedToken
+    #     2100000000000000000000000, #upperTarget = 2100000.0 DAI (by default lower target is 0, can be raised after enough liquidity is present)
+    #     10000000000000, #swapFeePercentage = 0.001% (10000000000000 = 10^13 ; 10^18/10^13 = 100000; 100 / 100000 = 0.001%)
+    #     7332168, #pauseWindowDuration
+    #     2592000, #bufferPeriodDuration
+    #     deployer
+    # )
+    # #Copied some constructor args from https://etherscan.io/token/0x804cdb9116a10bb78768d3252355a1b18067bf8f#code
+    # lp.initialize(sender=deployer)
     return lp
 
 def tokendiff(user, tokens, prev={}):
