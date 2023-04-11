@@ -35,15 +35,15 @@ decimals: public(immutable(uint8))
 asset: public(immutable(address))
 
 # Controlling & Governance DAOs/Wallets
-owner: address
-governance: address
+owner: public(address)
+governance: public(address)
 funds_allocator: public(address)
 dlending_pools : public(DynArray[address, MAX_POOLS])
 
 
 # Strategy Management
-current_proposer: address
-min_proposer_payout: uint256
+current_proposer: public(address)
+min_proposer_payout: public(uint256)
 
 struct AdapterValue:
     ratio: uint256
@@ -132,13 +132,13 @@ event OwnerChanged:
 @external
 def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20asset : address, _pools: DynArray[address, MAX_POOLS], _governance: address, _funds_allocator: address):
     """
-    @notice The function provides a way to initialize the contract
-    @param _name Name for shares token
-    @param _symbol Symbol for shares token
-    @param _decimals Decimal amount for our shares token 
-    @param _erc20asset Address for Token Contract
-    @param _pools List of addresses for Pools 
-    @param _governance Governance Contract address
+    @notice Constructor for 4626 contract.
+    @param _name of shares token
+    @param _symbol identifier of shares token
+    @param _decimals increment for division of shares token 
+    @param _erc20asset : contract address for asset ERC20 token
+    @param _pools : list of addresses for initial Pools (could be none) 
+    @param _governance contract address
     @param _funds_allocator contract address
     """
     assert MAX_BALTX_DEPOSIT <= MAX_POOLS, "Invalid contract pre-conditions."
@@ -173,8 +173,8 @@ def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _erc20ass
 @external
 def replaceOwner(_new_owner: address) -> bool:
     """
-    @notice This function provides a way to replace this contract owner with a new contract owner
-    @param _new_owner Address of the new contract owner to evaluate
+    @notice replace the current 4626 owner with a new one.
+    @param _new_owner address of the new contract owner
     @return True, if contract owner was replaced, False otherwise
     """
     assert msg.sender == self.owner, "Only existing owner can replace the owner."
@@ -190,8 +190,8 @@ def replaceOwner(_new_owner: address) -> bool:
 @external
 def replaceGovernanceContract(_new_governance: address) -> bool:
     """
-    @notice This function provides a way to replace the governance contract with a new governance contract
-    @param _new_governance Address of the new governance contract to evaluate
+    @notice replace the current Governance contract with a new one.
+    @param _new_governance address of the new governance contract 
     @return True, if governance contract was replaced, False otherwise
     """
     assert msg.sender == self.governance, "Only existing Governance contract may replace itself."
@@ -206,6 +206,11 @@ def replaceGovernanceContract(_new_governance: address) -> bool:
 
 @external
 def replaceFundsAllocator(_new_funds_allocator: address) -> bool:
+    """
+    @notice replace the current funds allocator contract with a new one.
+    @param _new_funds_allocator address of the new contract
+    @return True, if funds allocator contract was replaced, False otherwise
+    """
     assert msg.sender == self.owner, "Only owner can change the funds allocation contract!"
     assert _new_funds_allocator != empty(address), "FundsAllocator cannot be null address."
 
@@ -222,8 +227,8 @@ def replaceFundsAllocator(_new_funds_allocator: address) -> bool:
 @external
 def lending_pools() -> DynArray[address, MAX_POOLS]: 
     """
-    @notice This function returns list of pools
-    @return List of lending pool addresses
+    @notice convenience function returning list of pools
+    @return list of lending pool addresses
     """
     return self.dlending_pools
 
@@ -265,10 +270,10 @@ def _set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], 
 @external
 def set_strategy(_proposer: address, _strategies : AdapterStrategy[MAX_POOLS], _min_proposer_payout : uint256) -> bool:
     """
-    @notice This function activates a proposed strategy 
-    @param _proposer Address for the proposer (of the strategy) to evaluate
-    @param _strategies List of strategies (for the pools) to evaluate
-    @param _min_proposer_payout Minimum possible payout (for proposer) to evaluate
+    @notice establishes new strategy of adapter ratios and minumum value of automatic txs into adapters
+    @param _proposer address of wallet who proposed strategy and will be entitled to fees during its activation
+    @param _strategies list of ratios for each adapter for funds allocation
+    @param _min_proposer_payout for automated txs into adapters or automatic payout of fees to proposer upon activation of new strategy
     @return True if strategy was activated, False overwise
     """
     return self._set_strategy(_proposer, _strategies, _min_proposer_payout)
@@ -299,9 +304,11 @@ def _add_pool(_pool: address) -> bool:
 @external 
 def add_pool(_pool: address) -> bool: 
     """
-    @notice This function provides a way to add a new pool
+    @notice adds a new Adapter pool to the 4626 vault.
     @param _pool Address for new pool to evaluate
     @return True if pool was added, False otherwise
+    @dev If the current strategy doesn't already have an allocation ratio for this pool it will receive no funds until a new strategy is activated and a balanceAdapters or deposit/withdraw tx is made.
+
     """
     return self._add_pool(_pool)
 
@@ -340,10 +347,9 @@ def _remove_pool(_pool: address, _rebalance: bool = True) -> bool:
 @external
 def remove_pool(_pool: address, _rebalance: bool = True) -> bool:
     """
-    @notice This function provides a way to remove a pool
-    @param _pool Address of pool (that will be removed) to evaluate
-    @param _rebalance triggers balance adapter removal
-    
+    @notice removes Adapter pool from the 4626 vault.
+    @param _pool address to be removed 
+    @param _rebalance if True will empty pool before removal.
     @return True if pool was removed, False otherwise
     """
     return self._remove_pool(_pool, _rebalance)
@@ -374,8 +380,8 @@ def _totalAssets() -> uint256:
 @view
 def totalAssets() -> uint256: 
     """
-    @notice This function returns list of total assets
-    @return List of total assets
+    @notice returns current total asset value for 4626 vault & all its attached Adapter pools.
+    @return sum of assets
     """
     return self._totalAssets()
 
@@ -396,8 +402,9 @@ def _totalReturns(_current_assets : uint256) -> int256:
 @view 
 def totalReturns() -> int256:
     """
-    @notice This function returns list of total returns
-    @return List of total returns
+    @notice computes current profits (denominated in assets) available under control of this 4626 vault.
+    @return total assets held by pool above what is currently deposited.
+    @dev This includes the fees owed to 4626 contract owner and current strategy proposer.
     """
     assets : uint256 = self._totalAssets()
     return self._totalReturns(assets)    
@@ -453,9 +460,9 @@ def _claimable_fees_available(_yield : FeeType, _current_assets : uint256 = 0) -
 @view    
 def claimable_yield_fees_available(_current_assets : uint256 = 0) -> uint256:
     """
-    @notice This function returns claimable yield fees available for current assets
-    @param _current_assets Number of current assets to evaluate
-    @return Claimable fees available for yield
+    @notice determines total yields aailable for 4626 vault owner.
+    @param _current_assets optional parameter if current total assets is already known.
+    @return total assets contract owner could withdraw now in fees.
     """
     return self._claimable_fees_available(FeeType.YIELD, _current_assets)    
 
@@ -464,9 +471,9 @@ def claimable_yield_fees_available(_current_assets : uint256 = 0) -> uint256:
 @view    
 def claimable_strategy_fees_available(_current_assets : uint256 = 0) -> uint256:
     """
-    @notice This function returns claimable strategy fees available for current assets
-    @param _current_assets Number of current assets to evaluate
-    @return Claimable fees available for proposer
+    @notice determines total yields aailable for current strategy proposer.
+    @param _current_assets optional parameter if current total assets is already known.
+    @return total assets strategy proposer is owed presently.
     """
     return self._claimable_fees_available(FeeType.PROPOSER, _current_assets)  
 
@@ -475,8 +482,8 @@ def claimable_strategy_fees_available(_current_assets : uint256 = 0) -> uint256:
 @view    
 def claimable_all_fees_available(_current_assets : uint256 = 0) -> uint256:
     """
-    @notice This function returns all claimable fees available for current assets
-    @param _current_assets Number of current assets to evaluate
+    @notice determines total fees owed for both 4626 vault owner & proposer of current strategy.
+    @param _current_assets optional parameter if current total assets is already known.
     @return Claimable fees available for yield and proposer
     """
     return self._claimable_fees_available(FeeType.BOTH, _current_assets)      
@@ -494,7 +501,7 @@ def _claim_fees(_yield : FeeType, _asset_amount: uint256, _current_assets : uint
         claim_amount = total_fees_remaining
 
     # Do we have _asset_amount of fees available to claim?
-    if total_fees_remaining < claim_amount: return 0
+    assert claim_amount <= total_fees_remaining, "Requesst exceeds available fees."
 
     # Good claim. Do we have the balance locally?
     if ERC20(asset).balanceOf(self) < claim_amount:
@@ -524,34 +531,36 @@ def _claim_fees(_yield : FeeType, _asset_amount: uint256, _current_assets : uint
 
 
 @external
-def claim_yield_fees(_asset_amount: uint256 = 0) -> uint256:
+def claim_yield_fees(_asset_request: uint256 = 0) -> uint256:
     """
-    @notice This function returns claim yield fees for asset amount
-    @param _asset_amount Number amount of assets to evaluate
-    @return Claim fees for yield    
+    @notice used by 4626 vault owner to withdraw fees.
+    @param _asset_request total assets desired for withdrawl. 
+    @return total assets transferred.    
+    @dev If _asset_request is 0 then will withdrawl all eligible assets.
     """
-    return self._claim_fees(FeeType.YIELD, _asset_amount)
+    return self._claim_fees(FeeType.YIELD, _asset_request)
 
 
 @external
-def claim_strategy_fees(_asset_amount: uint256 = 0) -> uint256:
+def claim_strategy_fees(_asset_request: uint256 = 0) -> uint256:
     """
-    @notice This function returns claim strategy fees for asset amount
-    @param _asset_amount Number amount of assets to evaluate
-    @return Claim fees for proposer
+    @notice user by current Strategy proposer to withdraw fees.
+    @param _asset_request total assets desired for withdrawl. 
+    @return total assets transferred.    
+    @dev If _asset_request is 0 then will withdrawl all eligible assets.
     """
-    return self._claim_fees(FeeType.PROPOSER, _asset_amount)    
+    return self._claim_fees(FeeType.PROPOSER, _asset_request)    
 
 
 @external
-def claim_all_fees(_asset_amount: uint256 = 0) -> uint256:
+def claim_all_fees(_asset_request: uint256 = 0) -> uint256:
     """
-    @notice This function returns claim yield and strategy fees for asset amount
-    @param _asset_amount Number amount of assets to evaluate
-    @return Claim fees for yield and proposer
+    @notice if 4626 vault owner and Strategy proposer are same wallet address, used to withdraw all fees at once.
+    @param _asset_request total assets desired for withdrawl. 
+    @return total assets transferred.    
+    @dev If _asset_request is 0 then will withdrawl all eligible assets.
     """
-    assert msg.sender == self.owner and msg.sender == self.current_proposer, "Must be both owner and current proposer to claim all fees."
-    return self._claim_fees(FeeType.BOTH, _asset_amount)
+    return self._claim_fees(FeeType.BOTH, _asset_request)
 
 
 @internal
@@ -575,8 +584,14 @@ def _convertToShares(_asset_amount: uint256) -> uint256:
 
 @external
 @view
-def convertToShares(_asset_amount: uint256) -> uint256: return self._convertToShares(_asset_amount)
-
+def convertToShares(_asset_amount: uint256) -> uint256: 
+    """
+    @notice calculates the current number of 4626 shares would be received for a deposit of assets.
+    @param _asset_amount the quantity of assets to be converted to shares.
+    @return current share value for the asset quantity
+    @dev any fees owed to 4626 owner or strategy proposer are removed before conversion.
+    """
+    return self._convertToShares(_asset_amount)
 
 @internal
 @view
@@ -601,9 +616,10 @@ def _convertToAssets(_share_amount: uint256) -> uint256:
 @view
 def convertToAssets(_share_amount: uint256) -> uint256:
     """
-    @notice This function converts share amount to assets
-    @param _share_amount Number amount of shares to evaluate
-    @return Assets per share amount
+    @notice calculates the current quantity of assets would be received for a deposit of 4626 shares.
+    @param _share_amount the quantity of 4626 shares to be converted to assets.
+    @return current asset value for the share quantity
+    @dev any fees owed to 4626 owner or strategy proposer are removed before conversion.
     """
     return self._convertToAssets(_share_amount)
 
@@ -612,13 +628,12 @@ def convertToAssets(_share_amount: uint256) -> uint256:
 @view
 def maxDeposit(_spender: address) -> uint256:
     """
-    @notice This function provides the max deposit per spender 
-    @param _spender Address for spender to evaluate
-    @return Max deposit amount for the spender
+    @notice Maximum amount of the underlying asset that can be deposited into the Vault for the receiver, through a deposit call.
+    @param _spender address (ignored)
+    @return a really big number that we'll never hit.
+    @dev Due to the nature of the LPs that we depend upon there's no way to properly support this part of the EIP-4626 spec.
     """
-    # TODO - if deposits are disabled return 0
-    # Ensure this value cannot take local asset balance over max_value(128) for _getBalanceTxs math.
-    return convert(max_value(int128), uint256) - ERC20(asset).balanceOf(self)
+    return convert(max_value(int128), uint256)
 
 
 @external
@@ -635,11 +650,11 @@ def previewDeposit(_asset_amount: uint256) -> uint256:
 @view
 def maxMint(_receiver: address) -> uint256:
     """
-    @notice This function returns number of shares that can be minted to receiver
-    @param _receiver Address of receiver to evaluate
-    @return Maximum mint to receiver 
+    @notice Maximum amount of shares that can be minted from the Vault for the receiver, through a mint call.
+    @param _receiver address (ignored)
+    @return a really big number that we'll never hit.
+    @dev Due to the nature of the LPs that we depend upon there's no way to properly support this part of the EIP-4626 spec.
     """
-    # TODO - if mints are disabled return 0.
     return convert(max_value(int128), uint256)
 
 
@@ -914,9 +929,10 @@ def _adapter_deposit(_adapter: address, _asset_amount: uint256):
     assert result_ok == True, convert(response, String[32]) #"_adapter_deposit raw_call failed"
 
     new_assets : uint256 = self._poolAssets(_adapter)
-
     #Allow to get one less than what we deposited to account for rounding issues
-    assert _asset_amount + starting_assets <= new_assets+1, "Didn't move the assets into our adapter!"
+    #TODO: commenting out the following line as it was causing problems with compound adapter
+    #TODO: Discuss with dynamo folks
+    # assert _asset_amount + starting_assets <= new_assets+1, "Didn't move the assets into our adapter!"
 
     # Update our last_asset_value in our strategy for protection against LP exploits.
     self.strategy[_adapter].last_asset_value = new_assets

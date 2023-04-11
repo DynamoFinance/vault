@@ -35,8 +35,12 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
     d4626_delta : int256 = 0
     tx_count: uint256 = 0
 
-    # We have to copy from the old list into a new one to update values. (NOT THE MOST EFFICIENT OPTION.)
+    # out_txs holds the txs that will deposit to the adapters.
+    out_txs : DynArray[BalancePool, MAX_POOLS] = empty(DynArray[BalancePool, MAX_POOLS])
+
+    # pools is our final list of txs to be executed. withdraws from adapters happen first.    
     pools : BalancePool[MAX_POOLS] = empty(BalancePool[MAX_POOLS])
+
     blocked_adapters : address[MAX_POOLS] = empty(address[MAX_POOLS])
     blocked_pos : uint256 = 0
 
@@ -75,23 +79,17 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
         # Don't insert a tx if there's nothing to transfer.
         if pool.delta == 0: continue
 
-        tx_count += 1
-
-        if pos == 0:
-            pools[pos]=pool
+        if pool.delta < 0:
+            pools[tx_count] = pool
+            tx_count += 1
         else:
-            for npos in range(MAX_POOLS):
-                if pools[npos].delta == 0:  # Empty position, take it.
-                    pools[npos] = pool
-                    break
-                if pools[npos].delta > pool.delta: # Move everything right and insert here.
-                    for mpos in range(MAX_POOLS):
-                        next_pos : uint256 = MAX_POOLS - npos - 1 
-                        if pools[next_pos].delta == 0: continue
-                        pools[next_pos+1] = pools[next_pos]
+            # txs depositing to adapters go last.
+            out_txs.append(pool)            
 
-                    pools[npos] = pool
-                    break
+    # Stick outbound txs at the end.
+    for pool in out_txs:
+        pools[tx_count] = pool
+        tx_count+=1 
 
     return pool_assets_allocated, d4626_delta, tx_count, pools, blocked_adapters
 
