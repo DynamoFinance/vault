@@ -83,15 +83,15 @@ def test_aave_adapter(aave_adapter, trader, dai, adai, aave_configurator, ensure
         "params": ["0x186a0", "0x12c"]}
     print(requests.post("http://localhost:8545/", json.dumps(set_storage_request)))
     # print(adai.balanceOf(aave_adapter))
-    assert adai.balanceOf(aave_adapter) == pytest.approx(1007704413122972883649524), "adai balance incorrect"
-    assert aave_adapter.totalAssets(sender=aave_adapter) == pytest.approx(1007704413122972883649524), "Asset balance should be 1000000"
-    assert aave_adapter.maxWithdraw(sender=aave_adapter) == pytest.approx(1007704413122972883649524), "maxWithdraw should be 1000000"
+    assert adai.balanceOf(aave_adapter) == pytest.approx(1019300128978860833641969), "adai balance incorrect"
+    assert aave_adapter.totalAssets(sender=aave_adapter) == pytest.approx(1019300128978860833641969), "Asset balance should be 1000000"
+    assert aave_adapter.maxWithdraw(sender=aave_adapter) == pytest.approx(1019300128978860833641969), "maxWithdraw should be 1000000"
     assert aave_adapter.maxDeposit(sender=aave_adapter) == pytest.approx(AAVE_DAI_SUPPLY_CAP  - adai.totalSupply()), "maxDeposit should be MAX_UINT256"
     #Withdraw everything
     trader_balance_pre = dai.balanceOf(trader)
     aave_adapter.withdraw(aave_adapter.totalAssets(sender=aave_adapter), trader, sender=trader)
     trader_gotten = dai.balanceOf(trader) - trader_balance_pre
-    assert trader_gotten == pytest.approx(1007704413465903087954661), "trader gain balance incorrect"
+    assert trader_gotten == pytest.approx(1019300128978860833641969), "trader gain balance incorrect"
     assert aave_adapter.totalAssets(sender=aave_adapter) < 10**18, "Asset balance should be 0"
     assert aave_adapter.maxWithdraw(sender=aave_adapter) < 10**18, "maxWithdraw should be 0"
     assert aave_adapter.maxDeposit(sender=aave_adapter) == pytest.approx(AAVE_DAI_SUPPLY_CAP  - adai.totalSupply()), "maxDeposit should be MAX_UINT256"
@@ -142,10 +142,10 @@ def test_aave_adapter(aave_adapter, trader, dai, adai, aave_configurator, ensure
     
     
     #View functions work
-    assert aave_adapter.totalAssets(sender=aave_adapter) == pytest.approx(100000256852263405719), "Asset balance should be 0"
+    assert aave_adapter.totalAssets(sender=aave_adapter) == pytest.approx(100000643415723643489), "Asset balance should be 0"
     assert aave_adapter.maxWithdraw(sender=aave_adapter) == 0, "maxWithdraw should be 0"
     assert aave_adapter.maxDeposit(sender=aave_adapter) == 0, "maxDeposit should be zero"
-    assert adai.balanceOf(aave_adapter) == pytest.approx(100000256852263405719), "adai balance incorrect"
+    assert adai.balanceOf(aave_adapter) == pytest.approx(100000643415723643489), "adai balance incorrect"
 
     #Doing a deposit should revert
     dai.transfer(aave_adapter, "1000000 Ether", sender=trader)

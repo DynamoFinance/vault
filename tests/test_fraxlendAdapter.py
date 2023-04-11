@@ -53,7 +53,7 @@ def test_fraxlend_adapter(trader, frax, fraxpair, fraxlend_adapter, deployer, en
     assert fraxlend_adapter.totalAssets(sender=fraxlend_adapter) == pytest.approx(1000000*10**18), "Asset balance should be 0"
     assert fraxlend_adapter.maxWithdraw(sender=fraxlend_adapter) == pytest.approx(1000000*10**18), "maxWithdraw should be 0"
     assert fraxlend_adapter.maxDeposit(sender=fraxlend_adapter) == 2**256 - 1, "maxDeposit should be MAX_UINT256"
-    assert fraxpair.balanceOf(fraxlend_adapter) == pytest.approx(999131280088931076622037), "fToken balance incorrect"
+    assert fraxpair.balanceOf(fraxlend_adapter) == pytest.approx(997178653427687504892700), "fToken balance incorrect"
 
     # print(fraxlend_adapter.totalAssets())
 
@@ -65,15 +65,15 @@ def test_fraxlend_adapter(trader, frax, fraxpair, fraxlend_adapter, deployer, en
     #The ```addInterest``` function is a public implementation of _addInterest and allows 3rd parties to trigger interest accrual
     fraxpair.addInterest(sender=deployer)
     print(fraxlend_adapter.totalAssets(sender=fraxlend_adapter))
-    assert fraxlend_adapter.totalAssets(sender=fraxlend_adapter) == pytest.approx(1001351128441541669087483), "Asset balance should be 0"
-    assert fraxlend_adapter.maxWithdraw(sender=fraxlend_adapter) == pytest.approx(1001351128441541669087483), "maxWithdraw should be 0"
+    assert fraxlend_adapter.totalAssets(sender=fraxlend_adapter) == pytest.approx(1000943776742255783804317), "Asset balance should be 0"
+    assert fraxlend_adapter.maxWithdraw(sender=fraxlend_adapter) == pytest.approx(1000943776742255783804317), "maxWithdraw should be 0"
     assert fraxlend_adapter.maxDeposit(sender=fraxlend_adapter) == 2**256 - 1, "maxDeposit should be MAX_UINT256"
-    assert fraxpair.balanceOf(fraxlend_adapter) == pytest.approx(999131280088931076622037), "fToken balance incorrect"
+    assert fraxpair.balanceOf(fraxlend_adapter) == pytest.approx(997178653427687504892700), "fToken balance incorrect"
 
     trader_balance_pre = frax.balanceOf(trader)
     fraxlend_adapter.withdraw(fraxlend_adapter.totalAssets(sender=fraxlend_adapter), trader, sender=trader)
     trader_gotten = frax.balanceOf(trader) - trader_balance_pre
-    assert trader_gotten == pytest.approx(1001351128541881348711843), "trader gain balance incorrect"
+    assert trader_gotten == pytest.approx(1000943776773789995985018), "trader gain balance incorrect"
     assert fraxlend_adapter.totalAssets(sender=fraxlend_adapter) < 5, "Asset balance should be 0"
     assert fraxlend_adapter.maxWithdraw(sender=fraxlend_adapter) < 5, "maxWithdraw should be 0"
     assert fraxlend_adapter.maxDeposit(sender=fraxlend_adapter) == 2**256 - 1, "maxDeposit should be MAX_UINT256"

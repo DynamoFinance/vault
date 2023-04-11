@@ -26,7 +26,7 @@ def ensure_hardhat():
                 "jsonRpcUrl": "https://eth-mainnet.alchemyapi.io/v2/"+os.getenv('WEB3_ALCHEMY_API_KEY'),
                 #hardcoding here, not good.
                 #TODO: figure out how to copy from apt-config.yaml
-                "blockNumber": 16581700
+                "blockNumber": 17024800
             }
         }]}
     requests.post("http://localhost:8545/", json.dumps(reset_request))
