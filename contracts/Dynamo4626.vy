@@ -628,13 +628,12 @@ def convertToAssets(_share_amount: uint256) -> uint256:
 @view
 def maxDeposit(_spender: address) -> uint256:
     """
-    @notice determines the maximum deposit that can be made by this spender.
-    @param _spender Address for spender to evaluate
-    @return Max deposit amount for the spender
+    @notice Maximum amount of the underlying asset that can be deposited into the Vault for the receiver, through a deposit call.
+    @param _spender address (ignored)
+    @return a really big number that we'll never hit.
+    @dev Due to the nature of the LPs that we depend upon there's no way to properly support this part of the EIP-4626 spec.
     """
-    # TODO - if deposits are disabled return 0
-    # Ensure this value cannot take local asset balance over max_value(128) for _getBalanceTxs math.
-    return convert(max_value(int128), uint256) - ERC20(asset).balanceOf(self)
+    return convert(max_value(int128), uint256)
 
 
 @external
@@ -651,11 +650,11 @@ def previewDeposit(_asset_amount: uint256) -> uint256:
 @view
 def maxMint(_receiver: address) -> uint256:
     """
-    @notice This function returns number of shares that can be minted to receiver
-    @param _receiver Address of receiver to evaluate
-    @return Maximum mint to receiver 
+    @notice Maximum amount of shares that can be minted from the Vault for the receiver, through a mint call.
+    @param _spender address (ignored)
+    @return a really big number that we'll never hit.
+    @dev Due to the nature of the LPs that we depend upon there's no way to properly support this part of the EIP-4626 spec.
     """
-    # TODO - if mints are disabled return 0.
     return convert(max_value(int128), uint256)
 
 
