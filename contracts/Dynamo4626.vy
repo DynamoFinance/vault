@@ -651,7 +651,7 @@ def previewDeposit(_asset_amount: uint256) -> uint256:
 def maxMint(_receiver: address) -> uint256:
     """
     @notice Maximum amount of shares that can be minted from the Vault for the receiver, through a mint call.
-    @param _spender address (ignored)
+    @param _receiver address (ignored)
     @return a really big number that we'll never hit.
     @dev Due to the nature of the LPs that we depend upon there's no way to properly support this part of the EIP-4626 spec.
     """
