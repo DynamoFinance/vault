@@ -129,8 +129,8 @@ def __init__(contractOwner: address, _tdelay: uint256):
 def submitStrategy(strategy: ProposedStrategy, vault: address) -> uint256:
     """
     @notice This function provides a way to Propose a Strategy for a specific Vault
-    @param strategy The Proposed Strategy (for a Vault) to evaluate 
-    @param vault The vault address (for the Proposed Strategy) to evaluate
+    @param strategy The Proposed Strategy for a Vault
+    @param vault The vault address for the Proposed Strategy
     @return The nonce for a strategy submitted for a specific vault
     """
     if self.NextNonceByVault[vault] == 0:
@@ -193,8 +193,8 @@ def submitStrategy(strategy: ProposedStrategy, vault: address) -> uint256:
 def withdrawStrategy(Nonce: uint256, vault: address):
     """
     @notice This function provides a way to withdraw a proposed strategy for a specific vault
-    @param Nonce Integer (for the Proposed Strategy, by Vault) to evaluate
-    @param vault The vault address (for the Proposed Strategy) to evaluate
+    @param Nonce Integer for the Proposed Strategy, by Vault
+    @param vault The vault address for the Proposed Strategy
     """
     pending_strat : Strategy = self.PendingStrategyByVault[vault]
 
@@ -223,8 +223,8 @@ def withdrawStrategy(Nonce: uint256, vault: address):
 def endorseStrategy(Nonce: uint256, vault: address):
     """
     @notice This function provides a way to vote for a proposed strategy for a specific vault
-    @param Nonce Integer (for the Proposed Strategy, by Vault) to evaluate
-    @param vault The vault address (for the Proposed Strategy) to evaluate
+    @param Nonce Integer for the Proposed Strategy, by Vault
+    @param vault The vault address for the Proposed Strategy
     """
     pending_strat : Strategy = self.PendingStrategyByVault[vault]
 
@@ -257,8 +257,8 @@ def endorseStrategy(Nonce: uint256, vault: address):
 def rejectStrategy(Nonce: uint256, vault: address):
     """
     @notice This function provides a way to vote against a proposed strategy for a specific vault
-    @param Nonce Integer (for the Proposed Strategy, by Vault) to evaluate
-    @param vault The vault address (for the Proposed Strategy) to evaluate
+    @param Nonce Integer for the Proposed Strategy, by Vault
+    @param vault The vault address for the Proposed Strategy
     """
     pending_strat : Strategy = self.PendingStrategyByVault[vault]
 
@@ -291,8 +291,8 @@ def rejectStrategy(Nonce: uint256, vault: address):
 def activateStrategy(Nonce: uint256, vault: address):
     """
     @notice This function provides a way to activate a proposed strategy (for a specific vault) which becomes the current strategy
-    @param Nonce Integer (for the Proposed Strategy, by Vault) to evaluate
-    @param vault The vault address (for the Proposed Strategy) to evaluate
+    @param Nonce Integer for the Proposed Strategy, by Vault
+    @param vault The vault address for the Proposed Strategy
     """
     pending_strat : Strategy = self.PendingStrategyByVault[vault]
 
@@ -326,7 +326,7 @@ def activateStrategy(Nonce: uint256, vault: address):
 def addGuard(GuardAddress: address):
     """
     @notice This function provides a way to add a guard to the contract's government
-    @param GuardAddress The guard's address (to add to the contract's government) to evaluate
+    @param GuardAddress The guard's address to add to the contract's government
     """
     #Check to see that sender is the contract owner
     assert msg.sender == self.contractOwner, "Cannot add guard unless you are contract owner"
@@ -350,7 +350,7 @@ def addGuard(GuardAddress: address):
 def removeGuard(GuardAddress: address):
     """
     @notice This function provides a way to remove a guard to the contract's government
-    @param GuardAddress The guard's address (to remove from the contract's government) to evaluate
+    @param GuardAddress The guard's address to remove from the contract's government
     """
     #Check to see that sender is the contract owner
     assert msg.sender == self.contractOwner, "Cannot remove guard unless you are contract owner"
@@ -384,8 +384,8 @@ def removeGuard(GuardAddress: address):
 def swapGuard(OldGuardAddress: address, NewGuardAddress: address):
     """
     @notice This function provides a way to swap a guard from the contract's government with a new guard
-    @param OldGuardAddress The guard's address (to swap out from the contract's government) to evaluate
-    @param NewGuardAddress The guard's address (to swap into the contract's government) to evaluate
+    @param OldGuardAddress The guard's address to swap out from the contract's government
+    @param NewGuardAddress The guard's address to swap into the contract's government
     """
     #Check that the sender is authorized to swap a guard
     assert msg.sender == self.contractOwner, "Cannot swap guard unless you are contract owner"
@@ -414,9 +414,9 @@ def swapGuard(OldGuardAddress: address, NewGuardAddress: address):
 @external
 def replaceGovernance(NewGovernance: address, vault: address):
     """
-    @notice This function provides a way to replace this governance contract out with a new governance contract (per vault)
-    @param NewGovernance The new governance contract's address to evaluate
-    @param vault A vault address (for this governance contract) to evaluate
+    @notice This function provides a way to replace this governance contract with a new governance contract (per vault)
+    @param NewGovernance The new governance contract's address
+    @param vault A vault address for this governance contract
     """
     VoteCount: uint256 = 0
     Voter: address = msg.sender
@@ -461,7 +461,7 @@ def replaceGovernance(NewGovernance: address, vault: address):
 def addVault(vault: address): 
     """
     @notice This function provides a way to add a vault to the list of vaults governed by this contract
-    @param vault A vault address (to add to this governance contract) to evaluate
+    @param vault A vault address to add to this governance contract
     """
     # Must be Contract Owner to add vault
     assert msg.sender == self.contractOwner
@@ -486,7 +486,7 @@ def addVault(vault: address):
 def removeVault(vault: address):
     """
     @notice This function provides a way to remove a vault from the list of vaults governed by this contract
-    @param vault A vault address (to remove from this governance contract) to evaluate
+    @param vault A vault address to remove from this governance contract
     """
     # Must be Contract owner to remove vault
     assert msg.sender == self.contractOwner
@@ -520,9 +520,9 @@ def removeVault(vault: address):
 @external
 def swapVault(OldVaultAddress: address, NewVaultAddress: address):
     """
-    @notice This function provides a way to swap a vault (on the list of vaults governed by this contract) out with a new vault
-    @param OldVaultAddress the vault to replace.
-    @param NewVaultAddress the vault replacing the old one..
+    @notice This function provides a way to swap a vault on the list of vaults governed by this contract out with a new vault
+    @param OldVaultAddress the vault to replace
+    @param NewVaultAddress the vault replacing the old one
     """
     #Check that the sender is authorized to swap vault
     assert msg.sender == self.contractOwner
