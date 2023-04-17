@@ -304,8 +304,8 @@ def _add_pool(_pool: address) -> bool:
 @external 
 def add_pool(_pool: address) -> bool: 
     """
-    @notice adds a new Adapter pool to the 4626 vault.
-    @param _pool Address for new pool to evaluate
+    @notice adds a new Adapter pool to the 4626 vault
+    @param _pool Address for new pool
     @return True if pool was added, False otherwise
     @dev If the current strategy doesn't already have an allocation ratio for this pool it will receive no funds until a new strategy is activated and a balanceAdapters or deposit/withdraw tx is made.
 
@@ -640,8 +640,8 @@ def maxDeposit(_spender: address) -> uint256:
 def previewDeposit(_asset_amount: uint256) -> uint256:
     """
     @notice This function converts asset amount to shares in deposit
-    @param _asset_amount Number amount of assets to evaluate
-    @return Shares per asset amount in deposit
+    @param _asset_amount the quantity of assets to be converted to shares
+    @return current share value for the asset quantity
     """
     return self._convertToShares(_asset_amount)
 
@@ -662,9 +662,9 @@ def maxMint(_receiver: address) -> uint256:
 @view 
 def previewMint(_share_amount: uint256) -> uint256:
     """
-    @notice This function returns asset qty that would be returned for this share_amount per mint
-    @param _share_amount Number amount of shares to evaluate
-    @return Assets per share amount in mint
+    @notice This function returns asset value that would be returned for this share_amount per mint
+    @param _share_amount the quantity of 4626 shares to be converted to assets
+    @return current asset value for the share quantity
     """
     return self._convertToAssets(_share_amount)
 
@@ -673,9 +673,10 @@ def previewMint(_share_amount: uint256) -> uint256:
 def mint(_share_amount: uint256, _receiver: address) -> uint256:
     """
     @notice This function mints asset qty that would be returned for this share_amount to receiver
-    @param _share_amount Number amount of shares to evaluate
-    @param _receiver Address of receiver to evaluate
-    @return Asset qty per share amount
+    @param _share_amount the quantity of 4626 shares to be converted to assets
+    @param _receiver Address of receiver of assets
+    @return current asset value for the share quantity
+    @return address of receiver of assets
     """
     assetqty : uint256 = self._convertToAssets(_share_amount)
     return self._deposit(assetqty, _receiver)
@@ -686,7 +687,7 @@ def mint(_share_amount: uint256, _receiver: address) -> uint256:
 def maxWithdraw(_owner: address) -> uint256:
     """
     @notice This function returns maximum assets this _owner can extract
-    @param _owner Address of owner of assets to evaluate
+    @param _owner Address of owner of assets
     @return maximum assets this _owner can withdraw
     """
     # TODO: If withdraws are disabled return 0.
@@ -697,9 +698,9 @@ def maxWithdraw(_owner: address) -> uint256:
 @view 
 def previewWithdraw(_asset_amount: uint256) -> uint256:
     """
-    @notice This function returns asset qty per share amount for withdraw
-    @param _asset_amount Number amount of assets to evaluate
-    @return Share qty per asset amount in withdraw
+    @notice This function returns share value of asset quantity for withdraw of assets
+    @param _asset_amount the quantity of assets to be converted to shares
+    @return current share value for the asset quantity
     """
     return self._convertToShares(_asset_amount)
 
@@ -710,7 +711,7 @@ def previewWithdraw(_asset_amount: uint256) -> uint256:
 def maxRedeem(_owner: address) -> uint256:
     """
     @notice This function returns maximum shares this _owner can redeem
-    @param _owner Address of owner of assets to evaluate
+    @param _owner Address of owner of assets
     @return maximum shares this _owner can redeem
     """
     # TODO: If redemption is disabled return 0.
@@ -722,8 +723,8 @@ def maxRedeem(_owner: address) -> uint256:
 def previewRedeem(_share_amount: uint256) -> uint256:
     """
     @notice This function returns asset qty per share amount for redemption
-    @param _share_amount Number amount of shares to evaluate
-    @return asset qty per share amount in redemption
+    @param _share_amount the quantity of 4626 shares to be converted to assets
+    @return asset value of the share amount in redemption
     """
     return self._convertToAssets(_share_amount)
 
@@ -731,11 +732,13 @@ def previewRedeem(_share_amount: uint256) -> uint256:
 @external
 def redeem(_share_amount: uint256, _receiver: address, _owner: address) -> uint256:
     """
-    @notice This function redeems asset qty that would be returned for this share_amount to receiver from owner
-    @param _share_amount Number amount of shares to evaluate
-    @param _receiver Address of receiver to evaluate
-    @param _owner Address of owner of assets to evaluate
-    @return Asset qty withdrawn
+    @notice This function redeems asset amount that would be returned for this share value to receiver from owner
+    @param _share_amount the quantity of 4626 shares to be converted to assets
+    @param _receiver Address of receiver of assets
+    @param _owner Address of owner of share amount
+    @return asset value of the share amount in redemption
+    @return receiver of assets in redeemption
+    @return owner of share amount coverted to assets
     """
     assetqty: uint256 = self._convertToAssets(_share_amount)
     return self._withdraw(assetqty, _receiver, _owner)
@@ -998,9 +1001,10 @@ def _deposit(_asset_amount: uint256, _receiver: address) -> uint256:
 def deposit(_asset_amount: uint256, _receiver: address) -> uint256: 
     """
     @notice This function provides a way to transfer an asset amount from message sender to receiver
-    @param _asset_amount Number amount of assets to evaluate
-    @param _receiver Address of receiver to evaluate
-    @return Share amount deposited to receiver
+    @param _asset_amount the quantity of assets to be converted to shares
+    @param _receiver Address of receiver of assets
+    @return Asset amount deposited to receiver
+    @return address of receiver of assets
     """
     return self._deposit(_asset_amount, _receiver)
 
@@ -1046,10 +1050,12 @@ def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint
 def withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint256:
     """
     @notice This function provides a way to withdraw an asset amount to receiver
-    @param _asset_amount Number amount of assets to evaluate
-    @param _receiver Address of receiver to evaluate
-    @param _owner Address of owner of assets to evaluate
-    @return Share amount withdrawn to receiver
+    @param _asset_amount the quantity of assets to be converted to shares
+    @param _receiver Address of receiver of assets
+    @param _owner Address of owner(holder) of assets
+    @return asset amount withdrawn to receiver
+    @return address of receiver of assets
+    @return address of owner of assets
     """
     return self._withdraw(_asset_amount,_receiver,_owner)
 
