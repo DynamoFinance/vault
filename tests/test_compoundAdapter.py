@@ -72,12 +72,12 @@ def test_compound_adapter(compound_adapter, trader, dai, cdai, ensure_hardhat):
     print(requests.post("http://localhost:8545/", json.dumps(set_storage_request)))
     # print(cdai.balanceOfUnderlying(compound_adapter, sender=trader).return_value)
 
-    assert cdai.balanceOfUnderlying(compound_adapter, sender=trader).return_value == pytest.approx(1000495372237875489577903), "adai balance incorrect"
-    assert compound_adapter.totalAssets(sender=compound_adapter) == pytest.approx(1000495372237875489577903), "Asset balance should be 1000000"
-    assert compound_adapter.maxWithdraw(sender=compound_adapter) == pytest.approx(1000495372237875489577903), "maxWithdraw should be 1000000"
-    assert cdai.balanceOfUnderlying(compound_adapter, sender=trader).return_value == pytest.approx(1000495372237875489577903), "adai balance incorrect"
-    assert compound_adapter.totalAssets(sender=compound_adapter) == pytest.approx(1000495372237875489577903), "Asset balance should be 1000000"
-    assert compound_adapter.maxWithdraw(sender=compound_adapter) == pytest.approx(1000495372237875489577903), "maxWithdraw should be 1000000"
+    assert cdai.balanceOfUnderlying(compound_adapter, sender=trader).return_value == pytest.approx(1000534139611332637427254), "adai balance incorrect"
+    assert compound_adapter.totalAssets(sender=compound_adapter) == pytest.approx(1000534139611332637427254), "Asset balance should be 1000000"
+    assert compound_adapter.maxWithdraw(sender=compound_adapter) == pytest.approx(1000534139611332637427254), "maxWithdraw should be 1000000"
+    assert cdai.balanceOfUnderlying(compound_adapter, sender=trader).return_value == pytest.approx(1000534139611332637427254), "adai balance incorrect"
+    assert compound_adapter.totalAssets(sender=compound_adapter) == pytest.approx(1000534139611332637427254), "Asset balance should be 1000000"
+    assert compound_adapter.maxWithdraw(sender=compound_adapter) == pytest.approx(1000534139611332637427254), "maxWithdraw should be 1000000"
     assert compound_adapter.maxDeposit(sender=compound_adapter) == 2**256 - 1, "maxDeposit should be MAX_UINT256"
     #Withdraw everything
     trader_balance_pre = dai.balanceOf(trader)

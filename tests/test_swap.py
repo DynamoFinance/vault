@@ -70,4 +70,4 @@ def test_swap(vault, accounts, weth, bal, ensure_hardhat):
     assert weth.balanceOf(trader) == Web3.to_wei(99, 'ether')
     #copied this from output of prior run.
     #should be consistent as we fork off a specific block each time
-    assert bal.balanceOf(trader) == 232212803034529744021
+    assert bal.balanceOf(trader) == 260663300363639517978

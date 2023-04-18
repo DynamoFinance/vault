@@ -147,7 +147,7 @@ def test_single_adapter_aave(project, deployer, dynamo4626, aave_adapter, dai, t
 
     #the 101024025085624200987916 figure came from printing adai.balanceOf(dynamo4626)
     #will be stable unless we change the fork-block 
-    yield_rate = 101024025085624200987916 / (100000 * 10**18 ) #from observation
+    yield_rate = 102087876410076623908944 / (100000 * 10**18 ) #from observation
 
     yielded_balance = yield_rate*(100000 * 10**18)
     #Because theres fees involved...
