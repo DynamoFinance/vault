@@ -1145,7 +1145,6 @@ def test_multi_adapter_deposit_ratios(project, deployer, dynamo4626, pool_adapte
 
     _setup_multi_adapters(project, dynamo4626, deployer, dai, adapters, strategy)
 
-    d4626_start_DAI = dai.balanceOf(dynamo4626)
     LP_start_DAI_A = dai.balanceOf(pool_adapterA)
     LP_start_DAI_B = dai.balanceOf(pool_adapterB)
     LP_start_DAI_C = dai.balanceOf(pool_adapterC)
