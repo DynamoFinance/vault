@@ -1,4 +1,9 @@
 # @version 0.3.7
+"""
+@title Compound adapter for Dynamo4626 Multi-Vault
+@license MIT
+@author BiggestLab (https://biggestlab.io) Benjamin Scherrey, Morgan Baugh, Sajal Kayan
+"""
 from vyper.interfaces import ERC20
 import LPAdapter as LPAdapter
 #This contract would only be called using delegate call, so we do
