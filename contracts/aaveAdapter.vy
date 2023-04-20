@@ -46,7 +46,7 @@ interface Atoken:
 @external
 def __init__(_lendingPool: address, _originalAsset: address, _wrappedAsset: address):
     """
-    @notice Constructor of AAVE adapter
+    @notice Constructor of AAVE adapter (v3)
     @param _lendingPool Address of AAVE lending pool contract
     @param _originalAsset Address of the original asset this adapter deals with
     @param _wrappedAsset Address of the a-token corresponding to _originalAsset
@@ -138,7 +138,6 @@ def maxWithdraw() -> uint256:
         funds. The reality is a bit more complex. This method returns a valid
         response if it has been DELEGATECALL or STATICCALL-ed from the Dynamo4626
         contract it services. It is not intended to be called directly by third parties.
-
     """
     config: uint256 = AAVEV3(lendingPool).getConfiguration(originalAsset).data
     if not self.withdraw_allowed(config):
@@ -194,7 +193,7 @@ def _assetBalance() -> uint256:
 def deposit(asset_amount: uint256):
     """
     @notice deposit asset into AAVE.
-    @param asset_amount The amount of asset we want to deposit into aave
+    @param asset_amount The amount of asset we want to deposit into AAVE
     @dev
         This method is only valid if it has been DELEGATECALL-ed
         from the Dynamo4626 contract it services. It is not intended to be

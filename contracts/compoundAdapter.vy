@@ -37,6 +37,11 @@ interface CompoundToken:
 
 @external
 def __init__(_originalAsset: address, _wrappedAsset: address):
+    """
+    @notice Constructor of Compound adapter (v2)
+    @param _originalAsset Address of the original asset this adapter deals with
+    @param _wrappedAsset Address of the c-token corresponding to _originalAsset
+    """
     originalAsset = _originalAsset
     wrappedAsset = _wrappedAsset
     adapterAddr = self
@@ -71,6 +76,13 @@ def ctokentoaset(wrapped: uint256) -> uint256:
 @external
 @view
 def maxWithdraw() -> uint256:
+    """
+    @notice returns the maximum possible asset amount thats withdrawable from Compound
+    @dev
+        Currently only checks the balance of asset in Compound. This method returns a
+        valid response if it has been DELEGATECALL or STATICCALL-ed from the Dynamo4626
+        contract it services. It is not intended to be called directly by third parties.
+    """
     #TODO: There are additional checks unaccounted here
     #How much original asset is currently available in the c-token contract
     cash: uint256 = ERC20(originalAsset).balanceOf(wrappedAsset) #asset
@@ -80,6 +92,11 @@ def maxWithdraw() -> uint256:
 @external
 @view
 def maxDeposit() -> uint256:
+    """
+    @notice returns the maximum possible asset amount thats depositable into Compound
+    @dev
+        Currently returns hardcoded max uint256.
+    """
     #TODO: There are additional checks unaccounted here
     return max_value(uint256)
 
@@ -88,6 +105,13 @@ def maxDeposit() -> uint256:
 @external
 @view
 def totalAssets() -> uint256:
+    """
+    @notice returns the balance currently held by the adapter.
+    @dev
+        This method returns a valid response if it has been DELEGATECALL or
+        STATICCALL-ed from the Dynamo4626 contract it services. It is not
+        intended to be called directly by third parties.
+    """
     return self._assetBalance()
 
 @internal
@@ -109,7 +133,14 @@ def stringify(b: uint256) -> String[78]:
 @external
 @nonpayable
 def deposit(asset_amount: uint256):
-    #TODO: NEED SAFE ERC20
+    """
+    @notice deposit asset into Compound.
+    @param asset_amount The amount of asset we want to deposit into Compound
+    @dev
+        This method is only valid if it has been DELEGATECALL-ed
+        from the Dynamo4626 contract it services. It is not intended to be
+        called directly by third parties.
+    """
     #Approve lending pool
     ERC20(originalAsset).approve(wrappedAsset, asset_amount)
     #Call deposit function
@@ -123,6 +154,15 @@ def deposit(asset_amount: uint256):
 @external
 @nonpayable
 def withdraw(asset_amount: uint256 , withdraw_to: address):
+    """
+    @notice withdraw asset from Compound.
+    @param asset_amount The amount of asset we want to withdraw from Compound
+    @param withdraw_to The ultimate reciepent of the withdrawn assets
+    @dev
+        This method is only valid if it has been DELEGATECALL-ed
+        from the Dynamo4626 contract it services. It is not intended to be
+        called directly by third parties.
+    """
     #Could not find redeemTo in compound v2
     err: uint256 = CompoundToken(wrappedAsset).redeemUnderlying(asset_amount)
     #uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
