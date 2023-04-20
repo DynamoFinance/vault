@@ -1,4 +1,9 @@
 # @version 0.3.7
+"""
+@title AAVE adapter for Dynamo4626 Multi-Vault
+@license MIT
+@author BiggestLab (https://biggestlab.io) Benjamin Scherrey, Morgan Baugh, Sajal Kayan
+"""
 from vyper.interfaces import ERC20
 import LPAdapter as LPAdapter
 #This contract would only be called using delegate call, so we do
@@ -40,6 +45,12 @@ interface Atoken:
 
 @external
 def __init__(_lendingPool: address, _originalAsset: address, _wrappedAsset: address):
+    """
+    @notice Constructor of AAVE adapter (v3)
+    @param _lendingPool Address of AAVE lending pool contract
+    @param _originalAsset Address of the original asset this adapter deals with
+    @param _wrappedAsset Address of the a-token corresponding to _originalAsset
+    """
     lendingPool = _lendingPool
     originalAsset = _originalAsset
     wrappedAsset = _wrappedAsset
@@ -120,6 +131,14 @@ def max_supply(config: uint256) -> uint256:
 @external
 @view
 def maxWithdraw() -> uint256:
+    """
+    @notice returns the maximum possible asset amount thats withdrawable from AAVE
+    @dev
+        Currently only checks if asset is paused in AAVE and if AAVE has enough
+        funds. The reality is a bit more complex. This method returns a valid
+        response if it has been DELEGATECALL or STATICCALL-ed from the Dynamo4626
+        contract it services. It is not intended to be called directly by third parties.
+    """
     config: uint256 = AAVEV3(lendingPool).getConfiguration(originalAsset).data
     if not self.withdraw_allowed(config):
         return 0
@@ -131,6 +150,12 @@ def maxWithdraw() -> uint256:
 @external
 @view
 def maxDeposit() -> uint256:
+    """
+    @notice returns the maximum possible asset amount thats depositable into AAVE
+    @dev
+        Currently only substracts max_supply from supply. In reality there needs
+        to be some amount thats allocated to treasury.
+    """
     config: uint256 = AAVEV3(lendingPool).getConfiguration(originalAsset).data
     if not self.deposit_allowed(config):
         return 0
@@ -146,6 +171,13 @@ def maxDeposit() -> uint256:
 @external
 @view
 def totalAssets() -> uint256:
+    """
+    @notice returns the balance currently held by the adapter.
+    @dev
+        This method returns a valid response if it has been DELEGATECALL or
+        STATICCALL-ed from the Dynamo4626 contract it services. It is not
+        intended to be called directly by third parties.
+    """
     return self._assetBalance()
 
 @internal
@@ -159,7 +191,14 @@ def _assetBalance() -> uint256:
 @external
 @nonpayable
 def deposit(asset_amount: uint256):
-    #TODO: NEED SAFE ERC20
+    """
+    @notice deposit asset into AAVE.
+    @param asset_amount The amount of asset we want to deposit into AAVE
+    @dev
+        This method is only valid if it has been DELEGATECALL-ed
+        from the Dynamo4626 contract it services. It is not intended to be
+        called directly by third parties.
+    """
     #Approve lending pool
     ERC20(originalAsset).approve(lendingPool, asset_amount)
     #Call deposit function
@@ -171,5 +210,14 @@ def deposit(asset_amount: uint256):
 @external
 @nonpayable
 def withdraw(asset_amount: uint256 , withdraw_to: address):
+    """
+    @notice withdraw asset from AAVE.
+    @param asset_amount The amount of asset we want to withdraw from AAVE
+    @param withdraw_to The ultimate reciepent of the withdrawn assets
+    @dev
+        This method is only valid if it has been DELEGATECALL-ed
+        from the Dynamo4626 contract it services. It is not intended to be
+        called directly by third parties.
+    """
     withdrawn: uint256 = AAVEV3(lendingPool).withdraw(originalAsset, asset_amount, withdraw_to)
     assert withdrawn == asset_amount, "Withdraw did not get full amount"

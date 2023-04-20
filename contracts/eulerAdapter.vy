@@ -7,6 +7,8 @@ import LPAdapter as LPAdapter
 # need to be carefully co-ordinated with the upstream 4626
 
 
+# DEPRICATION NOTICE: THIS FILE IS NO LONGER IN USE, keeping it here for reference
+
 #Looks like the following line does not enforce compatibility
 implements: LPAdapter
 
