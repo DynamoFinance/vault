@@ -90,7 +90,7 @@ struct Strategy:
     
 # Contract assigned storage 
 contractOwner: public(address)
-MAX_GUARDS: constant(uint256) = 2
+MAX_GUARDS: constant(uint256) = 5
 MAX_POOLS: constant(uint256) = 5
 MAX_VAULTS: constant(uint256) = 3
 DEFAULT_MIN_PROPOSER_PAYOUT: constant(uint256) = 0  # TODO: Need a reasonable value here based on expected gas costs of paying proposal fees.
