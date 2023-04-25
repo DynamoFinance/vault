@@ -1,4 +1,4 @@
-import time
+import time, pprint
 from datetime import datetime, timedelta
 
 import ape
@@ -866,22 +866,57 @@ def test_governanceSetup(prompt, governance_contract, vault_contract_one, vault_
 
 
 
-def StrategyTable(governance_contract, strats, prev={}):
-    table_data = [['Stat', 'Value']]
-    for guard in strats.keys():
-        is_guard = governance_contract.PendingStrategyByVault(strats[guard])
-        previous = prev.get(guard, is_guard)
-        if previous is True and is_guard is False:
-            #This should be red
-            line = "\033[91mFalse\033[0m"
-        elif previous is False and is_guard is True:
-            #This is green
-            line = "\033[92mTrue\033[0m"
-        else:
-            #no change leave it as default
-            line  = is_guard
-        table_data += [[guard, line]]
-        prev[guard] = is_guard
+def parse_strategy(strategy):
+    return {
+        "Nonce": strategy["Nonce"],
+        "TSubmitted": datetime.fromtimestamp(strategy["TSubmitted"]),
+        "TActivated": datetime.fromtimestamp(strategy["TActivated"]),
+        "Withdrawn": strategy["Withdrawn"],
+        "VotesEndorse": len(strategy["VotesEndorse"]),
+        "VotesReject": len(strategy["VotesReject"]),
+        "no_guards": strategy["no_guards"],
+    }
+
+
+def colorize_value(val, prev):
+    delta =  val - prev
+    if delta > 0:
+        
+
+def StrategyTable(governance_contract, vault, prev={}):
+    table_data = [['', 'ValueCurrent', 'ValuePending']]
+    strategy_current = parse_strategy(governance_contract.CurrentStrategyByVault(vault))
+    strategy_pending = parse_strategy(governance_contract.PendingStrategyByVault(vault))
+    prev_strategy_current = prev.get("current", strategy_current)
+    prev_strategy_pending = prev.get("pending", strategy_pending)
+
+
+    for item in strategy_current.keys():
+        table_data += [[item, strategy_current[item], strategy_pending[item] ]]
+    
+    prev["current"] = prev_strategy_current
+    prev["pending"] = prev_strategy_pending
+
+    # for guard in strats.keys():
+    #     strategy = governance_contract.PendingStrategyByVault(strats[guard])
+    #     print(strategy["Nonce"])
+
+
+    #     previous = prev.get(guard, strategy)
+    #     if previous is True and strategy is False:
+    #         #This should be red
+    #         line = "\033[91mFalse\033[0m"
+    #     elif previous is False and strategy is True:
+    #         #This is green
+    #         line = "\033[92mTrue\033[0m"
+    #     else:
+    #         #no change leave it as default
+    #         line  = strategy
+    #     table_data += [[guard, line]]
+    #     prev[guard] = strategy
+    pp = pprint.PrettyPrinter(indent=4)
+
+    pp.pprint(table_data)
     table_instance = SingleTable(table_data, "Strategy Status")
     print(table_instance.table)
     return prev
@@ -897,11 +932,7 @@ def test_strategySubmission(prompt, governance_contract, vault_contract_one, vau
     assert vault_contract_one != vault_contract_two, "Vaults seem to be the same."
 
 
-    strats = {
-        "Strategy": vault_contract_one
-
-    }
-
+    strats = vault_contract_one
 
     stra = StrategyTable(governance_contract, strats)
 
