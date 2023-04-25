@@ -878,9 +878,9 @@ def parse_strategy(strategy):
     }
 
 
-def colorize_value(val, prev):
-    delta =  val - prev
-    if delta > 0:
+# def colorize_value(val, prev):
+#     delta =  val - prev
+#     if delta > 0:
         
 
 def StrategyTable(governance_contract, vault, prev={}):
@@ -914,9 +914,9 @@ def StrategyTable(governance_contract, vault, prev={}):
     #         line  = strategy
     #     table_data += [[guard, line]]
     #     prev[guard] = strategy
-    pp = pprint.PrettyPrinter(indent=4)
+    # pp = pprint.PrettyPrinter(indent=4)
 
-    pp.pprint(table_data)
+    # pp.pprint(table_data)
     table_instance = SingleTable(table_data, "Strategy Status")
     print(table_instance.table)
     return prev
@@ -934,8 +934,6 @@ def test_strategySubmission(prompt, governance_contract, vault_contract_one, vau
 
     strats = vault_contract_one
 
-    stra = StrategyTable(governance_contract, strats)
-
     print("")
 
 
@@ -943,44 +941,38 @@ def test_strategySubmission(prompt, governance_contract, vault_contract_one, vau
     ag = governance_contract.addGuard(someone, sender=owner)
     logs = list(ag.decode_logs(governance_contract.NewGuard))
     assert len(logs) == 1
-    print(logs)
     aga = governance_contract.addGuard(someoneelse, sender=owner)
     logs = list(aga.decode_logs(governance_contract.NewGuard))
     assert len(logs) == 1
-    print(logs)
     agb = governance_contract.addGuard(morgan, sender=owner)
     logs = list(agb.decode_logs(governance_contract.NewGuard))
     assert len(logs) == 1
-    print(logs)
     agc = governance_contract.addGuard(ben, sender=owner)
     logs = list(agc.decode_logs(governance_contract.NewGuard))
     assert len(logs) == 1
-    print(logs)
     agd = governance_contract.addGuard(sajal, sender=owner)
     logs = list(agd.decode_logs(governance_contract.NewGuard))
     assert len(logs) == 1
-    print(logs)
-
 
     #Add Vaults
     av = governance_contract.addVault(vault_contract_one, sender=owner)
     logs = list(av.decode_logs(governance_contract.NewVault))
     assert len(logs) == 1
     assert logs[0].vault == vault_contract_one
-    print(logs)
     avv = governance_contract.addVault(vault_contract_two, sender=owner) 
     logs = list(avv.decode_logs(governance_contract.NewVault))
     assert len(logs) == 1
     assert logs[0].vault == vault_contract_two
-    print(logs)  
     avv = governance_contract.addVault(vault_contract_four, sender=owner) 
     logs = list(avv.decode_logs(governance_contract.NewVault))
     assert len(logs) == 1
     assert logs[0].vault == vault_contract_four
-    print(logs)  
 
-
+    print("")
+    print("")
     print("This demo shows how strategies are submitted for a Dynamo Vault, then voted on by guards, and then either rejected, activated, or withdrawn depending on the situation")
+    print("")
+    stra = StrategyTable(governance_contract, strats)
     if prompt:
         while input("enter to begin"):
             stra = StrategyTable(governance_contract, strats)
