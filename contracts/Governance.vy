@@ -412,6 +412,18 @@ def swapGuard(OldGuardAddress: address, NewGuardAddress: address):
 
 
 @external
+def checkGuard(GuardAddress: address) -> bool:
+    assert GuardAddress in self.LGov
+    return True
+
+
+@external
+def checkVault(VaultAddress: address) -> bool:
+    assert VaultAddress in self.VaultList
+    return True
+
+
+@external
 def replaceGovernance(NewGovernance: address, vault: address):
     """
     @notice This function provides a way to replace this governance contract out with a new governance contract (per vault)
