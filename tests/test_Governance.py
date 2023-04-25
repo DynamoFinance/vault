@@ -23,15 +23,18 @@ ADAPTER_B_ADDRESS = "0x000000000000000000000000000000000000000b"
 WEIGHTS = [(ADAPTER_A_ADDRESS, 100),(ADAPTER_B_ADDRESS, 1000), [ZERO_ADDRESS,0], [ZERO_ADDRESS,0], [ZERO_ADDRESS,0]]
 WEIGHTSTWO = [(ADAPTER_A_ADDRESS, 150),(ADAPTER_B_ADDRESS, 1500), [ZERO_ADDRESS,0], [ZERO_ADDRESS,0], [ZERO_ADDRESS,0]]
 WEIGHTSTHREE = [(ADAPTER_A_ADDRESS, 200),(ADAPTER_B_ADDRESS, 2000), [ZERO_ADDRESS,0], [ZERO_ADDRESS,0], [ZERO_ADDRESS,0]]
+WEIGHTSFOUR = [(ADAPTER_A_ADDRESS, 250),(ADAPTER_B_ADDRESS, 2500), [ZERO_ADDRESS,0], [ZERO_ADDRESS,0], [ZERO_ADDRESS,0]]
 
 MIN_PROPOSER_PAYOUT = 0
 
 APYNOW = 5
 APYNOWTWO = 6
 APYNOWTHREE = 7
+APYNOWFOUR = 8
 APYPREDICTED = 10
 APYPREDICTEDTWO = 12
 APYPREDICTEDTHREE = 14
+APYPREDICTEDFOUR = 16
 BADAPYPREDICTED = 3
 NONCE = 1
 NONCETWO = 2
@@ -879,8 +882,7 @@ def parse_strategy(strategy):
         "VotesEndorse": len(strategy["VotesEndorse"]),
         "VotesReject": len(strategy["VotesReject"]),
         "no_guards": strategy["no_guards"],
-        "APYNow": strategy["APYNow"],
-        "APYPredicted": strategy["APYPredicted"],
+
     }
 
 
@@ -915,7 +917,7 @@ def colorize_value(val, prev):
 
 
 def StrategyTable(governance_contract, vault, prev={}):
-    table_data = [['', 'ValueCurrent', 'ValuePending']]
+    table_data = [['', 'CurrentStrategy', 'PendingStrategy']]
     strategy_current = parse_strategy(governance_contract.CurrentStrategyByVault(vault))
     strategy_pending = parse_strategy(governance_contract.PendingStrategyByVault(vault))
     prev_strategy_current = prev.get("current", strategy_current)
@@ -941,6 +943,7 @@ def test_strategyDemo(prompt, governance_contract, vault_contract_one, vault_con
     ProposedStrategy = (WEIGHTS, MIN_PROPOSER_PAYOUT, APYNOW, APYPREDICTED)
     ProposedStrategyTwo = (WEIGHTSTWO, MIN_PROPOSER_PAYOUT, APYNOWTWO, APYPREDICTEDTWO)
     ProposedStrategyThree = (WEIGHTSTHREE, MIN_PROPOSER_PAYOUT, APYNOWTHREE, APYPREDICTEDTHREE)
+    ProposedStrategyFour = (WEIGHTSFOUR, MIN_PROPOSER_PAYOUT, APYNOWFOUR, APYPREDICTEDFOUR)
     owner, operator, someoneelse, someone, morgan, ben, sajal = accounts[:7]
 
     assert vault_contract_one != vault_contract_two, "Vaults seem to be the same."
@@ -984,49 +987,57 @@ def test_strategyDemo(prompt, governance_contract, vault_contract_one, vault_con
 
     print("")
     print("")
-    print("This demo shows how strategies are submitted for a Dynamo Vault, then voted on by guards, and then either rejected, activated, or withdrawn depending on the situation")
+    print("This demo shows how strategy functions are used")
     print("")
+    print("No current or pending strategies")
     stra = StrategyTable(governance_contract, strats)
-    print("Here is the 'Strategy Status' table with no current or pending strategies")
     print("")
     if prompt:
-        while input("enter to begin"):
+        while input("enter to submit strategy"):
             stra = StrategyTable(governance_contract, strats)
     print("")
 
 
-    #Submit a Strategy
+    #Submit a Strategy\
+    print("Proposer submits strategy for Dynamo vault to governance contract")
+    print("")
     sq = governance_contract.submitStrategy(ProposedStrategy, vault_contract_one, sender=owner)   
     logs = list(sq.decode_logs(governance_contract.StrategyProposal))
     assert len(logs) == 1
+    print("")
     stra = StrategyTable(governance_contract, strats, stra)
-    print("Strategy is submitted by proposer for vault one, and as you can see we now have a pending strategy value in the table")
     print("")
     if prompt:
-        while input("enter to continue"):
-            stra = StrategyTable(governance_contract, strats)
-    print("")
-
-
-    #Endorse the strategy
-    es = governance_contract.endorseStrategy(NONCE, vault_contract_one, sender=someone)
-    logs = list(es.decode_logs(governance_contract.StrategyVote))
-    esa = governance_contract.endorseStrategy(NONCE, vault_contract_one, sender=sajal)
-    logs = list(esa.decode_logs(governance_contract.StrategyVote))
-    esb = governance_contract.endorseStrategy(NONCE, vault_contract_one, sender=morgan)
-    logs = list(esb.decode_logs(governance_contract.StrategyVote))
-    esa = governance_contract.rejectStrategy(NONCE, vault_contract_one, sender=ben)
-    logs = list(esa.decode_logs(governance_contract.StrategyVote))
-    stra = StrategyTable(governance_contract, strats)
-    print("Strategy Voting starts and 3 out of 5 guards endorse the strategy for this Dynamo vault")
-    print("")
-    if prompt:
-        while input("enter to continue"):
+        while input("enter to activate strategy"):
             stra = StrategyTable(governance_contract, strats)
     print("")
 
 
     #Activate the strategy
+    print("Someone calls activate strategy to governance contract")
+    with ape.reverts():
+        acs = governance_contract.activateStrategy(NONCE, vault_contract_one, sender=owner)
+    print("")
+    print("The call reverts: 'CANNOT ACTIVATE PENDING STRATEGY, TIME DELAY HAS NOT PASSED.'")
+    print("")
+    print("")
+    if prompt:
+        while input("enter to pass time and activate strategy again"):
+            stra = StrategyTable(governance_contract, strats)
+    print("")
+
+    print("Current timestamp %s" % datetime.fromtimestamp(ape.chain.pending_timestamp))
+    current_time = datetime.fromtimestamp(ape.chain.pending_timestamp)
+    current_time += timedelta(days=1)
+    ape.chain.pending_timestamp = int(current_time.timestamp())
+    print("")
+    print("Current timestamp %s" % datetime.fromtimestamp(ape.chain.pending_timestamp))
+    print("")
+
+
+    #Activate the strategy
+    print("Someone calls activate strategy to governance contract")
+    print("")
     acs = governance_contract.activateStrategy(NONCE, vault_contract_one, sender=owner)
     logs = list(acs.decode_logs(governance_contract.StrategyActivation))
     assert len(logs) == 1
@@ -1034,132 +1045,173 @@ def test_strategyDemo(prompt, governance_contract, vault_contract_one, vault_con
     assert logs[0].strategy[3] == MIN_PROPOSER_PAYOUT
     assert logs[0].strategy[4] == APYNOW
     assert logs[0].strategy[5] == APYPREDICTED
+    print("")
     stra = StrategyTable(governance_contract, strats)
-    print("Since the strategy had majority of guards vote to endorse, the strategy is successfully activated by someone")
-    print("Note that the pending strategy has now become the current strategy")
     print("")
     if prompt:
-        while input("enter to continue"):
+        while input("enter to submit new strategy to Dynamo vault"):
             stra = StrategyTable(governance_contract, strats)
     print("")
 
 
     #Submit a Strategy
+    print("Proposer submits new strategy for Dynamo vault to governance contract")
+    print("")
     sp = governance_contract.submitStrategy(ProposedStrategyTwo, vault_contract_one, sender=owner)
     logs = list(sp.decode_logs(governance_contract.StrategyProposal))
     assert len(logs) == 1
+    print("")
     stra = StrategyTable(governance_contract, strats)
-    print("Another strategy for the same Dynamo Vault is submitted by a proposer and accepted due to a higher APYNow and APYPredicted")
     print("")
     if prompt:
-        while input("enter to continue"):
+        while input("enter to vote to reject new pending strategy"):
             stra = StrategyTable(governance_contract, strats)
     print("")
 
 
     #Reject the strategy
+    print("Guard rejects pending strategy for Dynamo vault to governance contract")
+    print("")
     eq = governance_contract.rejectStrategy(NONCETWO, vault_contract_one, sender=morgan)    
     logs = list(eq.decode_logs(governance_contract.StrategyVote))
-    esa = governance_contract.rejectStrategy(NONCETWO, vault_contract_one, sender=ben)
-    logs = list(esa.decode_logs(governance_contract.StrategyVote))
-    esb = governance_contract.rejectStrategy(NONCETWO, vault_contract_one, sender=sajal)
-    logs = list(esb.decode_logs(governance_contract.StrategyVote))
-    esc = governance_contract.rejectStrategy(NONCETWO, vault_contract_one, sender=someone)
-    logs = list(esc.decode_logs(governance_contract.StrategyVote))
-    es = governance_contract.endorseStrategy(NONCETWO, vault_contract_one, sender=someoneelse)
-    logs = list(es.decode_logs(governance_contract.StrategyVote))
+    print("")
     stra = StrategyTable(governance_contract, strats)
-    print("Strategy Voting starts and 4 out of 5 guards reject the pending strategy for this Dynamo vault")
     print("")
     if prompt:
-        while input("enter to continue"):
+        while input("enter to advance time past time delay and activate strategy"):
             stra = StrategyTable(governance_contract, strats)
     print("")
 
 
-    #Activate the strategy
-    with ape.reverts():
-        acs = governance_contract.activateStrategy(NONCETWO, vault_contract_one, sender=owner)
-    stra = StrategyTable(governance_contract, strats)
-    print("Strategy Activation is not available due to majority of guards rejecting the pending strategy")
-    print("")
-    if prompt:
-        while input("enter to continue"):
-            stra = StrategyTable(governance_contract, strats)
-    print("")
-
-
-    #Submit a strategy and then withdraw it
-    sp = governance_contract.submitStrategy(ProposedStrategyThree, vault_contract_one, sender=owner)
-    logs = list(sp.decode_logs(governance_contract.StrategyProposal))
-    assert len(logs) == 1
-    stra = StrategyTable(governance_contract, strats)
-    print("Another strategy is submitted and it replaces the pending strategy that was rejected")
-    print("")
-    if prompt:
-        while input("enter to continue"):
-            stra = StrategyTable(governance_contract, strats)
-    print("")
-    ws = governance_contract.withdrawStrategy(NONCETHREE, vault_contract_one, sender=owner)
-    logs = list(ws.decode_logs(governance_contract.StrategyWithdrawal))
-    assert len(logs) == 1
-    assert logs[0].Nonce == NONCETHREE
-    stra = StrategyTable(governance_contract, strats)
-    print("The pending strategy is withdrawn by the proposer of the strategy")
-    print("")
-    if prompt:
-        while input("enter to continue"):
-            stra = StrategyTable(governance_contract, strats)
-    print("")
-
-
+    print("Current timestamp %s" % datetime.fromtimestamp(ape.chain.pending_timestamp))
     current_time = datetime.fromtimestamp(ape.chain.pending_timestamp)
     current_time += timedelta(days=1)
     ape.chain.pending_timestamp = int(current_time.timestamp())
+    print("")
+    print("Current timestamp %s" % datetime.fromtimestamp(ape.chain.pending_timestamp))
+    print("")
+
+    #Activate the strategy
+    print("Someone calls activate strategy to governance contract")
+    print("")
+    with ape.reverts():
+        acs = governance_contract.activateStrategy(NONCETWO, vault_contract_one, sender=owner)
+    print("")
+    print("The call reverts: 'CANNOT ACTIVATE PENDING STRATEGY, VotesEndorse is less than VotesReject.'")
+    print("")
+    print("")
+    if prompt:
+        while input("enter to submit a new strategy"):
+            stra = StrategyTable(governance_contract, strats)
+    print("")
 
 
     #Submit another strategy
+    print("Proposer submits strategy for Dynamo vault to governance contract")
+    print("")
     sp = governance_contract.submitStrategy(ProposedStrategyThree, vault_contract_one, sender=owner)
     logs = list(sp.decode_logs(governance_contract.StrategyProposal))
     assert len(logs) == 1
+    print("")
     stra = StrategyTable(governance_contract, strats)
-    print("Another strategy is submitted by the proposer")
     print("")
     if prompt:
-        while input("enter to continue"):
+        while input("enter to vote on new pending strategy"):
             stra = StrategyTable(governance_contract, strats)
     print("")
 
 
     #Endorse the strategy
-    es = governance_contract.endorseStrategy(4, vault_contract_one, sender=someone)
+    print("Two guards vote to endorse the pending strategy and one guard votes to reject the pending strategy")
+    print("")
+    es = governance_contract.endorseStrategy(3, vault_contract_one, sender=someone)
     logs = list(es.decode_logs(governance_contract.StrategyVote))
-    esa = governance_contract.endorseStrategy(4, vault_contract_one, sender=sajal)
+    esa = governance_contract.endorseStrategy(3, vault_contract_one, sender=sajal)
     logs = list(esa.decode_logs(governance_contract.StrategyVote))
+    esb = governance_contract.rejectStrategy(3, vault_contract_one, sender=ben)
+    logs = list(esb.decode_logs(governance_contract.StrategyVote))
+    print("")
     stra = StrategyTable(governance_contract, strats)
-    print("Strategy Voting starts and only 2 out of 5 guards endorse the strategy for the Dynamo vault")
     print("")
     if prompt:
-        while input("enter to continue"):
+        while input("enter to advance time past time delay and activate strategy"):
             stra = StrategyTable(governance_contract, strats)
     print("")
 
+
+    print("Current timestamp %s" % datetime.fromtimestamp(ape.chain.pending_timestamp))
     current_time = datetime.fromtimestamp(ape.chain.pending_timestamp)
     current_time += timedelta(days=1)
     ape.chain.pending_timestamp = int(current_time.timestamp())
+    print("")
+    print("Current timestamp %s" % datetime.fromtimestamp(ape.chain.pending_timestamp))
+    print("")
 
 
     #Activate the strategy
-    acs = governance_contract.activateStrategy(4, vault_contract_one, sender=owner)
+    print("Someone calls activate strategy to governance contract")
+    print("")
+    acs = governance_contract.activateStrategy(3, vault_contract_one, sender=owner)
     logs = list(acs.decode_logs(governance_contract.StrategyActivation))
     assert len(logs) == 1
     assert [x for x in logs[0].strategy[2]] == [tuple(w) for w in WEIGHTSTHREE]
     assert logs[0].strategy[3] == MIN_PROPOSER_PAYOUT
     assert logs[0].strategy[4] == APYNOWTHREE
     assert logs[0].strategy[5] == APYPREDICTEDTHREE
+    print("")
     stra = StrategyTable(governance_contract, strats)
-    print("The pending strategy has less than majority of guards vote to endorse, but more votes to endorse than reject, and the time delay has passed")
-    print("Due to these factors, the strategy is able to be activated by someone")
+    print("")
+    if prompt:
+        while input("enter to submit a new strategy"):
+            stra = StrategyTable(governance_contract, strats)
+    print("")
+
+
+ #Submit another strategy
+    print("Proposer submits strategy for Dynamo vault to governance contract")
+    print("")
+    sp = governance_contract.submitStrategy(ProposedStrategyFour, vault_contract_one, sender=owner)
+    logs = list(sp.decode_logs(governance_contract.StrategyProposal))
+    assert len(logs) == 1
+    print("")
+    stra = StrategyTable(governance_contract, strats)
+    print("")
+    if prompt:
+        while input("enter to vote on new pending strategy"):
+            stra = StrategyTable(governance_contract, strats)
+    print("")
+
+
+    #Endorse the strategy
+    print("Three guards (majority) vote to endorse the pending strategy for Dynamo vault to governance contract")
+    print("")
+    es = governance_contract.endorseStrategy(4, vault_contract_one, sender=someone)
+    logs = list(es.decode_logs(governance_contract.StrategyVote))
+    esa = governance_contract.endorseStrategy(4, vault_contract_one, sender=sajal)
+    logs = list(esa.decode_logs(governance_contract.StrategyVote))
+    esb = governance_contract.endorseStrategy(4, vault_contract_one, sender=ben)
+    logs = list(esb.decode_logs(governance_contract.StrategyVote))
+    print("")
+    stra = StrategyTable(governance_contract, strats)
+    print("")
+    if prompt:
+        while input("enter to instantly activate strategy"):
+            stra = StrategyTable(governance_contract, strats)
+    print("")
+
+
+    #Activate the strategy
+    print("Someone calls activate strategy to governance contract")
+    print("")
+    acs = governance_contract.activateStrategy(4, vault_contract_one, sender=owner)
+    logs = list(acs.decode_logs(governance_contract.StrategyActivation))
+    assert len(logs) == 1
+    assert [x for x in logs[0].strategy[2]] == [tuple(w) for w in WEIGHTSFOUR]
+    assert logs[0].strategy[3] == MIN_PROPOSER_PAYOUT
+    assert logs[0].strategy[4] == APYNOWFOUR
+    assert logs[0].strategy[5] == APYPREDICTEDFOUR
+    print("")
+    stra = StrategyTable(governance_contract, strats)
     print("")
     print("The end")
     print("")
@@ -1171,39 +1223,11 @@ def test_strategyDemo(prompt, governance_contract, vault_contract_one, vault_con
 
 
 
-
 def test_activateMultipleStrategies(governance_contract, vault_contract_one, vault_contract_two, vault_contract_three, vault_contract_four, governance_contract_two, accounts):
     ProposedStrategy = (WEIGHTS, MIN_PROPOSER_PAYOUT, APYNOW, APYPREDICTED)
     ProposedStrategyTwo = (WEIGHTSTWO, MIN_PROPOSER_PAYOUT, APYNOWTWO, APYPREDICTEDTWO)
     owner, operator, someoneelse, someone, morgan, ben, sajal = accounts[:7]
 
-    # votes = {
-    #     "Strategy1": ProposedStrategy,
-    #     "Strategy2": ProposedStrategyTwo
-
-    # }
-    # guards = {
-    #     "Guard1": someoneelse,
-    #     "Guard2": someone,
-    #     "Guard3": morgan,
-    #     "Guard4": ben,
-    #     "Guard5": sajal
-
-    # }
-    # strats = {
-    #     "Strategy1": ProposedStrategy,
-    #     "Strategy2": ProposedStrategyTwo
-
-    # }
-    # vaults = {
-    #     "Vault1": vault_contract_one,
-    #     "Vault2": vault_contract_two
-
-    # }
-
-    # gov = VotesTable(governance_contract, guards)
-    # stratvault = ProposedStrategyTable(strats, vaults)
-    # print("")
 
     assert vault_contract_one != vault_contract_two, "Vaults seem to be the same."
 

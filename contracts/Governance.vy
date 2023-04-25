@@ -309,7 +309,7 @@ def activateStrategy(Nonce: uint256, vault: address):
     #Confirm strategy is approved by guards
     assert (len(pending_strat.VotesEndorse) >= len(self.LGov)/2) or \
            ((pending_strat.TSubmitted + self.TDelay) < block.timestamp)
-    assert len(pending_strat.VotesReject) < len(pending_strat.VotesEndorse)
+    assert len(pending_strat.VotesReject) <= len(pending_strat.VotesEndorse)
 
     #Confirm Pending Strategy is the Strategy we want to activate
     assert pending_strat.Nonce == Nonce
