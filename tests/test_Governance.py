@@ -741,7 +741,6 @@ def test_governanceSetupDemo(prompt, governance_contract, vault_contract_one, va
             gov = VotesTable(governance_contract, guards)
     print("")
 
-
     #Remove a guard
     rg = governance_contract.removeGuard(someone, sender=owner)    
     logs = list(rg.decode_logs(governance_contract.GuardRemoved))

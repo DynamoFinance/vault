@@ -413,6 +413,14 @@ def swapGuard(OldGuardAddress: address, NewGuardAddress: address):
     log GuardSwap(OldGuardAddress, NewGuardAddress)
 
 
+# Have to do this to give public access to DynArray.
+# https://github.com/vyperlang/vyper/issues/2897
+@external
+@view
+def guards() -> DynArray[address, MAX_GUARDS]:
+    return self.LGov
+
+
 @external
 @view
 def checkGuard(GuardAddress: address) -> bool:
