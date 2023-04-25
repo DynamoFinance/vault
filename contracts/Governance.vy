@@ -319,6 +319,8 @@ def activateStrategy(Nonce: uint256, vault: address):
 
     DynamoVault(vault).set_strategy(self.CurrentStrategyByVault[vault].ProposerAddress, self.CurrentStrategyByVault[vault].LPRatios, pending_strat.min_proposer_payout)
 
+    self.CurrentStrategyByVault[vault].TActivated = block.timestamp
+
     log StrategyActivation(self.CurrentStrategyByVault[vault], self.CurrentStrategyByVault[vault].ProposerAddress, self.CurrentStrategyByVault[vault].LPRatios, pending_strat.min_proposer_payout, vault)
  
 
