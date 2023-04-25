@@ -625,16 +625,10 @@ def test_swapVault(governance_contract, vault_contract_one, vault_contract_two, 
 
 
 
-def VotesTable(votes, guards, prev={}):
-    table_data = [['']]
+def VotesTable(governance_contract, guards, prev={}):
+    table_data = [['Name', 'Is Guard?']]
     for voter in guards.keys():
-        table_data += [[voter]]
-    for vote in votes.keys():
-        votedata = []
-        table_data[0] += [vote]
-        prev_vote = prev.get(vote, {})
-        idx = 0
-        prev[vote] = prev_vote
+        table_data += [[voter, False]]
     table_instance = SingleTable(table_data, "Votes by Guard")
     print(table_instance.table)
     return prev
@@ -653,7 +647,7 @@ def ProposedStrategyTable(strats, vaults, prev={}):
 
 
 
-def test_governanceSetup(governance_contract, vault_contract_one, vault_contract_two, vault_contract_three, vault_contract_four, governance_contract_two, accounts):
+def test_governanceSetup(prompt, governance_contract, vault_contract_one, vault_contract_two, vault_contract_three, vault_contract_four, governance_contract_two, accounts):
     ProposedStrategy = (WEIGHTS, MIN_PROPOSER_PAYOUT, APYNOW, APYPREDICTED)
     ProposedStrategyTwo = (WEIGHTSTWO, MIN_PROPOSER_PAYOUT, APYNOWTWO, APYPREDICTEDTWO)
     owner, operator, someoneelse, someone, morgan, ben, sajal = accounts[:7]
@@ -684,12 +678,12 @@ def test_governanceSetup(governance_contract, vault_contract_one, vault_contract
 
     }
 
-    gov = VotesTable(votes, guards)
-    stratvault = ProposedStrategyTable(strats, vaults)
+    gov = VotesTable(governance_contract, guards)
+    # stratvault = ProposedStrategyTable(strats, vaults)
     print("This demo shows how the contract owner calls functions to properly set up the governance contract ")
     if prompt:
         while input("enter to begin"):
-            gov = VotesTable(votes, guards)
+            gov = VotesTable(governance_contract, guards)
     print("")
 
 
@@ -699,25 +693,31 @@ def test_governanceSetup(governance_contract, vault_contract_one, vault_contract
     logs = list(ag.decode_logs(governance_contract.NewGuard))
     assert len(logs) == 1
     print(logs)
+    gov = VotesTable(governance_contract, guards, gov)
+
     aga = governance_contract.addGuard(someoneelse, sender=owner)
     logs = list(aga.decode_logs(governance_contract.NewGuard))
     assert len(logs) == 1
     print(logs)
+    gov = VotesTable(governance_contract, guards, gov)
     agb = governance_contract.addGuard(morgan, sender=owner)
     logs = list(agb.decode_logs(governance_contract.NewGuard))
     assert len(logs) == 1
     print(logs)
+    gov = VotesTable(governance_contract, guards, gov)
     agc = governance_contract.addGuard(ben, sender=owner)
     logs = list(agc.decode_logs(governance_contract.NewGuard))
     assert len(logs) == 1
     print(logs)
+    gov = VotesTable(governance_contract, guards, gov)
     agd = governance_contract.addGuard(sajal, sender=owner)
     logs = list(agd.decode_logs(governance_contract.NewGuard))
     assert len(logs) == 1
     print(logs)
+    gov = VotesTable(governance_contract, guards, gov)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(votes, guards)
+            gov = VotesTable(governance_contract, guards)
     print("")
 
 
@@ -730,7 +730,7 @@ def test_governanceSetup(governance_contract, vault_contract_one, vault_contract
     print(logs)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(votes, guards)
+            gov = VotesTable(governance_contract, guards)
     print("")
 
 
