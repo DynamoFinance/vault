@@ -22,16 +22,20 @@ ADAPTER_B_ADDRESS = "0x000000000000000000000000000000000000000b"
 
 WEIGHTS = [(ADAPTER_A_ADDRESS, 100),(ADAPTER_B_ADDRESS, 1000), [ZERO_ADDRESS,0], [ZERO_ADDRESS,0], [ZERO_ADDRESS,0]]
 WEIGHTSTWO = [(ADAPTER_A_ADDRESS, 150),(ADAPTER_B_ADDRESS, 1500), [ZERO_ADDRESS,0], [ZERO_ADDRESS,0], [ZERO_ADDRESS,0]]
+WEIGHTSTHREE = [(ADAPTER_A_ADDRESS, 200),(ADAPTER_B_ADDRESS, 2000), [ZERO_ADDRESS,0], [ZERO_ADDRESS,0], [ZERO_ADDRESS,0]]
 
 MIN_PROPOSER_PAYOUT = 0
 
 APYNOW = 5
 APYNOWTWO = 6
+APYNOWTHREE = 7
 APYPREDICTED = 10
 APYPREDICTEDTWO = 12
+APYPREDICTEDTHREE = 14
 BADAPYPREDICTED = 3
 NONCE = 1
 NONCETWO = 2
+NONCETHREE = 3
 VOTE_COUNT = 6
 
 NAME = "Biglab"
@@ -641,19 +645,29 @@ def VotesTable(governance_contract, guards, prev={}):
             line  = is_guard
         table_data += [[guard, line]]
         prev[guard] = is_guard
-    table_instance = SingleTable(table_data, "Votes by Guard")
+    table_instance = SingleTable(table_data, "Guard List")
     print(table_instance.table)
     return prev
 
 
 
-def ProposedStrategyTable(strats, vaults, prev={}):
-    table_data = [['']]
-    for vault in vaults.keys():
-        table_data += [[vault]]
-    for strat in strats.keys():
-        table_data[0] += [[strat]]
-    table_instance = SingleTable(table_data, "Proposed Strategy by Vault")
+def VaultsTable(governance_contract, vaults, prev={}):
+    table_data = [['Name', 'Is Vault?']]
+    for guard in vaults.keys():
+        is_guard = governance_contract.checkVault(vaults[guard])
+        previous = prev.get(guard, is_guard)
+        if previous is True and is_guard is False:
+            #This should be red
+            line = "\033[91mFalse\033[0m"
+        elif previous is False and is_guard is True:
+            #This is green
+            line = "\033[92mTrue\033[0m"
+        else:
+            #no change leave it as default
+            line  = is_guard
+        table_data += [[guard, line]]
+        prev[guard] = is_guard
+    table_instance = SingleTable(table_data, "Dynamo Vault List")
     print(table_instance.table)
     return prev
 
@@ -666,67 +680,62 @@ def test_governanceSetup(prompt, governance_contract, vault_contract_one, vault_
 
     assert vault_contract_one != vault_contract_two, "Vaults seem to be the same."
 
-    votes = {
-        "Strategy1": ProposedStrategy,
-        "Strategy2": ProposedStrategyTwo
-
-    }
     guards = {
         "Guard1": someoneelse,
         "Guard2": someone,
         "Guard3": morgan,
         "Guard4": ben,
-        "Guard5": sajal
-
-    }
-    strats = {
-        "Strategy1": ProposedStrategy,
-        "Strategy2": ProposedStrategyTwo
+        "Guard5": sajal,
+        "Guard6": operator
 
     }
     vaults = {
-        "Vault1": vault_contract_one,
-        "Vault2": vault_contract_two
+        "DynamoVault1": vault_contract_one,
+        "DynamoVault2": vault_contract_two,
+        "DynamoVault3": vault_contract_three,
+        "DynamoVault4": vault_contract_four
 
     }
 
-    gov = VotesTable(governance_contract, guards)
-    # stratvault = ProposedStrategyTable(strats, vaults)
+    print("")
+    print("")
     print("This demo shows how the contract owner calls functions to properly set up the governance contract ")
     if prompt:
         while input("enter to begin"):
             gov = VotesTable(governance_contract, guards)
     print("")
 
+    gov = VotesTable(governance_contract, guards)
+    print("As you can see in the table, there are no guards in the guard list")
+    if prompt:
+        while input("enter to begin"):
+            gov = VotesTable(governance_contract, guards)
+    print("")
 
     #Add guards
-    print("As the Contract Owner, we add five guards using the 'addGuard' function to fill up the governance to the 'MAX_GUARDS' specified amount")
     ag = governance_contract.addGuard(someone, sender=owner)
     logs = list(ag.decode_logs(governance_contract.NewGuard))
     assert len(logs) == 1
     print(logs)
-    gov = VotesTable(governance_contract, guards, gov)
-
     aga = governance_contract.addGuard(someoneelse, sender=owner)
     logs = list(aga.decode_logs(governance_contract.NewGuard))
     assert len(logs) == 1
     print(logs)
-    gov = VotesTable(governance_contract, guards, gov)
     agb = governance_contract.addGuard(morgan, sender=owner)
     logs = list(agb.decode_logs(governance_contract.NewGuard))
     assert len(logs) == 1
     print(logs)
-    gov = VotesTable(governance_contract, guards, gov)
     agc = governance_contract.addGuard(ben, sender=owner)
     logs = list(agc.decode_logs(governance_contract.NewGuard))
     assert len(logs) == 1
     print(logs)
-    gov = VotesTable(governance_contract, guards, gov)
     agd = governance_contract.addGuard(sajal, sender=owner)
     logs = list(agd.decode_logs(governance_contract.NewGuard))
     assert len(logs) == 1
     print(logs)
+    print("")
     gov = VotesTable(governance_contract, guards, gov)
+    print("As the Contract Owner, we add five guards using the 'addGuard' function to fill up the governance to the 'MAX_GUARDS' specified amount")
     if prompt:
         while input("enter to continue"):
             gov = VotesTable(governance_contract, guards)
@@ -734,14 +743,14 @@ def test_governanceSetup(prompt, governance_contract, vault_contract_one, vault_
 
 
     #Remove a guard
-    print("As the Contract Owner, we remove a guard using the 'removeGuard' function")
     rg = governance_contract.removeGuard(someone, sender=owner)    
     logs = list(rg.decode_logs(governance_contract.GuardRemoved))
     assert len(logs) == 1
     assert logs[0].GuardAddress == someone
     print(logs)
+    print("")
     gov = VotesTable(governance_contract, guards, gov)
-
+    print("As the Contract Owner, we remove a guard using the 'removeGuard' function")
     if prompt:
         while input("enter to continue"):
             gov = VotesTable(governance_contract, guards)
@@ -749,13 +758,13 @@ def test_governanceSetup(prompt, governance_contract, vault_contract_one, vault_
 
 
     #Add guard back
-    print("As the Contract Owner, we add the guard back using the 'addGuard' function")
     ag = governance_contract.addGuard(someone, sender=owner)
     logs = list(ag.decode_logs(governance_contract.NewGuard))
-    gov = VotesTable(governance_contract, guards, gov)
-
     assert len(logs) == 1
     print(logs)
+    print("")
+    gov = VotesTable(governance_contract, guards, gov)
+    print("As the Contract Owner, we add the guard back using the 'addGuard' function")
     if prompt:
         while input("enter to continue"):
             gov = VotesTable(governance_contract, guards)
@@ -763,122 +772,139 @@ def test_governanceSetup(prompt, governance_contract, vault_contract_one, vault_
 
 
     #Swap a guard out with a new guard
-    print("As the Contract Owner, we swap a guard out with a new guard using the 'swapGuard' function")
     sg = governance_contract.swapGuard(someoneelse, operator, sender=owner)
     logs = list(sg.decode_logs(governance_contract.GuardSwap))
     assert len(logs) == 1
     assert logs[0].OldGuardAddress == someoneelse
     assert logs[0].NewGuardAddress == operator
     print(logs)
+    print("")
     gov = VotesTable(governance_contract, guards, gov)
+    print("As the Contract Owner, we swap a guard out with a new guard using the 'swapGuard' function")
     if prompt:
         while input("enter to continue"):
             gov = VotesTable(governance_contract, guards)
     print("")
 
+    print("Now we switch to the vault functions")
+    print("")
+    dyn = VaultsTable(governance_contract, vaults)
+    print("As you can see in the table, there are no vaults in the vaults list")
+    if prompt:
+        while input("enter to begin"):
+            dyn = VaultsTable(governance_contract, vaults)
+    print("")
 
     #Add Vaults
-    print("As the Contract Owner, we add three Dynamo vaults using the 'addVault' function to fill up the governance to the 'MAX_VAULTS' specified amount")
     av = governance_contract.addVault(vault_contract_one, sender=owner)
     logs = list(av.decode_logs(governance_contract.NewVault))
     assert len(logs) == 1
     assert logs[0].vault == vault_contract_one
     print(logs)
-    print("")
     avv = governance_contract.addVault(vault_contract_two, sender=owner) 
     logs = list(avv.decode_logs(governance_contract.NewVault))
     assert len(logs) == 1
     assert logs[0].vault == vault_contract_two
     print(logs)  
-    print("")
     avv = governance_contract.addVault(vault_contract_three, sender=owner) 
     logs = list(avv.decode_logs(governance_contract.NewVault))
     assert len(logs) == 1
-    assert logs[0].vault == vault_contract_three
-    print(logs)  
+    assert logs[0].vault == vault_contract_three 
+    print(logs)
+    print("")
+    dyn = VaultsTable(governance_contract, vaults, dyn)
+    print("As the Contract Owner, we add three Dynamo vaults using the 'addVault' function to fill up the governance to the 'MAX_VAULTS' specified amount")
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(governance_contract, guards)
+            dyn = VaultsTable(governance_contract, vaults)
     print("")
 
 
     #Remove a Vault
-    print("As the Contract Owner, we remove a Dynamo vault using the 'removeVault' function")
     rv = governance_contract.removeVault(vault_contract_one, sender=owner)    
     logs = list(rv.decode_logs(governance_contract.VaultRemoved))
     assert len(logs) == 1
     assert logs[0].vault == vault_contract_one
     print(logs)
+    print("")
+    dyn = VaultsTable(governance_contract, vaults, dyn)
+    print("As the Contract Owner, we remove a Dynamo vault using the 'removeVault' function")
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(governance_contract, guards)
+            dyn = VaultsTable(governance_contract, vaults)
     print("")
 
 
     #Add vault back
-    print("As the Contract Owner, we add Dynamo vault one back using the 'addVault' function")
     av = governance_contract.addVault(vault_contract_one, sender=owner)
     logs = list(av.decode_logs(governance_contract.NewVault))
     assert len(logs) == 1
     assert logs[0].vault == vault_contract_one
     print(logs)
+    print("")
+    dyn = VaultsTable(governance_contract, vaults, dyn)
+    print("As the Contract Owner, we add Dynamo vault one back using the 'addVault' function")
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(governance_contract, guards)
+            dyn = VaultsTable(governance_contract, vaults)
     print("")
 
 
     #Swap in new vault
-    print("As the Contract Owner, we swap out Dynamo vault three for a new 'Dynamo vault four' using the 'swapVault' function")
     sv = governance_contract.swapVault(vault_contract_three, vault_contract_four, sender=owner)
     logs = list(sv.decode_logs(governance_contract.VaultSwap))
     assert len(logs) == 1
     assert logs[0].OldVaultAddress == vault_contract_three
     assert logs[0].NewVaultAddress == vault_contract_four
     print(logs)
-    if prompt:
-        while input("enter to continue"):
-            gov = VotesTable(governance_contract, guards)
+    print("")
+    dyn = VaultsTable(governance_contract, vaults, dyn)
+    print("As the Contract Owner, we swap out Dynamo vault three for a new 'Dynamo vault four' using the 'swapVault' function")
     print("")
 
-
     print("The end")
+
+
+
+def StrategyTable(governance_contract, strats, prev={}):
+    table_data = [['Stat', 'Value']]
+    for guard in strats.keys():
+        is_guard = governance_contract.PendingStrategyByVault(strats[guard])
+        previous = prev.get(guard, is_guard)
+        if previous is True and is_guard is False:
+            #This should be red
+            line = "\033[91mFalse\033[0m"
+        elif previous is False and is_guard is True:
+            #This is green
+            line = "\033[92mTrue\033[0m"
+        else:
+            #no change leave it as default
+            line  = is_guard
+        table_data += [[guard, line]]
+        prev[guard] = is_guard
+    table_instance = SingleTable(table_data, "Strategy Status")
+    print(table_instance.table)
+    return prev
 
 
 
 def test_strategySubmission(prompt, governance_contract, vault_contract_one, vault_contract_two, vault_contract_three, vault_contract_four, governance_contract_two, accounts):
     ProposedStrategy = (WEIGHTS, MIN_PROPOSER_PAYOUT, APYNOW, APYPREDICTED)
     ProposedStrategyTwo = (WEIGHTSTWO, MIN_PROPOSER_PAYOUT, APYNOWTWO, APYPREDICTEDTWO)
+    ProposedStrategyThree = (WEIGHTSTHREE, MIN_PROPOSER_PAYOUT, APYNOWTHREE, APYPREDICTEDTHREE)
     owner, operator, someoneelse, someone, morgan, ben, sajal = accounts[:7]
 
     assert vault_contract_one != vault_contract_two, "Vaults seem to be the same."
 
-    votes = {
-        "Strategy1": ProposedStrategy,
-        "Strategy2": ProposedStrategyTwo
 
-    }
-    guards = {
-        "Guard1": someoneelse,
-        "Guard2": someone,
-        "Guard3": morgan,
-        "Guard4": ben,
-        "Guard5": sajal
-
-    }
     strats = {
-        "Strategy1": ProposedStrategy,
-        "Strategy2": ProposedStrategyTwo
-
-    }
-    vaults = {
-        "Vault1": vault_contract_one,
-        "Vault2": vault_contract_two
+        "Strategy": vault_contract_one
 
     }
 
-    gov = VotesTable(governance_contract, guards)
-    stratvault = ProposedStrategyTable(strats, vaults)
+
+    stra = StrategyTable(governance_contract, strats)
+
     print("")
 
 
@@ -923,10 +949,10 @@ def test_strategySubmission(prompt, governance_contract, vault_contract_one, vau
     print(logs)  
 
 
-    print("This demo shows how strategies are submitted for Dynamo Vaults, then voted on by guards, and then either rejected or activated depending on the situation")
+    print("This demo shows how strategies are submitted for a Dynamo Vault, then voted on by guards, and then either rejected, activated, or withdrawn depending on the situation")
     if prompt:
         while input("enter to begin"):
-            gov = VotesTable(governance_contract, guards)
+            stra = StrategyTable(governance_contract, strats)
     print("")
 
 
@@ -936,59 +962,45 @@ def test_strategySubmission(prompt, governance_contract, vault_contract_one, vau
     logs = list(sq.decode_logs(governance_contract.StrategyProposal))
     assert len(logs) == 1
     print(logs)
+    stra = StrategyTable(governance_contract, strats, stra)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(governance_contract, guards)
+            stra = StrategyTable(governance_contract, strats)
     print("")
 
-    print(governance_contract.PendingStrategyByVault(vault_contract_one))
-    
-    #Reject the strategy
-    print("Strategy Voting starts and guards reject the strategy for this vault")
-    eq = governance_contract.rejectStrategy(NONCE, vault_contract_one, sender=morgan)    
-    logs = list(eq.decode_logs(governance_contract.StrategyVote))
+
+    #Endorse the strategy
+    print("Strategy Voting starts and the guards endorse the strategy for this vault")
+    es = governance_contract.endorseStrategy(NONCE, vault_contract_one, sender=someone)
+    logs = list(es.decode_logs(governance_contract.StrategyVote))
     print(logs)
-    esa = governance_contract.rejectStrategy(NONCE, vault_contract_one, sender=ben)
+    esa = governance_contract.endorseStrategy(NONCE, vault_contract_one, sender=sajal)
     logs = list(esa.decode_logs(governance_contract.StrategyVote))
     print(logs)
-    esb = governance_contract.rejectStrategy(NONCE, vault_contract_one, sender=sajal)
+    esb = governance_contract.endorseStrategy(NONCE, vault_contract_one, sender=morgan)
     logs = list(esb.decode_logs(governance_contract.StrategyVote))
     print(logs)
+    stra = StrategyTable(governance_contract, strats)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(governance_contract, guards)
+            stra = StrategyTable(governance_contract, strats)
     print("")
 
 
     #Activate the strategy
-    print("Strategy Activation Fails due to Rejection")
-    with ape.reverts():
-        acs = governance_contract.activateStrategy(NONCE, vault_contract_one, sender=owner)
-    if prompt:
-        while input("enter to continue"):
-            gov = VotesTable(governance_contract, guards)
-    print("")
-
-
-    #Submit a strategy and then withdraw it
-    print("Another strategy is submitted for a different vault")
-    sp = governance_contract.submitStrategy(ProposedStrategy, vault_contract_four, sender=owner)
-    logs = list(sp.decode_logs(governance_contract.StrategyProposal))
+    print("Strategy is successfully activated")
+    acs = governance_contract.activateStrategy(NONCE, vault_contract_one, sender=owner)
+    logs = list(acs.decode_logs(governance_contract.StrategyActivation))
     assert len(logs) == 1
+    assert [x for x in logs[0].strategy[2]] == [tuple(w) for w in WEIGHTS]
+    assert logs[0].strategy[3] == MIN_PROPOSER_PAYOUT
+    assert logs[0].strategy[4] == APYNOW
+    assert logs[0].strategy[5] == APYPREDICTED
     print(logs)
+    stra = StrategyTable(governance_contract, strats)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(governance_contract, guards)
-    print("")
-    print("Strategy for vault is withdrawn by proposer")
-    ws = governance_contract.withdrawStrategy(NONCE, vault_contract_four, sender=owner)
-    logs = list(ws.decode_logs(governance_contract.StrategyWithdrawal))
-    assert len(logs) == 1
-    assert logs[0].Nonce == NONCE
-    print(logs)
-    if prompt:
-        while input("enter to continue"):
-            gov = VotesTable(governance_contract, guards)
+            stra = StrategyTable(governance_contract, strats)
     print("")
 
 
@@ -998,103 +1010,63 @@ def test_strategySubmission(prompt, governance_contract, vault_contract_one, vau
     logs = list(sp.decode_logs(governance_contract.StrategyProposal))
     assert len(logs) == 1
     print(logs)
+    stra = StrategyTable(governance_contract, strats)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(governance_contract, guards)
+            stra = StrategyTable(governance_contract, strats)
     print("")
 
 
-    #Endorse the strategy
-    print("Strategy Voting starts and the guards endorse the strategy for this vault")
-    es = governance_contract.endorseStrategy(NONCETWO, vault_contract_one, sender=someone)
-    logs = list(es.decode_logs(governance_contract.StrategyVote))
+    #Reject the strategy
+    print("Strategy Voting starts and guards reject the strategy for this vault")
+    eq = governance_contract.rejectStrategy(NONCETWO, vault_contract_one, sender=morgan)    
+    logs = list(eq.decode_logs(governance_contract.StrategyVote))
     print(logs)
-    esa = governance_contract.endorseStrategy(NONCETWO, vault_contract_one, sender=sajal)
+    esa = governance_contract.rejectStrategy(NONCETWO, vault_contract_one, sender=ben)
     logs = list(esa.decode_logs(governance_contract.StrategyVote))
     print(logs)
-    esb = governance_contract.endorseStrategy(NONCETWO, vault_contract_one, sender=morgan)
+    esb = governance_contract.rejectStrategy(NONCETWO, vault_contract_one, sender=sajal)
     logs = list(esb.decode_logs(governance_contract.StrategyVote))
     print(logs)
+    stra = StrategyTable(governance_contract, strats)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(governance_contract, guards)
+            stra = StrategyTable(governance_contract, strats)
     print("")
 
 
     #Activate the strategy
-    print("Strategy is successfully activated")
-    acs = governance_contract.activateStrategy(NONCETWO, vault_contract_one, sender=owner)
-    logs = list(acs.decode_logs(governance_contract.StrategyActivation))
-    assert len(logs) == 1
-    assert [x for x in logs[0].strategy[2]] == [tuple(w) for w in WEIGHTSTWO]
-    assert logs[0].strategy[3] == MIN_PROPOSER_PAYOUT
-    assert logs[0].strategy[4] == APYNOWTWO
-    assert logs[0].strategy[5] == APYPREDICTEDTWO
-    print(logs)
+    print("Strategy Activation Fails due to Rejection")
+    with ape.reverts():
+        acs = governance_contract.activateStrategy(NONCETWO, vault_contract_one, sender=owner)
+    stra = StrategyTable(governance_contract, strats)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(governance_contract, guards)
+            stra = StrategyTable(governance_contract, strats)
     print("")
 
 
-    #Submit a second Strategy
-    print("Strategy is submitted for a different vault")
-    sq = governance_contract.submitStrategy(ProposedStrategy, vault_contract_two, sender=owner)   
-    logs = list(sq.decode_logs(governance_contract.StrategyProposal))
+    #Submit a strategy and then withdraw it
+    print("Another strategy is submitted for a different vault")
+    sp = governance_contract.submitStrategy(ProposedStrategyThree, vault_contract_one, sender=owner)
+    logs = list(sp.decode_logs(governance_contract.StrategyProposal))
     assert len(logs) == 1
     print(logs)
+    stra = StrategyTable(governance_contract, strats)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(governance_contract, guards)
+            stra = StrategyTable(governance_contract, strats)
     print("")
-
-
-    #Endorse the second strategy
-    print("Strategy for second vault is endorsed by majority of guards")
-    eq = governance_contract.endorseStrategy(NONCE, vault_contract_two, sender=someone)    
-    logs = list(eq.decode_logs(governance_contract.StrategyVote))
-    print(logs)
-    esa = governance_contract.endorseStrategy(NONCE, vault_contract_two, sender=ben)
-    logs = list(esa.decode_logs(governance_contract.StrategyVote))
-    print(logs)
-    esb = governance_contract.endorseStrategy(NONCE, vault_contract_two, sender=sajal)
-    logs = list(esb.decode_logs(governance_contract.StrategyVote))
-    print(logs)
-    if prompt:
-        while input("enter to continue"):
-            gov = VotesTable(governance_contract, guards)
-    print("")
-
-
-    #Activate the second strategy
-    print("Strategy for second vault is successfully activated")
-    acq = governance_contract.activateStrategy(NONCE, vault_contract_two, sender=owner)
-    logs = list(acq.decode_logs(governance_contract.StrategyActivation))
+    print("Strategy for vault is withdrawn by proposer")
+    ws = governance_contract.withdrawStrategy(NONCETHREE, vault_contract_one, sender=owner)
+    logs = list(ws.decode_logs(governance_contract.StrategyWithdrawal))
     assert len(logs) == 1
-    assert [x for x in logs[0].strategy[2]] == [tuple(w) for w in WEIGHTS]
-    assert logs[0].strategy[3] == MIN_PROPOSER_PAYOUT
-    assert logs[0].strategy[4] == APYNOW
-    assert logs[0].strategy[5] == APYPREDICTED
+    assert logs[0].Nonce == NONCETHREE
     print(logs)
+    stra = StrategyTable(governance_contract, strats)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(governance_contract, guards)
-    print("")
-
-    
-    #Check to see if strategies have correct values
-    print("Both Strategies are live with correct values for their specific vaults")
-    gc_one = governance_contract.CurrentStrategyByVault(vault_contract_one)
-    gc_two = governance_contract.CurrentStrategyByVault(vault_contract_two)
-    assert [(x[0].lower(),x[1]) for x in gc_two.LPRatios] == [tuple(w) for w in WEIGHTS]
-    assert gc_two.APYNow == APYNOW
-    assert gc_two.APYPredicted == APYPREDICTED
-    assert [(x[0].lower(),x[1]) for x in gc_one.LPRatios] == [tuple(w) for w in WEIGHTSTWO]
-    assert gc_one.APYNow == APYNOWTWO
-    assert gc_one.APYPredicted == APYPREDICTEDTWO
-    if prompt:
-        while input("enter to continue"):
-            gov = VotesTable(governance_contract, guards)
+            stra = StrategyTable(governance_contract, strats)
     print("")
 
 
@@ -1107,35 +1079,33 @@ def test_activateMultipleStrategies(governance_contract, vault_contract_one, vau
     ProposedStrategyTwo = (WEIGHTSTWO, MIN_PROPOSER_PAYOUT, APYNOWTWO, APYPREDICTEDTWO)
     owner, operator, someoneelse, someone, morgan, ben, sajal = accounts[:7]
 
-    assert vault_contract_one != vault_contract_two, "Vaults seem to be the same."
+    # votes = {
+    #     "Strategy1": ProposedStrategy,
+    #     "Strategy2": ProposedStrategyTwo
 
-    votes = {
-        "Strategy1": ProposedStrategy,
-        "Strategy2": ProposedStrategyTwo
+    # }
+    # guards = {
+    #     "Guard1": someoneelse,
+    #     "Guard2": someone,
+    #     "Guard3": morgan,
+    #     "Guard4": ben,
+    #     "Guard5": sajal
 
-    }
-    guards = {
-        "Guard1": someoneelse,
-        "Guard2": someone,
-        "Guard3": morgan,
-        "Guard4": ben,
-        "Guard5": sajal
+    # }
+    # strats = {
+    #     "Strategy1": ProposedStrategy,
+    #     "Strategy2": ProposedStrategyTwo
 
-    }
-    strats = {
-        "Strategy1": ProposedStrategy,
-        "Strategy2": ProposedStrategyTwo
+    # }
+    # vaults = {
+    #     "Vault1": vault_contract_one,
+    #     "Vault2": vault_contract_two
 
-    }
-    vaults = {
-        "Vault1": vault_contract_one,
-        "Vault2": vault_contract_two
+    # }
 
-    }
-
-    gov = VotesTable(governance_contract, guards)
-    stratvault = ProposedStrategyTable(strats, vaults)
-    print("")
+    # gov = VotesTable(governance_contract, guards)
+    # stratvault = ProposedStrategyTable(strats, vaults)
+    # print("")
 
     assert vault_contract_one != vault_contract_two, "Vaults seem to be the same."
 
