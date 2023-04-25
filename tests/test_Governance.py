@@ -627,8 +627,20 @@ def test_swapVault(governance_contract, vault_contract_one, vault_contract_two, 
 
 def VotesTable(governance_contract, guards, prev={}):
     table_data = [['Name', 'Is Guard?']]
-    for voter in guards.keys():
-        table_data += [[voter, False]]
+    for guard in guards.keys():
+        is_guard = governance_contract.checkGuard(guards[guard])
+        previous = prev.get(guard, is_guard)
+        if previous is True and is_guard is False:
+            #This should be red
+            line = "\033[91mFalse\033[0m"
+        elif previous is False and is_guard is True:
+            #This is green
+            line = "\033[92mTrue\033[0m"
+        else:
+            #no change leave it as default
+            line  = is_guard
+        table_data += [[guard, line]]
+        prev[guard] = is_guard
     table_instance = SingleTable(table_data, "Votes by Guard")
     print(table_instance.table)
     return prev
@@ -728,6 +740,8 @@ def test_governanceSetup(prompt, governance_contract, vault_contract_one, vault_
     assert len(logs) == 1
     assert logs[0].GuardAddress == someone
     print(logs)
+    gov = VotesTable(governance_contract, guards, gov)
+
     if prompt:
         while input("enter to continue"):
             gov = VotesTable(governance_contract, guards)
@@ -738,6 +752,8 @@ def test_governanceSetup(prompt, governance_contract, vault_contract_one, vault_
     print("As the Contract Owner, we add the guard back using the 'addGuard' function")
     ag = governance_contract.addGuard(someone, sender=owner)
     logs = list(ag.decode_logs(governance_contract.NewGuard))
+    gov = VotesTable(governance_contract, guards, gov)
+
     assert len(logs) == 1
     print(logs)
     if prompt:
@@ -754,6 +770,7 @@ def test_governanceSetup(prompt, governance_contract, vault_contract_one, vault_
     assert logs[0].OldGuardAddress == someoneelse
     assert logs[0].NewGuardAddress == operator
     print(logs)
+    gov = VotesTable(governance_contract, guards, gov)
     if prompt:
         while input("enter to continue"):
             gov = VotesTable(votes, guards)

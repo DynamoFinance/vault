@@ -412,15 +412,15 @@ def swapGuard(OldGuardAddress: address, NewGuardAddress: address):
 
 
 @external
+@view
 def checkGuard(GuardAddress: address) -> bool:
-    assert GuardAddress in self.LGov
-    return True
+    return GuardAddress in self.LGov
 
 
 @external
+@view
 def checkVault(VaultAddress: address) -> bool:
-    assert VaultAddress in self.VaultList
-    return True
+    return VaultAddress in self.VaultList
 
 
 @external
