@@ -1,0 +1,1 @@
+ape test  --network :mainnet-fork:hardhat   -s tests/test_ComposableStablePool_realAdapter.py::test_composable --prompt=True
