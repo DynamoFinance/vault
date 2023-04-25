@@ -878,10 +878,36 @@ def parse_strategy(strategy):
     }
 
 
-# def colorize_value(val, prev):
-#     delta =  val - prev
-#     if delta > 0:
-        
+def colorize_value(val, prev):
+    if isinstance(val, datetime):
+        print(val, prev)
+        delta =  val - prev
+        if delta.total_seconds() > 0:
+            return "\033[92m{val}\033[0m" .format(val=val)
+        elif delta.total_seconds() < 0:
+            return "\033[91m{val}\033[0m" .format(val=val)
+        else:
+            return "{val}" .format(val=val)
+
+
+    delta =  val - prev
+    if val == prev:
+        if isinstance(val, bool):
+            line = "{val}".format(val=val)
+        else:
+            line = "{val:d}".format(val=val)
+    if val > prev:
+        if isinstance(val, bool):
+            line = "\033[92m{val}\033[0m" .format(val=val)
+        else:
+            line = "{val:d} (\033[92m{delta:+d}\033[0m)".format(val=val, delta=delta)
+    elif val < prev:
+        if isinstance(val, bool):
+            line = "\033[91m{val}\033[0m" .format(val=val)
+        else:
+            line = "{val:d} (\033[91m{delta:+d}\033[0m)".format(val=val, delta=delta)
+    return line
+
 
 def StrategyTable(governance_contract, vault, prev={}):
     table_data = [['', 'ValueCurrent', 'ValuePending']]
@@ -892,10 +918,10 @@ def StrategyTable(governance_contract, vault, prev={}):
 
 
     for item in strategy_current.keys():
-        table_data += [[item, strategy_current[item], strategy_pending[item] ]]
+        table_data += [[item, colorize_value(strategy_current[item], prev_strategy_current[item]), colorize_value(strategy_pending[item], prev_strategy_pending[item]) ]]
     
-    prev["current"] = prev_strategy_current
-    prev["pending"] = prev_strategy_pending
+    prev["current"] = strategy_current
+    prev["pending"] = strategy_pending
 
     # for guard in strats.keys():
     #     strategy = governance_contract.PendingStrategyByVault(strats[guard])
