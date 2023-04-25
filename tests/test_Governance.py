@@ -758,7 +758,7 @@ def test_governanceSetup(prompt, governance_contract, vault_contract_one, vault_
     print(logs)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(votes, guards)
+            gov = VotesTable(governance_contract, guards)
     print("")
 
 
@@ -773,7 +773,7 @@ def test_governanceSetup(prompt, governance_contract, vault_contract_one, vault_
     gov = VotesTable(governance_contract, guards, gov)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(votes, guards)
+            gov = VotesTable(governance_contract, guards)
     print("")
 
 
@@ -798,7 +798,7 @@ def test_governanceSetup(prompt, governance_contract, vault_contract_one, vault_
     print(logs)  
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(votes, guards)
+            gov = VotesTable(governance_contract, guards)
     print("")
 
 
@@ -811,7 +811,7 @@ def test_governanceSetup(prompt, governance_contract, vault_contract_one, vault_
     print(logs)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(votes, guards)
+            gov = VotesTable(governance_contract, guards)
     print("")
 
 
@@ -824,7 +824,7 @@ def test_governanceSetup(prompt, governance_contract, vault_contract_one, vault_
     print(logs)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(votes, guards)
+            gov = VotesTable(governance_contract, guards)
     print("")
 
 
@@ -838,7 +838,7 @@ def test_governanceSetup(prompt, governance_contract, vault_contract_one, vault_
     print(logs)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(votes, guards)
+            gov = VotesTable(governance_contract, guards)
     print("")
 
 
@@ -846,7 +846,7 @@ def test_governanceSetup(prompt, governance_contract, vault_contract_one, vault_
 
 
 
-def test_strategySubmission(governance_contract, vault_contract_one, vault_contract_two, vault_contract_three, vault_contract_four, governance_contract_two, accounts):
+def test_strategySubmission(prompt, governance_contract, vault_contract_one, vault_contract_two, vault_contract_three, vault_contract_four, governance_contract_two, accounts):
     ProposedStrategy = (WEIGHTS, MIN_PROPOSER_PAYOUT, APYNOW, APYPREDICTED)
     ProposedStrategyTwo = (WEIGHTSTWO, MIN_PROPOSER_PAYOUT, APYNOWTWO, APYPREDICTEDTWO)
     owner, operator, someoneelse, someone, morgan, ben, sajal = accounts[:7]
@@ -877,7 +877,7 @@ def test_strategySubmission(governance_contract, vault_contract_one, vault_contr
 
     }
 
-    gov = VotesTable(votes, guards)
+    gov = VotesTable(governance_contract, guards)
     stratvault = ProposedStrategyTable(strats, vaults)
     print("")
 
@@ -926,7 +926,7 @@ def test_strategySubmission(governance_contract, vault_contract_one, vault_contr
     print("This demo shows how strategies are submitted for Dynamo Vaults, then voted on by guards, and then either rejected or activated depending on the situation")
     if prompt:
         while input("enter to begin"):
-            gov = VotesTable(votes, guards)
+            gov = VotesTable(governance_contract, guards)
     print("")
 
 
@@ -938,10 +938,11 @@ def test_strategySubmission(governance_contract, vault_contract_one, vault_contr
     print(logs)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(votes, guards)
+            gov = VotesTable(governance_contract, guards)
     print("")
 
-
+    print(governance_contract.PendingStrategyByVault(vault_contract_one))
+    
     #Reject the strategy
     print("Strategy Voting starts and guards reject the strategy for this vault")
     eq = governance_contract.rejectStrategy(NONCE, vault_contract_one, sender=morgan)    
@@ -955,7 +956,7 @@ def test_strategySubmission(governance_contract, vault_contract_one, vault_contr
     print(logs)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(votes, guards)
+            gov = VotesTable(governance_contract, guards)
     print("")
 
 
@@ -965,7 +966,7 @@ def test_strategySubmission(governance_contract, vault_contract_one, vault_contr
         acs = governance_contract.activateStrategy(NONCE, vault_contract_one, sender=owner)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(votes, guards)
+            gov = VotesTable(governance_contract, guards)
     print("")
 
 
@@ -977,7 +978,7 @@ def test_strategySubmission(governance_contract, vault_contract_one, vault_contr
     print(logs)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(votes, guards)
+            gov = VotesTable(governance_contract, guards)
     print("")
     print("Strategy for vault is withdrawn by proposer")
     ws = governance_contract.withdrawStrategy(NONCE, vault_contract_four, sender=owner)
@@ -987,7 +988,7 @@ def test_strategySubmission(governance_contract, vault_contract_one, vault_contr
     print(logs)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(votes, guards)
+            gov = VotesTable(governance_contract, guards)
     print("")
 
 
@@ -999,7 +1000,7 @@ def test_strategySubmission(governance_contract, vault_contract_one, vault_contr
     print(logs)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(votes, guards)
+            gov = VotesTable(governance_contract, guards)
     print("")
 
 
@@ -1016,7 +1017,7 @@ def test_strategySubmission(governance_contract, vault_contract_one, vault_contr
     print(logs)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(votes, guards)
+            gov = VotesTable(governance_contract, guards)
     print("")
 
 
@@ -1032,7 +1033,7 @@ def test_strategySubmission(governance_contract, vault_contract_one, vault_contr
     print(logs)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(votes, guards)
+            gov = VotesTable(governance_contract, guards)
     print("")
 
 
@@ -1044,7 +1045,7 @@ def test_strategySubmission(governance_contract, vault_contract_one, vault_contr
     print(logs)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(votes, guards)
+            gov = VotesTable(governance_contract, guards)
     print("")
 
 
@@ -1061,7 +1062,7 @@ def test_strategySubmission(governance_contract, vault_contract_one, vault_contr
     print(logs)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(votes, guards)
+            gov = VotesTable(governance_contract, guards)
     print("")
 
 
@@ -1077,7 +1078,7 @@ def test_strategySubmission(governance_contract, vault_contract_one, vault_contr
     print(logs)
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(votes, guards)
+            gov = VotesTable(governance_contract, guards)
     print("")
 
     
@@ -1093,7 +1094,7 @@ def test_strategySubmission(governance_contract, vault_contract_one, vault_contr
     assert gc_one.APYPredicted == APYPREDICTEDTWO
     if prompt:
         while input("enter to continue"):
-            gov = VotesTable(votes, guards)
+            gov = VotesTable(governance_contract, guards)
     print("")
 
 
@@ -1132,7 +1133,7 @@ def test_activateMultipleStrategies(governance_contract, vault_contract_one, vau
 
     }
 
-    gov = VotesTable(votes, guards)
+    gov = VotesTable(governance_contract, guards)
     stratvault = ProposedStrategyTable(strats, vaults)
     print("")
 
