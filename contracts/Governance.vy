@@ -156,7 +156,7 @@ def submitStrategy(strategy: ProposedStrategy, vault: address) -> uint256:
             (pending_strat.Withdrawn == True) or \
             len(pending_strat.VotesReject) > 0 and \
             (len(pending_strat.VotesReject) >= pending_strat.no_guards/2) or \
-            (convert(block.timestamp, decimal) > (convert(pending_strat.TSubmitted, decimal)+(convert(self.TDelay, decimal) * 1.25))), "Invalid proposed strategy!"
+            (convert(block.timestamp, decimal) > (convert(pending_strat.TSubmitted, decimal)+(convert(self.TDelay, decimal)))), "Invalid proposed strategy!"
 
     # Confirm msg.sender Eligibility
     # Confirm msg.sender is not blacklisted

@@ -1020,6 +1020,7 @@ def test_strategyDemo(prompt, governance_contract, vault_contract_one, vault_con
     print("")
     print("The call reverts: 'CANNOT ACTIVATE PENDING STRATEGY, TIME DELAY HAS NOT PASSED.'")
     print("")
+    print("NOTE: TIME DELAY is 6 hours")
     print("")
     if prompt:
         while input("enter to pass time and activate strategy again"):
@@ -1028,10 +1029,12 @@ def test_strategyDemo(prompt, governance_contract, vault_contract_one, vault_con
 
     print("Current timestamp %s" % datetime.fromtimestamp(ape.chain.pending_timestamp))
     current_time = datetime.fromtimestamp(ape.chain.pending_timestamp)
-    current_time += timedelta(days=1)
+    current_time += timedelta(hours=6)
     ape.chain.pending_timestamp = int(current_time.timestamp())
     print("")
     print("Current timestamp %s" % datetime.fromtimestamp(ape.chain.pending_timestamp))
+    print("")
+    print("Time has advanced 6 hours")
     print("")
 
 
@@ -1085,10 +1088,12 @@ def test_strategyDemo(prompt, governance_contract, vault_contract_one, vault_con
 
     print("Current timestamp %s" % datetime.fromtimestamp(ape.chain.pending_timestamp))
     current_time = datetime.fromtimestamp(ape.chain.pending_timestamp)
-    current_time += timedelta(days=1)
+    current_time += timedelta(hours=6)
     ape.chain.pending_timestamp = int(current_time.timestamp())
     print("")
     print("Current timestamp %s" % datetime.fromtimestamp(ape.chain.pending_timestamp))
+    print("")
+    print("Time has advanced 6 hours")
     print("")
 
     #Activate the strategy
@@ -1141,10 +1146,12 @@ def test_strategyDemo(prompt, governance_contract, vault_contract_one, vault_con
 
     print("Current timestamp %s" % datetime.fromtimestamp(ape.chain.pending_timestamp))
     current_time = datetime.fromtimestamp(ape.chain.pending_timestamp)
-    current_time += timedelta(days=1)
+    current_time += timedelta(hours=6)
     ape.chain.pending_timestamp = int(current_time.timestamp())
     print("")
     print("Current timestamp %s" % datetime.fromtimestamp(ape.chain.pending_timestamp))
+    print("")
+    print("Time has advanced 6 hours")
     print("")
 
 
