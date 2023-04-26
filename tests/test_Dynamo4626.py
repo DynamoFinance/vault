@@ -1063,7 +1063,7 @@ def test_multi_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, poo
     trade_start_dyDAI = dynamo4626.balanceOf(trader)
 
     # Trader needs to allow the 462 6 contract to take funds.
-    dai.approve(dynamo4626, 1000, sender=trader)
+    dai.approve(dynamo4626, 1500, sender=trader)
 
     if is_not_hard_hat():
         pytest.skip("Not on hard hat Ethereum snapshot.")
@@ -1102,9 +1102,6 @@ def test_multi_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, poo
     
     d4626_end_DAI = dai.balanceOf(dynamo4626)
 
-    # DAI should have just passed through the 4626 pool.
-    # assert d4626_end_DAI == d4626_start_DAI
-
     LP_end_DAI_A = dai.balanceOf(pool_adapterA)
     assert LP_end_DAI_A - LP_start_DAI_A == 166
     LP_end_DAI_B = dai.balanceOf(pool_adapterB)
@@ -1116,6 +1113,11 @@ def test_multi_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, poo
     result = dynamo4626.deposit(400, trader, sender=trader)
     assert result.return_value == 400      
 
+    assert dynamo4626.totalAssets() == 900
+    assert pool_adapterA.totalAssets() == 300
+    assert pool_adapterB.totalAssets() == 300
+    assert pool_adapterC.totalAssets() == 300
+    
     assert dynamo4626.balanceOf(trader) == 900
 
     trade_end_DAI_A = project.ERC20.at(pool_adapterA.originalAsset()).balanceOf(trader)
@@ -1135,16 +1137,17 @@ def test_multi_adapter_deposit(project, deployer, dynamo4626, pool_adapterA, poo
     assert dai.balanceOf(pool_adapterA) == dai.balanceOf(pool_adapterB) == dai.balanceOf(pool_adapterC)
 
 
-def test_multi_adapter_deposit_ratios(project, deployer, dynamo4626, pool_adapterA, pool_adapterB, pool_adapterC, dai, trader):
+def test_multi_adapter_ratios(project, deployer, dynamo4626, pool_adapterA, pool_adapterB, pool_adapterC, dai, trader):
     # Now try fiddling with the ratios on the strategies.
     strategy = [(ZERO_ADDRESS,0)] * 5 # This assumes Dynamo4626 MAX_POOLS == 5
-    strategy[0] = (pool_adapterA, 2)
+    strategy[0] = (pool_adapterA, 7)
     strategy[1] = (pool_adapterB, 1)
     strategy[2] = (pool_adapterC, 3)
     adapters = [pool_adapterA, pool_adapterB, pool_adapterC]
 
     _setup_multi_adapters(project, dynamo4626, deployer, dai, adapters, strategy)
 
+    d4626_start_DAI = dai.balanceOf(dynamo4626)
     LP_start_DAI_A = dai.balanceOf(pool_adapterA)
     LP_start_DAI_B = dai.balanceOf(pool_adapterB)
     LP_start_DAI_C = dai.balanceOf(pool_adapterC)
@@ -1166,16 +1169,16 @@ def test_multi_adapter_deposit_ratios(project, deployer, dynamo4626, pool_adapte
     assert dynamo4626.convertToShares(55) == 55
 
     assert dynamo4626.totalAssets() == 300
-    assert pool_adapterA.totalAssets() == 100
-    assert pool_adapterB.totalAssets() == 50
-    assert pool_adapterC.totalAssets() == 150
+    assert pool_adapterA.totalAssets() == 190
+    assert pool_adapterB.totalAssets() == 27
+    assert pool_adapterC.totalAssets() == 81
 
     assert result.return_value == 300
 
     assert dynamo4626.balanceOf(trader) == 300
 
     assert dynamo4626.convertToAssets(75) == 75
-    assert dynamo4626.convertToShares(55) == 55    
+    assert dynamo4626.convertToShares(55) == 55
 
     trade_end_DAI_A = project.ERC20.at(pool_adapterA.originalAsset()).balanceOf(trader)
     trade_end_DAI_B = project.ERC20.at(pool_adapterB.originalAsset()).balanceOf(trader)
@@ -1193,11 +1196,11 @@ def test_multi_adapter_deposit_ratios(project, deployer, dynamo4626, pool_adapte
     # assert d4626_end_DAI == d4626_start_DAI
 
     LP_end_DAI_A = dai.balanceOf(pool_adapterA)
-    assert LP_end_DAI_A - LP_start_DAI_A == 100
+    assert LP_end_DAI_A - LP_start_DAI_A == 190
     LP_end_DAI_B = dai.balanceOf(pool_adapterB)
-    assert LP_end_DAI_B - LP_start_DAI_B == 50
+    assert LP_end_DAI_B - LP_start_DAI_B == 27
     LP_end_DAI_C = dai.balanceOf(pool_adapterC)
-    assert LP_end_DAI_C - LP_start_DAI_C == 150
+    assert LP_end_DAI_C - LP_start_DAI_C == 81
 
 
 # def test_multi_getBalanceTxs(project, deployer, dynamo4626, pool_adapterA, pool_adapterB, pool_adapterC, dai, trader):
@@ -1270,9 +1273,9 @@ def test_multi_adapter_deposit_ratios(project, deployer, dynamo4626, pool_adapte
 
 def test_multi_adapter_withdraw(project, deployer, dynamo4626, pool_adapterA, pool_adapterB, pool_adapterC, dai, trader):
     strategy = [(ZERO_ADDRESS,0)] * 5 # This assumes Dynamo4626 MAX_POOLS == 5
-    strategy[0] = (pool_adapterA, 1)
+    strategy[0] = (pool_adapterA, 4)
     strategy[1] = (pool_adapterB, 1)
-    strategy[2] = (pool_adapterC, 1)
+    strategy[2] = (pool_adapterC, 2)
     adapters = [pool_adapterA, pool_adapterB, pool_adapterC]
 
     _setup_multi_adapters(project, dynamo4626, deployer, dai, adapters, strategy)
@@ -1287,7 +1290,10 @@ def test_multi_adapter_withdraw(project, deployer, dynamo4626, pool_adapterA, po
     result = dynamo4626.deposit(1000, trader, sender=trader)
 
     assert dynamo4626.totalAssets() == 1000
-    assert pool_adapterA.totalAssets() == 333
+
+    assert pool_adapterA.totalAssets() == 571
+    assert pool_adapterB.totalAssets() == 142
+    assert pool_adapterC.totalAssets() == 285
 
     if is_not_hard_hat():
         pytest.skip("Not on hard hat Ethereum snapshot.")
@@ -1295,14 +1301,16 @@ def test_multi_adapter_withdraw(project, deployer, dynamo4626, pool_adapterA, po
     print("dynamo4626.deposit(1000, trader, sender=trader) = %s." % result.return_value)
     assert result.return_value == 1000   
 
-
     # There have been no earnings so shares & assets should map 1:1.
     assert dynamo4626.convertToShares(250) == 250  
     assert dynamo4626.convertToAssets(250) == 250  
 
     result = dynamo4626.withdraw(250, trader, trader, sender=trader)
 
-    assert pool_adapterA.totalAssets() == 250
     assert dynamo4626.totalAssets() == 750
+    
+    assert pool_adapterA.totalAssets() == 428
+    assert pool_adapterB.totalAssets() == 107
+    assert pool_adapterB.totalAssets() == 107
 
     assert result.return_value == 250
