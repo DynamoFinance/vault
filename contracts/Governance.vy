@@ -90,7 +90,7 @@ struct Strategy:
     
 # Contract assigned storage 
 contractOwner: public(address)
-MAX_GUARDS: constant(uint256) = 2
+MAX_GUARDS: constant(uint256) = 5
 MAX_POOLS: constant(uint256) = 5
 MAX_VAULTS: constant(uint256) = 3
 DEFAULT_MIN_PROPOSER_PAYOUT: constant(uint256) = 0  # TODO: Need a reasonable value here based on expected gas costs of paying proposal fees.
@@ -156,7 +156,7 @@ def submitStrategy(strategy: ProposedStrategy, vault: address) -> uint256:
             (pending_strat.Withdrawn == True) or \
             len(pending_strat.VotesReject) > 0 and \
             (len(pending_strat.VotesReject) >= pending_strat.no_guards/2) or \
-            (convert(block.timestamp, decimal) > (convert(pending_strat.TSubmitted, decimal)+(convert(self.TDelay, decimal) * 1.25))), "Invalid proposed strategy!"
+            (convert(block.timestamp, decimal) > (convert(pending_strat.TSubmitted, decimal)+(convert(self.TDelay, decimal)))), "Invalid proposed strategy!"
 
     # Confirm msg.sender Eligibility
     # Confirm msg.sender is not blacklisted
@@ -309,7 +309,7 @@ def activateStrategy(Nonce: uint256, vault: address):
     #Confirm strategy is approved by guards
     assert (len(pending_strat.VotesEndorse) >= len(self.LGov)/2) or \
            ((pending_strat.TSubmitted + self.TDelay) < block.timestamp)
-    assert len(pending_strat.VotesReject) < len(pending_strat.VotesEndorse)
+    assert len(pending_strat.VotesReject) <= len(pending_strat.VotesEndorse)
 
     #Confirm Pending Strategy is the Strategy we want to activate
     assert pending_strat.Nonce == Nonce
@@ -318,6 +318,8 @@ def activateStrategy(Nonce: uint256, vault: address):
     self.CurrentStrategyByVault[vault] = self.PendingStrategyByVault[vault]
 
     DynamoVault(vault).set_strategy(self.CurrentStrategyByVault[vault].ProposerAddress, self.CurrentStrategyByVault[vault].LPRatios, pending_strat.min_proposer_payout)
+
+    self.CurrentStrategyByVault[vault].TActivated = block.timestamp
 
     log StrategyActivation(self.CurrentStrategyByVault[vault], self.CurrentStrategyByVault[vault].ProposerAddress, self.CurrentStrategyByVault[vault].LPRatios, pending_strat.min_proposer_payout, vault)
  
@@ -409,6 +411,26 @@ def swapGuard(OldGuardAddress: address, NewGuardAddress: address):
     self.LGov[current_index] = NewGuardAddress
 
     log GuardSwap(OldGuardAddress, NewGuardAddress)
+
+
+# Have to do this to give public access to DynArray.
+# https://github.com/vyperlang/vyper/issues/2897
+@external
+@view
+def guards() -> DynArray[address, MAX_GUARDS]:
+    return self.LGov
+
+
+@external
+@view
+def checkGuard(GuardAddress: address) -> bool:
+    return GuardAddress in self.LGov
+
+
+@external
+@view
+def checkVault(VaultAddress: address) -> bool:
+    return VaultAddress in self.VaultList
 
 
 @external
