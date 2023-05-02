@@ -421,6 +421,14 @@ def guards() -> DynArray[address, MAX_GUARDS]:
     return self.LGov
 
 
+# Have to do this to give public access to DynArray.
+# https://github.com/vyperlang/vyper/issues/2897
+@external
+@view
+def dynamoVaults() -> DynArray[address, MAX_VAULTS]:
+    return self.VaultList
+
+
 @external
 @view
 def checkGuard(GuardAddress: address) -> bool:
