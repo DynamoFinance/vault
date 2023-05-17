@@ -582,6 +582,7 @@ def test_composable(prompt, deployer, trader, vault, dai, frax, gho, dDAI, dFRAX
     # assert dGHO.getRate() == 10**18, "rate is not correct"
 
     print("Trader will swap 200 dUSD for dDAI")
+    print("note: dDAI is worth more now as dDAI4626 generated yield. Balancer's linear pool uses the 4626 contract as an oracle")
     if prompt:
         while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
             bal = tokendiff(holders, tokens)
