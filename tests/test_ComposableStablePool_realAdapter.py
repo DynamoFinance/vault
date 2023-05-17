@@ -469,6 +469,7 @@ def test_composable(prompt, deployer, trader, vault, dai, frax, gho, dDAI, dFRAX
     tokens = {
         "DAI": dai,
         "FRAX": frax,
+        "GHO": gho,
         "dDAI": dDAI,
         "dFRAX": dFRAX,
         "dGHO": dGHO,
