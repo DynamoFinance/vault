@@ -33,11 +33,15 @@ def trader(accounts):
     return accounts[1]
 
 @pytest.fixture
+def arbitrager(accounts):
+    return accounts[2]
+
+@pytest.fixture
 def vault(project):
     return project.Vault.at(VAULT)
 
 @pytest.fixture
-def dai(project, deployer, trader, ensure_hardhat):
+def dai(project, deployer, trader, ensure_hardhat, arbitrager):
     dai = project.DAI.at(DAI)
     # print("wards", dai.wards(deployer))
     #Make deployer a minter
@@ -52,7 +56,9 @@ def dai(project, deployer, trader, ensure_hardhat):
     # print("wards", dai.wards(deployer))
     #make the trader rich, airdrop $1 billion
     dai.mint(trader, '10000000000 Ether', sender=deployer)
+    dai.mint(arbitrager, '10000000000 Ether', sender=deployer)
     dai.approve(VAULT, '10000000000 Ether', sender=trader)
+    dai.approve(VAULT, '10000000000 Ether', sender=arbitrager)
 
     # print(dai.balanceOf(trader))
     return project.ERC20.at(DAI)
@@ -182,7 +188,8 @@ def dDAI(project, deployer, dai, ddai4626, vault, trader, ensure_hardhat):
         "dDAI",
         dai, #mainToken
         ddai4626, #wrappedToken
-        2100000000000000000000000, #upperTarget = 2100000.0 DAI (by default lower target is 0, can be raised after enough liquidity is present)
+        750*10**18, #upperTarget = 2100000.0 DAI (by default lower target is 0, can be raised after enough liquidity is present)
+        # 2100000000000000000000000, #upperTarget = 2100000.0 DAI (by default lower target is 0, can be raised after enough liquidity is present)
         10000000000000, #swapFeePercentage = 0.001% (10000000000000 = 10^13 ; 10^18/10^13 = 100000; 100 / 100000 = 0.001%)
         deployer, #owner
         7, #protocolId ?? TODO: ask balancer what this is
@@ -213,7 +220,7 @@ def dDAI(project, deployer, dai, ddai4626, vault, trader, ensure_hardhat):
     # lp.initialize(sender=deployer)
     #Create some liquidity to avoid BAL#004 (ZERO_DIVISION)
     pool_id = lp.getPoolId()
-    swap(pool_id, vault, dai, lp, "1000 Ether", trader)
+    swap(pool_id, vault, dai, lp, "100000 Ether", trader)
     swap(pool_id, vault, ddai4626, lp, "1000 Ether", trader)
     return lp
 
@@ -453,7 +460,7 @@ def tokendiff(holders, tokens, prev={}):
     print(table_instance.table)
     return prev
 
-def test_composable(prompt, deployer, trader, vault, dai, frax, gho, dDAI, dFRAX, dGHO, dUSD, ddai4626, dfrax4626, dgho4626, ensure_hardhat, adai, fraxpair):
+def test_composable(prompt, deployer, trader, vault, dai, frax, gho, dDAI, dFRAX, dGHO, dUSD, ddai4626, dfrax4626, dgho4626, ensure_hardhat, adai, fraxpair, arbitrager):
     #ensure oracle of each d-token returns 1 (since no yield yet)
     assert dDAI.getRate() == pytest.approx(10**18), "rate is not 1"
     assert dFRAX.getRate() == pytest.approx(10**18), "rate is not 1"
@@ -462,6 +469,7 @@ def test_composable(prompt, deployer, trader, vault, dai, frax, gho, dDAI, dFRAX
     # assert dUSD.getRate() == 10**18, "rate is not 1"
     holders = {
         "trader": trader,
+        "arbitrager": arbitrager,
         "ddai4626": ddai4626,
         "vault (balancer)": vault,
         "fee_collector": dUSD.getProtocolFeesCollector(),
@@ -612,6 +620,43 @@ def test_composable(prompt, deployer, trader, vault, dai, frax, gho, dDAI, dFRAX
         sender=trader
     )
     bal = tokendiff(holders, tokens, bal)
+
+    print("dDAI pool currently has ~100000 DAI, but we set upper target for DAI in dDAI pool to be 750, there exists an arbiterage oppurtunity")
+    print("arbiterager will directly deposit 99000 DAI in the 4626 contract then swap the resulting dyDAI for DAI in linearpool")
+    if prompt:
+        while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
+            bal = tokendiff(holders, tokens)
+
+    #deposit 250 DAI
+    dai.approve(ddai4626, 99000 *10 ** 18, sender=arbitrager)
+    ddai4626.deposit(99000 *10 ** 18, arbitrager, sender=arbitrager)
+    ddai4626.approve(vault, 99000 *10 ** 18, sender=arbitrager)
+    #Swap 250 dyDAI for DAI in linearpool
+    struct_fund_management_arb = (
+        arbitrager, #address sender
+        False, #bool fromInternalBalance
+        arbitrager, #address payable recipient
+        False #bool toInternalBalance
+    )    
+    struct_single_swap = (
+        dDAI.getPoolId(), #bytes32 poolId
+        0, #SwapKind.GIVEN_IN
+        ddai4626, #IAsset assetIn
+        dai, #IAsset assetOut
+        ddai4626.balanceOf(arbitrager), #uint256 amount
+        b"" #bytes userData
+    )
+    vault.swap(
+        struct_single_swap, #SingleSwap singleSwap
+        struct_fund_management_arb, #FundManagement funds
+        "50 Ether", #uint256 limit
+        999999999999999999, #uint256 deadline
+        sender=arbitrager
+    )
+    bal = tokendiff(holders, tokens, bal)
+
+
+
     print("Trader will swap 148 dDAI for DAI")
     if prompt:
         while input("enter to continue, or r+<enter> to refresh balances: ") in ["r", "R"]:
