@@ -121,15 +121,24 @@ sequenceDiagram
 
     fund->>a4626: txs = TXS, blocked_adapters = [Blocked_Adapters]
 
-    Note over a4626: If there are blocked adapters then<br>set their stratefy ratios to zero.
+    Note over a4626: If there are blocked adapters then<br>set their strategy ratios to zero.
 
     loop for Adapter: adapter in blocked_adapters
-        alt if Adapter == 0 (empty(address))
-            note over a4626: break
-        else if Adapter != 0
-            Note over a4626: Funds missing from this Adapter!<br>Revise strategy ratio and public event!
+        alt if Adapter != 0
+            Note over a4626: Funds missing from this Adapter!<br>Revise strategy ratio and publish PoolLoss event!
             Note over a4626: new_strat = self.strategy[Adapter]<br>new_strat.ratio = 0<br>self.strategy[Adapter] = new_strat
             a4626->>eth: log PoolLoss(Adapter, new_strat.last_asset_value, self._poolAssets(Adapter))
+        end
+    end
+
+    Note over a4626: Now actually move the funds for qualified txs.
+
+    loop for Dtx: dtx in txs
+        alt if Dtx.qty > 0 and Dtx.qty > Minimum TX Value from Strategy
+            Note over a4626: Execute a deposit into the adapter<br>large enough to be worth the gas<br>from the 4626 Vault.
+
+        else if Dtx.qrt < 0:
+            Note over a4626: Execute a withdraw from the adapter into the 4626 Vault.
         end
     end
 ```    
