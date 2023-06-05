@@ -109,17 +109,31 @@ sequenceDiagram
     participant a4626 as d<Token>4626
     participant fund as FundsAllocator
     participant lpa as LP Adapter
+    participant eth as Ethereum Mainnet
 
     autonumber
 
-    Note over lpa: What's up?
-
-    Note over user: Test!
-
     user->>a4626: balanceAdapters(_target_asset_balance=0)
 
-    a4626->>fund: txs, blocked_adapters = getBalanceTxs(_target_asset_balance,<br>_min_proposer_payout,<br>_total_assets,<br>_total_ratios,<br>_pool_states)
+    Note over a4626:Call _getCurrentBalances to copy state of the 4626 because all functions<br>in FundsAllocator are stateless so must be passed these values.<br>_total_assets = current assets in vault<br>_total_ratios = sum of strategy ratios in vault<br>_pool_states = [each pool struct = {adapter, current assets in pool, ratio for this adapter},...]
 
+    a4626->>fund: getBalanceTxs(_target_asset_balance,<br>_min_proposer_payout,<br>_total_assets,<br>_total_ratios,<br>_pool_states)
+
+    fund->>: txs = TXS, blocked_adapters = [Blocked_Adapters]
+
+    Note over a4626: If there are blocked adapters then<br>set their stratefy ratios to zero.
+
+    loop for Adapter: adapter in blocked_adapters
+        alt if Adapter == 0 (empty(address))
+            break
+        else if Adapter != 0
+            Note over a4626: Funds missing from this Adapter!<br>Revise strategy ratio and public event!
+            new_strat = self.strategy[Adapter]
+            new_strat.ratio = 0
+            self.strategy[Adapter] = new_strat
+            a4626->>eth: log PoolLoss(Adapter, new_strat.last_asset_value, self._poolAssets(Adapter))
+        end
+    end
 ```    
 
 #### mint (shares, destination) -> assets
