@@ -57,6 +57,8 @@ sequenceDiagram
     #participant share as <ERC20 LP Share>
     participant eth as Ethereum Mainnet
   
+    note over a4626: a4626 = contract address
+
     autonumber
     u->>a4626:deposit(assets = 500, dest = Investor)
 
