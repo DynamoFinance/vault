@@ -108,7 +108,7 @@ sequenceDiagram
     participant user as Calling Wallet
     participant a4626 as d<Token>4626
     participant fund as FundsAllocator
-    participant lpa as LP Adapter
+    #participant lpa as LP Adapter
     participant eth as Ethereum Mainnet
 
     autonumber
@@ -118,6 +118,8 @@ sequenceDiagram
     Note over a4626:Call _getCurrentBalances to copy state of the 4626 because all functions<br>in FundsAllocator are stateless so must be passed these values.<br>_total_assets = current assets in vault<br>_total_ratios = sum of strategy ratios in vault<br>_pool_states = [each pool struct = {adapter, current assets in pool, ratio for this adapter},...]
 
     a4626->>fund: getBalanceTxs(_target_asset_balance,<br>_min_proposer_payout,<br>_total_assets,<br>_total_ratios,<br>_pool_states)
+
+    Note over fund:The functions in the FundsAllocator are upgradable but have<br>no access to Vault data beyond what is passed to it.<br>It's purpose is to create a list of transactions that<br>will optimally result in final balances of assets<br>in the 4626 Vault + move funds across the adapters to<br>achieve tarets established by the current strategy.
 
     fund->>a4626: txs = TXS, blocked_adapters = [Blocked_Adapters]
 
