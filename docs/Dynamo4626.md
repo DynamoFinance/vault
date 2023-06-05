@@ -101,10 +101,15 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
+    participant user as Calling Wallet
     participant a4626 as d<Token>4626
     parcitipant fund as FundsAllocator
     participant lpa as LP Adapter
 
+    user->>a4626: balanceAdapters(_target_asset_balance=0)
+
+    a4626->>fund: txs, blocked_adapters = getBalanceTxs(_target_asset_balance,<br>_min_proposer_payout,<br>_total_assets,<br>_total_ratios,<br>_pool_states)
+    
 
 ```    
 
