@@ -47,6 +47,7 @@ Transfer - struct for transaction definition containing a signed qty and Adapter
 
 Deposit fixed number of X assets for destination to receive Y shares representing the new investment.
 Shares will be credited to destination address. 
+
 ```mermaid
 sequenceDiagram
     participant u as Investor
@@ -99,6 +100,8 @@ sequenceDiagram
   
 ```
 
+balanceAdapters Use Case 
+
 ```mermaid
 sequenceDiagram
     participant user as Calling Wallet
@@ -106,10 +109,12 @@ sequenceDiagram
     parcitipant fund as FundsAllocator
     participant lpa as LP Adapter
 
+    autonumber 
+
     user->>a4626: balanceAdapters(_target_asset_balance=0)
 
     a4626->>fund: txs, blocked_adapters = getBalanceTxs(_target_asset_balance,<br>_min_proposer_payout,<br>_total_assets,<br>_total_ratios,<br>_pool_states)
-    
+
 
 ```    
 
