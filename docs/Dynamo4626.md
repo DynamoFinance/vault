@@ -107,7 +107,8 @@ sequenceDiagram
 Deposit X assets where X is determined to be the quantity required to receive Y shares representing the new investment.  
 Shares will be credited to destination address. For DynamoUSD this would be the LinearPool which this
 contract is an AssetManager for.
-#### redeem (shares, destination, owner) -> assets
+
+#### withdraw (assets, destination, owner) -> shares
 
 Convert X shares controlled by owner back to Y assets to be credited to destination.
 ```mermaid
@@ -121,38 +122,34 @@ sequenceDiagram
     participant eth as Ethereum Mainnet
   
     autonumber
-    u->>a4626:redeem(shares = 500, dest = Investor)
-    note over a4626: Assets, Txs = _genRedeemTxs(shares=500)<br>Redeemed: uint256 = 0
-    a4626-->>a4626: _genRedeemTxs(shares=500) -> (AssetValue, Transfer[])
-    loop for Tx: Transfer in Txs
-       alt if Tx.Qty==0
-           note over a4626: break
-       else if Tx.Qty > 0
-           note over a4626: SendVal: uint256 = min(Tx.Qty, Assets-Redeemed)
-           alt if SendVal > 0
-               a4626->>lpa: (Tx.Adapter).withdraw(SendVal, Investor)
-               note over lpa: asset.balanceOf[Investor]+=Sendval
-               note over a4626: Redeemed += SendVal<br>Tx.Qty -= SendVal
-           end
-           alt if Tx.Qty > StrategyMinTxValue
-               a4626->>lpa: (Tx.Adapter).withdraw(Tx.Qty, d<Token>4626)
-               note over lpa: asset.balanceOf[d<Token>4626]+=Tx.Qty
-           end
-           a4626->>lpa: (Tx.Adapter).deposit(Tx.Qty)
-           note over lpa: asset.balanceOf[d<Token>4626]-=Tx.Qty<br>asset.balanceOf[LP]+=Tx.Qty<br>share.balanceOf[d<Token>4626]+=~Tx.Qty
-       else (otherwise)
-           a4626->>lpa: (Tx.Adapter).deposit(-1 * Tx.Qty)
-            note over lpa: asset.balanceOf[d<Token>4626]-=Tx.Qty<br>asset.balanceOf[LP]+=Tx.Qty<br>share.balanceOf[d<Token>4626]+=~Tx.Qty
-       end    
+    u->>a4626:withdraw(asset_amount = 500, receiver = Investor, owner = Investor)
+
+    Note over a4626: Map asset_amount to share value<br>& get owner's share balance.
+
+    a4626-->>a4626: shares = _convertToShares(asset_amount)
+    a4626-->>a4626: xcbal = self.balanceOf[owner]
+
+    Note over a4626: Is the owner not the receiver?
+    alt if msg.sender != owner
+        Note over a4626: Confirm msg.sender has adequate allowance from owner.
+        Note over a4626: Reduce msg.senders allowance from owner.
     end
-  
-    alt if Assets - Redeemed > 0
-        a4626->>asset: transfer(to=Investor, Assets - Redeemed)
-    end
-  
-    a4626-->>a4626: ERC20(self).burnFrom(from=Investor, qty=shares)
-   
-   a4626->>u: return Assets
+
+    Note over a4626: Reduce owner balance of shares.<br>Reduce total supply of shares.
+
+    a4626->>eth: log Transfer(owner, 0, shares) (Burn shares)
+
+    a4626-->>a4626: balanceAdapters(_target_asset_balance = asset_amount)
+    Note over a4626: See balanceAdapters use case diagram below.
+
+    Note over a4626: Move asset tokens to receiver.
+    a4626->>asset: transfer(Investor, asset_amount)
+
+    Note over a4626: Update Vault's total_assets_withdrawn by asset_amount.
+
+    a4626->>eth: log Withdraw(msg.sender, Investor, owner, asset_amount, shares)
+
+    a4626->>u: return shares
 ```
 #### withdraw (assets, destination, owner) -> shares
 
