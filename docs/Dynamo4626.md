@@ -62,14 +62,18 @@ sequenceDiagram
     autonumber
     u->>a4626:deposit(assets = 500, dest = Investor)
 
-        note over a4626, asset: We must first move the funds into the contract's balance so _getBalanceTxs will know how to best re-adjust.     
+        note over a4626, asset: We must first move the funds into the contract's balance so _getBalanceTxs will know how to best re-adjust.    
+        a4626-->a4626: Shares = _convertToShares(assets)
         a4626->>asset: transferFrom(from=Investor, to=a4626, amt=500)
         Note over asset: balanceOf[Investor]-=500<br>balanceOf[d<Token>4626]+=500
         asset->>a4626: amt=500
       
   
         Note over a4626: Compute most efficient rebalancing limited to only 2 transactions.<br>Txs = _genBalanceTxs(maxTx=2)
-        a4626-->>a4626: _genBalanceTxs(maxTxs=2) -> Transfer[]
+        a4626-->>a4626: _genBalanceTxs() -> Transfer[]
+
+
+
         loop for Tx: Transfer in Txs<br>(limited to maxTxs iterations)
             alt if Tx.Qty==0
                 note over a4626: break
@@ -83,10 +87,10 @@ sequenceDiagram
             end
         end
       
-        a4626->a4626: Assets = mintTo(dest=Investor, amt=500)
-            note over a4626:d<Token>4626.balanceOf[Investor]+=500
+        a4626->a4626: Assets = _mint(dest=Investor, amt=Shares)
+            note over a4626:d<Token>4626.balanceOf[Investor]+=Shares
       
-        a4626->u: return Assets
+        a4626->u: return Shares
       
                
   
