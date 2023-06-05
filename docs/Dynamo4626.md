@@ -100,50 +100,7 @@ sequenceDiagram
   
 ```
 
-balanceAdapters Use Case 
 
-```mermaid
-sequenceDiagram 
-
-    participant user as Calling Wallet
-    participant a4626 as d<Token>4626
-    participant fund as FundsAllocator
-    #participant lpa as LP Adapter
-    participant eth as Ethereum Mainnet
-
-    autonumber
-
-    user->>a4626: balanceAdapters(_target_asset_balance=0)
-
-    Note over a4626:Call _getCurrentBalances to copy state of the 4626 because all functions<br>in FundsAllocator are stateless so must be passed these values.<br>_total_assets = current assets in vault<br>_total_ratios = sum of strategy ratios in vault<br>_pool_states = [each pool struct = {adapter, current assets in pool, ratio for this adapter},...]
-
-    a4626->>fund: getBalanceTxs(_target_asset_balance,<br>_min_proposer_payout,<br>_total_assets,<br>_total_ratios,<br>_pool_states)
-
-    Note over fund:The functions in the FundsAllocator are upgradable but have<br>no access to Vault data beyond what is passed to it.<br>It's purpose is to create a list of transactions that<br>will optimally result in final balances of assets<br>in the 4626 Vault + move funds across the adapters to<br>achieve tarets established by the current strategy.
-
-    fund->>a4626: txs = TXS, blocked_adapters = [Blocked_Adapters]
-
-    Note over a4626: If there are blocked adapters then<br>set their strategy ratios to zero.
-
-    loop for Adapter: adapter in blocked_adapters
-        alt if Adapter != 0
-            Note over a4626: Funds missing from this Adapter!<br>Revise strategy ratio and publish PoolLoss event!
-            Note over a4626: new_strat = self.strategy[Adapter]<br>new_strat.ratio = 0<br>self.strategy[Adapter] = new_strat
-            a4626->>eth: log PoolLoss(Adapter, new_strat.last_asset_value, self._poolAssets(Adapter))
-        end
-    end
-
-    Note over a4626: Now actually move the funds for qualified txs.
-
-    loop for Dtx: dtx in txs
-        alt if Dtx.qty > 0 and Dtx.qty > Minimum TX Value from Strategy
-            Note over a4626: Execute a deposit into the adapter<br>large enough to be worth the gas<br>from the 4626 Vault.
-
-        else if Dtx.qrt < 0:
-            Note over a4626: Execute a withdraw from the adapter into the 4626 Vault.
-        end
-    end
-```    
 
 #### mint (shares, destination) -> assets
 
@@ -212,12 +169,59 @@ These simply provide read-only outcome 'previews' or maximum values possible giv
 Checks to see if the Governance contract has a new strategy ready to activate. 
 If so, makes it the new current strategy then calls rebalance to put it into effect.
 This function may be called by anyone.
-#### rebalance(max_gas = 0)
+#### balanceAdapters(target_asset_balance = 0)
 
 Compares the current cash & asset values across the lending platforms, computes an
 optimum set of transactions necessary to best meet the current Strategy's desired 
 balances, then proceeds to move assets across the lending platforms to best meet the
-current strategy without exceeding the max_gas limits. If max_gas == 0 then will perform
-required transactions up til the gas limits of the block.
+current strategy. If target_asset_balance == 0 then it is a request to move all asset into
+various adapters. If target_asset_balance > 0 then it is a request to move this sum of 
+assets into the 4626 vault so it can be available for a withdrawl and move the rest of the
+assets to adapters according to the current Strategy.
+
 This function may be called by anyone.
-## Use Cases for Dynamo4626 Lending Platform Adapters
+
+balanceAdapters Use Case 
+
+```mermaid
+sequenceDiagram 
+
+    participant user as Calling Wallet
+    participant a4626 as d<Token>4626
+    participant fund as FundsAllocator
+    #participant lpa as LP Adapter
+    participant eth as Ethereum Mainnet
+
+    autonumber
+
+    user->>a4626: balanceAdapters(_target_asset_balance=0)
+
+    Note over a4626:Call _getCurrentBalances to copy state of the 4626 because all functions<br>in FundsAllocator are stateless so must be passed these values.<br>_total_assets = current assets in vault<br>_total_ratios = sum of strategy ratios in vault<br>_pool_states = [each pool struct = {adapter, current assets in pool, ratio for this adapter},...]
+
+    a4626->>fund: getBalanceTxs(_target_asset_balance,<br>_min_proposer_payout,<br>_total_assets,<br>_total_ratios,<br>_pool_states)
+
+    Note over fund:The functions in the FundsAllocator are upgradable but have<br>no access to Vault data beyond what is passed to it.<br>It's purpose is to create a list of transactions that<br>will optimally result in final balances of assets<br>in the 4626 Vault + move funds across the adapters to<br>achieve tarets established by the current strategy.
+
+    fund->>a4626: txs = TXS, blocked_adapters = [Blocked_Adapters]
+
+    Note over a4626: If there are blocked adapters then<br>set their strategy ratios to zero.
+
+    loop for Adapter: adapter in blocked_adapters
+        alt if Adapter != 0
+            Note over a4626: Funds missing from this Adapter!<br>Revise strategy ratio and publish PoolLoss event!
+            Note over a4626: new_strat = self.strategy[Adapter]<br>new_strat.ratio = 0<br>self.strategy[Adapter] = new_strat
+            a4626->>eth: log PoolLoss(Adapter, new_strat.last_asset_value, self._poolAssets(Adapter))
+        end
+    end
+
+    Note over a4626: Now actually move the funds for qualified txs.
+
+    loop for Dtx: dtx in txs
+        alt if Dtx.qty > 0 and Dtx.qty > Minimum TX Value from Strategy
+            Note over a4626: Execute a deposit into the adapter<br>large enough to be worth the gas<br>from the 4626 Vault.
+
+        else if Dtx.qrt < 0:
+            Note over a4626: Execute a withdraw from the adapter into the 4626 Vault.
+        end
+    end
+```    
