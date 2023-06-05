@@ -106,7 +106,7 @@ balanceAdapters Use Case
 sequenceDiagram
     participant user as Calling Wallet
     participant a4626 as d<Token>4626
-    parcitipant fund as FundsAllocator
+    participant fund as FundsAllocator
     participant lpa as LP Adapter
 
     autonumber 
