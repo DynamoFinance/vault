@@ -119,18 +119,16 @@ sequenceDiagram
 
     a4626->>fund: getBalanceTxs(_target_asset_balance,<br>_min_proposer_payout,<br>_total_assets,<br>_total_ratios,<br>_pool_states)
 
-    fund->>: txs = TXS, blocked_adapters = [Blocked_Adapters]
+    fund->>a4626: txs = TXS, blocked_adapters = [Blocked_Adapters]
 
     Note over a4626: If there are blocked adapters then<br>set their stratefy ratios to zero.
 
     loop for Adapter: adapter in blocked_adapters
         alt if Adapter == 0 (empty(address))
-            break
+            note over a4626: break
         else if Adapter != 0
             Note over a4626: Funds missing from this Adapter!<br>Revise strategy ratio and public event!
-            new_strat = self.strategy[Adapter]
-            new_strat.ratio = 0
-            self.strategy[Adapter] = new_strat
+            Note over a4626: new_strat = self.strategy[Adapter]<br>new_strat.ratio = 0<br>self.strategy[Adapter] = new_strat
             a4626->>eth: log PoolLoss(Adapter, new_strat.last_asset_value, self._poolAssets(Adapter))
         end
     end
