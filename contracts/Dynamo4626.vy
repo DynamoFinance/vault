@@ -15,8 +15,9 @@ interface FundsAllocator:
     def getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_balances: BalancePool[MAX_POOLS], _min_outgoing_tx: uint256) -> (uint256, int256, uint256, BalancePool[MAX_POOLS], address[MAX_POOLS]): pure
     def getBalanceTxs( _target_asset_balance: uint256, _max_txs: uint8, _min_proposer_payout: uint256, _total_assets: uint256, _total_ratios: uint256, _pool_states: BalancePool[MAX_POOLS]) -> (BalanceTX[MAX_POOLS], address[MAX_POOLS]): pure
 
+# Number of potential lenging platform adapters.
 MAX_POOLS : constant(uint256) = 5
-MAX_BALTX_DEPOSIT : constant(uint8) = 5 # TODO - this is ignored for now.
+MAX_BALTX_DEPOSIT : constant(uint8) = 5 # MUST equal MAX_POOLS for now. Ignored for now.
 
 # Contract owner hold 10% of the yield.
 YIELD_FEE_PERCENTAGE : constant(uint256) = 10
@@ -24,11 +25,13 @@ YIELD_FEE_PERCENTAGE : constant(uint256) = 10
 # 1% of the yield belongs to the Strategy proposer.
 PROPOSER_FEE_PERCENTAGE: constant(uint256) = 1
 
+# For use in support of _claim_fees
 enum FeeType:
     BOTH
     YIELD
     PROPOSER
 
+# ERC-20 attributes for this Vault's share token.
 name: public(immutable(String[64]))
 symbol: public(immutable(String[32]))
 decimals: public(immutable(uint8))
@@ -675,7 +678,7 @@ def mint(_share_amount: uint256, _receiver: address) -> uint256:
     @notice This function mints asset qty that would be returned for this share_amount to receiver
     @param _share_amount Number amount of shares to evaluate
     @param _receiver Address of receiver to evaluate
-    @return Asset qty per share amount
+    @return Asset value of _share_amount
     """
     assetqty : uint256 = self._convertToAssets(_share_amount)
     return self._deposit(assetqty, _receiver)
