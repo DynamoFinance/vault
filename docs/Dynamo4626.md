@@ -50,26 +50,28 @@ Shares will be credited to destination address.
 ```mermaid
 sequenceDiagram
     participant u as Investor
-    participant a4626 as d<Token>4626
+    participant a4626 as d<Token>4626    
     participant lpa as LP Adapter
     participant asset as <ERC20 Asset Token><br>"asset"
     #participant lp as LP
     #participant share as <ERC20 LP Share>
     participant eth as Ethereum Mainnet
   
-    note over a4626: a4626 = contract address
+    note over a4626: a4626 = d<Token>4626 contract address
 
     autonumber
-    u->>a4626:deposit(assets = 500, dest = Investor)
+    u->>a4626:deposit(_asset_amount = 500, _receiver = Investor)
 
         note over a4626, asset: We must first move the funds into the contract's balance so _getBalanceTxs will know how to best re-adjust.    
-        a4626-->a4626: Shares = _convertToShares(assets)
+        a4626-->>a4626: Shares = _convertToShares(_asset_amount)
         a4626->>asset: transferFrom(from=Investor, to=a4626, amt=500)
         Note over asset: balanceOf[Investor]-=500<br>balanceOf[d<Token>4626]+=500
         asset->>a4626: amt=500
       
+        a4626-->>a4626: balanceAdapters(_target_asset_balance=0)
+        Note over a4626: See balanceAdapters use case diagram below.
   
-        Note over a4626: Compute most efficient rebalancing limited to only 2 transactions.<br>Txs = _genBalanceTxs(maxTx=2)
+        Note over a4626: Compute most efficient rebalancing transactions.<br>Txs = _genBalanceTxs()
         a4626-->>a4626: _genBalanceTxs() -> Transfer[]
 
 
@@ -96,6 +98,16 @@ sequenceDiagram
   
   
 ```
+
+```mermaid
+sequenceDiagram
+    participant a4626 as d<Token>4626
+    parcitipant fund as FundsAllocator
+    participant lpa as LP Adapter
+
+
+```    
+
 #### mint (shares, destination) -> assets
 
 Deposit X assets where X is determined to be the quantity required to receive Y shares representing the new investment.  
