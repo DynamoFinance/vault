@@ -517,7 +517,7 @@ def _claim_fees(_yield : FeeType, _asset_amount: uint256, _current_assets : uint
         assert msg.sender == self.owner, "Only owner may claim yield fees."
         self.total_yield_fees_claimed += claim_amount    
     elif _yield == FeeType.PROPOSER:
-        assert msg.sender == self.current_proposer, "Only curent proposer may claim strategy fees."
+        assert msg.sender == self.current_proposer or msg.sender == self.governance, "Only curent proposer or governance may claim strategy fees."
         self.total_strategy_fees_claimed += claim_amount        
     elif _yield == FeeType.BOTH:
         assert msg.sender == self.owner, "Only owner may claim yield fees."
