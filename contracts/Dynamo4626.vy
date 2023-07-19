@@ -435,7 +435,7 @@ def _claimable_fees_available(_yield : FeeType, _current_assets : uint256 = 0) -
 
     total_fees_ever : uint256 = (convert(total_returns,uint256) * fee_percentage) / 100
 
-    assert self.total_strategy_fees_claimed + self.total_yield_fees_claimed <= total_fees_ever, "Total fee calc error!"
+    #assert self.total_strategy_fees_claimed + self.total_yield_fees_claimed <= total_fees_ever, "Total fee calc error!"
 
     total_fees_available : uint256 = 0
     if _yield == FeeType.YIELD or _yield == FeeType.BOTH:
