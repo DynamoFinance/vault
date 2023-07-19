@@ -424,27 +424,28 @@ def _claimable_fees_available(_yield : FeeType, _current_assets : uint256 = 0) -
     total_returns : int256 = self._totalReturns(total_assets)
     if total_returns <= 0: return 0
 
-    # Assume FeeType.YIELD
-    fee_percentage: uint256 = YIELD_FEE_PERCENTAGE
-    if _yield == FeeType.PROPOSER:
-        fee_percentage = PROPOSER_FEE_PERCENTAGE
-    elif _yield == FeeType.BOTH:
-        fee_percentage += PROPOSER_FEE_PERCENTAGE
-    elif _yield != FeeType.YIELD:
-        assert False, "Invalid FeeType!" 
+    total_yield_ever : uint256 = (convert(total_returns,uint256) * YIELD_FEE_PERCENTAGE) / 100
+    total_fees_ever : uint256 = (convert(total_returns,uint256) * PROPOSER_FEE_PERCENTAGE) / 100
 
-    total_fees_ever : uint256 = (convert(total_returns,uint256) * fee_percentage) / 100
+    if _yield == FeeType.PROPOSER and \
+        self.total_strategy_fees_claimed <= total_fees_ever: 
+            return 0
+    elif _yield == FeeType.YIELD and \
+        self.total_yield_fees_claimed <= total_yield_ever:
+            return 0
+    elif _yield == FeeType.BOTH and \
+        self.total_strategy_fees_claimed + self.total_yield_fees_claimed <= total_fees_ever + total_yield_ever:
+            return 0
+    else:
+        assert False, "Invalid FeeType!"
 
-    #assert self.total_strategy_fees_claimed + self.total_yield_fees_claimed <= total_fees_ever, "Total fee calc error!"
 
     total_fees_available : uint256 = 0
     if _yield == FeeType.YIELD or _yield == FeeType.BOTH:
-        total_fees_available = total_fees_ever - self.total_yield_fees_claimed
-    elif _yield == FeeType.PROPOSER:
-        total_fees_available = total_fees_ever - self.total_strategy_fees_claimed           
-
-    if _yield == FeeType.BOTH:
-        total_fees_available -= self.total_strategy_fees_claimed
+        total_fees_available += total_yield_ever - self.total_yield_fees_claimed
+    
+    if _yield == FeeType.PROPOSER or _yield == FeeType.BOTH:
+        total_fees_available += total_fees_ever - self.total_strategy_fees_claimed           
 
     # We want to do the above sanity checks even if total_assets is zero just in case.
     #if total_assets == 0: return 0
