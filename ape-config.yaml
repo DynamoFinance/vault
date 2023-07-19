@@ -4,6 +4,7 @@ plugins:
   - name: vyper
   - name: polygon
   - name: alchemy
+  - name: hardhat
 
 default_ecosystem: ethereum
 
