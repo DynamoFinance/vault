@@ -1037,6 +1037,7 @@ def _withdraw(_asset_amount: uint256,_receiver: address,_owner: address) -> uint
     # Make sure we have enough assets to send to _receiver.
     self._balanceAdapters( _asset_amount )
 
+    # TODO - instead perhaps we allow a withdrawl of a smaller amount and adjust the shares burned instead?
     assert ERC20(asset).balanceOf(self) >= _asset_amount, "ERROR - 4626 DOESN'T HAVE ENOUGH BALANCE TO WITHDRAW!"
 
     # Now send assets to _receiver.
