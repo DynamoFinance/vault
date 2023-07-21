@@ -971,7 +971,7 @@ def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: a
     # Update our last_asset_value in our strategy for protection against LP exploits.
     self.strategy[_adapter].last_asset_value = self._poolAssets(_adapter)
 
-    return balbefore - balafter
+    return balafter - balbefore
 
 
 @internal
