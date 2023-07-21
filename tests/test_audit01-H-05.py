@@ -196,7 +196,19 @@ def test_lp_ddos(deployer, trader, vault, dai, ddai4626, adai, compound_adapter,
     with ape.reverts():
         ddai4626.withdraw(10**18, trader, trader, sender=trader)
 
+
+    rate_prior = ddai4626.convertToAssets(10**18, sender=trader)
     #we cannot set strategy to 0 aave is the first one
     #this shouldnt crash. basically there should be "something" the owner can do to make the vault usable.
     ddai4626.remove_pool(strategy[0][0], False, sender=deployer)
+
+    rate_post = ddai4626.convertToAssets(10**18, sender=trader)
+
+    print(rate_prior, rate_post)
+
+    #showing that the adapter loss got socialized
+    assert rate_post < rate_prior, "rate should be lower"
+
+    #Withdraw should work now
+    ddai4626.withdraw(10**18, trader, trader, sender=trader)
 
