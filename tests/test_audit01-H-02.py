@@ -137,9 +137,10 @@ def test_claimable_issue(deployer, trader, dai, dynamo4626, compound_adapter, cd
     set_storage_request = {"jsonrpc": "2.0", "method": "hardhat_mine", "id": 1,
         "params": ["0x186a0", "0x12c"]}
     print(requests.post("http://localhost:8545/", json.dumps(set_storage_request)))
-    print(dynamo4626.claimable_yield_fees_available())
+    print("dynamo4626.claimable_yield_fees_available() : %s." % dynamo4626.claimable_yield_fees_available())
     dynamo4626.claim_strategy_fees(sender=deployer)
     dynamo4626.claim_all_fees(sender=deployer)
     #I dont quite understand the math a 100%, but next line triggers it...
     #Its supposedly only using yield fee for calc, but comparing it against sum of yield+strategy fees
-    print(dynamo4626.claimable_yield_fees_available())
+    #print(dynamo4626.claimable_yield_fees_available())
+    print("dynamo4626.claimable_yield_fees_available() : %s." % dynamo4626.claimable_yield_fees_available())
