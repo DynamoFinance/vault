@@ -130,17 +130,28 @@ def adai(project, deployer, trader, ensure_hardhat):
 def test_lp_ddos(deployer, trader, vault, dai, ddai4626, adai, compound_adapter, cdai):
     strategy = [(ZERO_ADDRESS,0)] * MAX_POOLS
     pos = 0
+
+    print("HERE!!!!")
+
     for pool in ddai4626.lending_pools():
         strategy[pos] = (pool, ddai4626.strategy(pool).ratio)
         pos += 1
     strategy[pos] = (compound_adapter.address, 1)
     ddai4626.set_strategy(deployer, strategy, 0, sender=deployer)
+
+    print("HERE2!!!!")
+
+
     ddai4626.add_pool(compound_adapter, sender=deployer)    
 
     #we have aave and compound adapters with 50-50 ratio
+    print("HERE3!!!!")
 
     #trader invest 1000 DAI
     ddai4626.deposit(1000 *10 ** 18, trader, sender=trader)
+
+    print("HEREX!!!!")
+
 
     #500 each should have gone to compound and aave
     print(cdai.balanceOfUnderlying(ddai4626, sender=trader).return_value)
@@ -149,7 +160,8 @@ def test_lp_ddos(deployer, trader, vault, dai, ddai4626, adai, compound_adapter,
 
     aave_dai = dai.balanceOf(adai)
     print(aave_dai)
-    
+
+
     #AAVE does a rug pull and robs all their dai
     #impersonate adai contract
     impersonate_request = {"jsonrpc": "2.0", "method": "hardhat_impersonateAccount", "id": 1,
@@ -184,7 +196,19 @@ def test_lp_ddos(deployer, trader, vault, dai, ddai4626, adai, compound_adapter,
     with ape.reverts():
         ddai4626.withdraw(10**18, trader, trader, sender=trader)
 
+
+    rate_prior = ddai4626.convertToAssets(10**18, sender=trader)
     #we cannot set strategy to 0 aave is the first one
     #this shouldnt crash. basically there should be "something" the owner can do to make the vault usable.
     ddai4626.remove_pool(strategy[0][0], False, sender=deployer)
+
+    rate_post = ddai4626.convertToAssets(10**18, sender=trader)
+
+    print(rate_prior, rate_post)
+
+    #showing that the adapter loss got socialized
+    assert rate_post < rate_prior, "rate should be lower"
+
+    #Withdraw should work now
+    ddai4626.withdraw(10**18, trader, trader, sender=trader)
 

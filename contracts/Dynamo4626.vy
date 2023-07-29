@@ -332,7 +332,7 @@ def _remove_pool(_pool: address, _rebalance: bool = True) -> bool:
         pool_assets : uint256 = self._poolAssets(_pool)
 
         if pool_assets > 0:
-            self._adapter_withdraw(_pool, pool_assets, self)
+            assets_withdrawn : uint256 = self._adapter_withdraw(_pool, pool_assets, self)
 
     # Walk over the list of adapters and get rid of this one.
     new_pools : DynArray[address, MAX_POOLS] = empty(DynArray[address, MAX_POOLS])
@@ -364,7 +364,8 @@ def _poolAssets(_pool: address) -> uint256:
     response: Bytes[32] = empty(Bytes[32])
     result_ok: bool = False
 
-    assert _pool != empty(address), "EMPTY POOL!!"    
+    if _pool == empty(address):
+        return 0
 
     return LPAdapter(_pool).totalAssets()
 
@@ -884,7 +885,7 @@ def _balanceAdapters( _target_asset_balance: uint256, _max_txs: uint8 = MAX_BALT
         elif dtx.qty < 0:
             # Liquidate funds from lending pool's adapter.
             qty: uint256 = convert(dtx.qty * -1, uint256)         
-            self._adapter_withdraw(dtx.adapter, qty, self)
+            assets_withdrawn : uint256 = self._adapter_withdraw(dtx.adapter, qty, self)
 
 
 @external
@@ -942,7 +943,7 @@ def _adapter_deposit(_adapter: address, _asset_amount: uint256):
 
 
 @internal
-def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: address):
+def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: address) -> uint256:
 
     current_balance : uint256 = ERC20(asset).balanceOf(_adapter)
     balbefore : uint256 = ERC20(asset).balanceOf(_withdraw_to)
@@ -960,14 +961,17 @@ def _adapter_withdraw(_adapter: address, _asset_amount: uint256, _withdraw_to: a
         revert_on_failure=False
         )
 
-    assert result_ok == True, "withdraw raw_call failed!"
+    #assert result_ok == True, "withdraw raw_call failed!"
+    # TODO - issue a log if this failed.
 
     balafter : uint256 = ERC20(asset).balanceOf(_withdraw_to)
-    assert balafter != balbefore, "NOTHING CHANGED!"
-    assert balafter - balbefore == _asset_amount, "DIDN'T GET OUR ASSETS BACK!"
+    #assert balafter != balbefore, "NOTHING CHANGED!"
+    #assert balafter - balbefore == _asset_amount, "DIDN'T GET OUR ASSETS BACK!"
     
     # Update our last_asset_value in our strategy for protection against LP exploits.
     self.strategy[_adapter].last_asset_value = self._poolAssets(_adapter)
+
+    return balafter - balbefore
 
 
 @internal
