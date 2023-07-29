@@ -564,8 +564,15 @@ def test_single_adapter_share_value_increase(project, deployer, dynamo4626, pool
 
     assert dynamo4626.totalAssets() == 2000
 
+    print("dynamo4626.totalReturns() is %s." % dynamo4626.totalReturns())
+    assert dynamo4626.totalReturns() == 1000
+
     # Assumes YIELD_FEE_PERCENTAGE : constant(decimal) = 10.0
     #     and PROPOSER_FEE_PERCENTAGE : constant(decimal) = 1.0
+
+    print("dynamo4626.claimable_all_fees_available() is %s." % dynamo4626.claimable_all_fees_available())
+    assert dynamo4626.claimable_all_fees_available() == 110
+
     print("dynamo4626.convertToAssets(1000) is :%s but should be: %s." % (int(dynamo4626.convertToAssets(1000)),1000 + (1000 - (1000*0.11))))
     assert dynamo4626.convertToAssets(1000) == 1000 + (1000 - (1000*0.11))
 

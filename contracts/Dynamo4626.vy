@@ -422,24 +422,23 @@ def _claimable_fees_available(_yield : FeeType, _current_assets : uint256 = 0) -
     # Only call _totalAssets() if it wasn't passed in.
     if total_assets == 0:
         total_assets = self._totalAssets()
+
     total_returns : int256 = self._totalReturns(total_assets)
-    if total_returns <= 0: return 0
+    if total_returns <= 0: 
+        return 0
 
     total_yield_ever : uint256 = (convert(total_returns,uint256) * YIELD_FEE_PERCENTAGE) / 100
     total_fees_ever : uint256 = (convert(total_returns,uint256) * PROPOSER_FEE_PERCENTAGE) / 100
 
     if _yield == FeeType.PROPOSER and \
-        self.total_strategy_fees_claimed <= total_fees_ever: 
+        self.total_strategy_fees_claimed >= total_fees_ever: 
             return 0
     elif _yield == FeeType.YIELD and \
-        self.total_yield_fees_claimed <= total_yield_ever:
+        self.total_yield_fees_claimed >= total_yield_ever:
             return 0
     elif _yield == FeeType.BOTH and \
-        self.total_strategy_fees_claimed + self.total_yield_fees_claimed <= total_fees_ever + total_yield_ever:
+        self.total_strategy_fees_claimed + self.total_yield_fees_claimed >= total_fees_ever + total_yield_ever:
             return 0
-    else:
-        assert False, "Invalid FeeType!"
-
 
     total_fees_available : uint256 = 0
     if _yield == FeeType.YIELD or _yield == FeeType.BOTH:
