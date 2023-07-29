@@ -11,6 +11,8 @@
 
 MAX_POOLS : constant(uint256) = 5 
 
+POOL_BREAKS_LOSS_POINT : constant(decimal) = 0.00001
+
 struct BalanceTX:
     qty: int256
     adapter: address
@@ -64,7 +66,8 @@ def _getTargetBalances(_d4626_asset_target: uint256, _total_assets: uint256, _to
                     pool.delta = 0
 
                 # Is the LP possibly compromised for an outgoing tx?
-                if pool.current < pool.last_value:
+                pool_brakes_limit : uint256 = pool.last_value - convert(convert(pool.last_value, decimal) * POOL_BREAKS_LOSS_POINT, uint256)
+                if pool.current < pool_brakes_limit:
                     # We've lost value in this adapter! Don't give it more money!
                     blocked_adapters[blocked_pos] = pool.adapter
                     blocked_pos += 1
