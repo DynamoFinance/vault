@@ -88,7 +88,8 @@ def test_endorsement_short_circuit(governance_contract, vault_contract_one, acco
 	governance_contract.addGuard(g1, sender=owner)
 	nonce = governance_contract.submitStrategy(STRATEGY, vault_contract_one, sender=strat)
 
-	# Can't activate strategy yet.
+	governance_contract.endorseStrategy(nonce, vault_contract_one, sender=g1)
+
 	governance_contract.activateStrategy(nonce, vault_contract_one, sender=strat)
 
 
