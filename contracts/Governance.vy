@@ -303,16 +303,16 @@ def activateStrategy(Nonce: uint256, vault: address):
     assert vault in self.VaultList, "vault not in vault list!"  
 
     #Confirm there is a currently pending strategy
-    assert (self.CurrentStrategyByVault[vault].Nonce != pending_strat.Nonce)
-    assert (pending_strat.Withdrawn == False)
+    assert (self.CurrentStrategyByVault[vault].Nonce != pending_strat.Nonce), "Invalid Nonce."
+    assert (pending_strat.Withdrawn == False), "Strategy is withdrawn."
 
     #Confirm strategy is approved by guards
     assert (len(pending_strat.VotesEndorse) >= len(self.LGov)/2) or \
-           ((pending_strat.TSubmitted + self.TDelay) < block.timestamp)
-    assert len(pending_strat.VotesReject) <= len(pending_strat.VotesEndorse)
+           ((pending_strat.TSubmitted + self.TDelay) < block.timestamp), "Premature activation with insufficience endorsements."
+    assert len(pending_strat.VotesReject) <= len(pending_strat.VotesEndorse), "Strategy was rejected."
 
     #Confirm Pending Strategy is the Strategy we want to activate
-    assert pending_strat.Nonce == Nonce
+    assert pending_strat.Nonce == Nonce, "Incorrect strategy nonce."
 
     #Make Current Strategy and Activate Strategy
     self.CurrentStrategyByVault[vault] = self.PendingStrategyByVault[vault]

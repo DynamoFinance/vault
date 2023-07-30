@@ -68,14 +68,10 @@ def vault_contract_one(governance_contract, owner, project, accounts, dai, funds
     return vcontractone
 
 
-def test_me():
-    print("This is test_me!")
-
-
 def test_endorsement_short_circuit(governance_contract, vault_contract_one, accounts, owner):
     strat = accounts[1]
     g1 = accounts[2]
-    guards = accounts[3:MAX_GUARDS-1]
+    guards = accounts[2:MAX_GUARDS-1]
     
     governance_contract.addVault(vault_contract_one, sender=owner)
 
@@ -85,12 +81,36 @@ def test_endorsement_short_circuit(governance_contract, vault_contract_one, acco
 
     # Setup for test.
     governance_contract.addGuard(g1, sender=owner)
-    nonce = governance_contract.submitStrategy(STRATEGY, vault_contract_one, sender=strat)
+    Guards = 1
 
-    governance_contract.endorseStrategy(nonce, vault_contract_one, sender=g1)
+    for i in guards:
 
-    governance_contract.activateStrategy(nonce, vault_contract_one, sender=strat)
+        receipt = governance_contract.submitStrategy(STRATEGY, vault_contract_one, sender=strat)
+        nonce = receipt.return_value
 
 
+        Endorsements = 0
+        for v, g in enumerate(guards):
 
-    print("Done.")
+            governance_contract.endorseStrategy(nonce, vault_contract_one, sender=guards[v])
+            Endorsements += 1
+
+            if Endorsements < Guards // 2 + 1:
+                with ape.reverts("Premature activation with insufficience endorsements."):
+                    governance_contract.activateStrategy(nonce, vault_contract_one, sender=strat)
+
+            else:
+                governance_contract.activateStrategy(nonce, vault_contract_one, sender=strat)
+
+                # for old_guard in guards[:v+1]:
+                #     governance_contract.removeGuard(old_guard)
+
+                #governance_contract.withdrawStrategy(nonce, vault_contract_one, sender=strat)
+                ape.chain.pending_timestamp += 100000
+                break
+
+        # Add another guard.
+        if i != guards[-1]:
+            governance_contract.addGuard(guards[v+1], sender=owner)
+            Guards += 1
+
