@@ -473,8 +473,8 @@ def replaceGovernance(NewGovernance: address, vault: address):
         if self.VotesGCByVault[vault][guard_addr] == NewGovernance:
             VoteCount += 1
 
-    # if len(self.LGov) == VoteCount:
-    #     Vault(self.Vault).replaceGovernanceContract(NewGovernance)
+    if len(self.LGov) == VoteCount:
+        DynamoVault(vault).replaceGovernanceContract(NewGovernance)
 
     log GovernanceContractChanged(Voter, NewGovernance, VoteCount, TotalGuards)
 
