@@ -1,7 +1,8 @@
-Business Source License 1.1
+Business Source License 1.1-revised
 
-License text copyright (c) 2017 MariaDB Corporation Ab, All Rights Reserved.
+Original License text copyright (c) 2017 MariaDB Corporation Ab, All Rights Reserved.
 "Business Source License" is a trademark of MariaDB Corporation Ab.
+Revised License text copyright (c) 2023 Biggest Lab Company Ltd, All Rights Reserved.
 
 -----------------------------------------------------------------------------
 
@@ -25,10 +26,9 @@ Change License:      MIT or BSDv3 license
 
 Terms
 
-The Licensor hereby grants you the right to copy, modify, create derivative
-works, redistribute, and make non-production use of the Licensed Work. The
-Licensor may make an Additional Use Grant, above, permitting limited
-production use.
+The Licensor hereby grants you the right to copy, review, redistribute, and
+make non-production and non-commercial use of the Licensed Work. The Licensor
+may make an Additional Use Grant, above, permitting limited production use.
 
 Effective on the Change Date, or the fourth anniversary of the first publicly
 available distribution of a specific version of the Licensed Work under this
