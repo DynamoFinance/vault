@@ -526,6 +526,10 @@ def test_replaceGovernance(governance_contract, vault_contract_one, governance_c
     with ape.reverts():
         governance_contract.replaceGovernance(ZERO_ADDRESS, vault_contract_one, sender=someone)
 
+    # Confirm pre-condition Governance contract.
+    print("**** Curent vault Governance addr: %s , governance_contract.addr: %s." % (vault_contract_one.governance(), governance_contract.address))
+    assert vault_contract_one.governance() == governance_contract.address
+
     #Test if replace governance logs new vote
     rg = governance_contract.replaceGovernance(governance_contract_two, vault_contract_one, sender=someone)
     logs = list(rg.decode_logs(governance_contract.VoteForNewGovernance))
@@ -541,6 +545,10 @@ def test_replaceGovernance(governance_contract, vault_contract_one, governance_c
     assert logs[0].VoteCount == 1
     assert logs[0].TotalGuards == 1
 
+    # Confirm post-condition Governance contract.
+    print("**** Updated vault Governance addr: %s , governance_contract_two.addr: %s." % (vault_contract_one.governance(), governance_contract_two.address))
+ 
+    assert vault_contract_one.governance() == governance_contract_two.address
 
 
 def test_addVault(governance_contract, vault_contract_one, vault_contract_two, vault_contract_three, vault_contract_four, accounts):
