@@ -307,7 +307,7 @@ def activateStrategy(Nonce: uint256, vault: address):
     assert (pending_strat.Withdrawn == False), "Strategy is withdrawn."
 
     #Confirm strategy is approved by guards
-    assert (len(pending_strat.VotesEndorse) >= len(self.LGov)/2) or \
+    assert (len(pending_strat.VotesEndorse) >= (len(self.LGov)/2)+1) or \
            ((pending_strat.TSubmitted + self.TDelay) < block.timestamp), "Premature activation with insufficience endorsements."
     assert len(pending_strat.VotesReject) <= len(pending_strat.VotesEndorse), "Strategy was rejected."
 
