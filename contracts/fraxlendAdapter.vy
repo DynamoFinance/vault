@@ -1,7 +1,7 @@
 # @version 0.3.7
 """
 @title Fraxlend adapter for Dynamo4626 Multi-Vault
-@license MIT
+@license Copyright 2023 Biggest Lab Co Ltd, Benjamin Scherrey, Sajal Kayan, and Eike Caldeweyher
 @author BiggestLab (https://biggestlab.io) Benjamin Scherrey, Morgan Baugh, Sajal Kayan
 """
 from vyper.interfaces import ERC20

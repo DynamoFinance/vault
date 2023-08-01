@@ -1,7 +1,7 @@
 # @version 0.3.7
 """
 @title Adapter Fund Allocation Logic
-@license MIT
+@license Copyright 2023 Biggest Lab Co Ltd, Benjamin Scherrey, Sajal Kayan, and Eike Caldeweyher
 @author BiggestLab (https://biggestlab.io) Benjamin Scherrey
 """
 

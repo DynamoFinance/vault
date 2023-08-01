@@ -3,7 +3,7 @@
 """
 
 @title Governance Contract
-@license MIT
+@license Copyright 2023 Biggest Lab Co Ltd, Benjamin Scherrey, Sajal Kayan, and Eike Caldeweyher
 @author BiggestLab
 @notice Governance for Dynamo Vault
 
