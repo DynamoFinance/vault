@@ -398,7 +398,11 @@ def _totalReturns(_current_assets : uint256) -> int256:
     if current_holdings == 0:
         current_holdings = self._totalAssets()
 
-    total_returns: int256 = convert(self.total_assets_withdrawn + current_holdings, int256) - convert(self.total_assets_deposited, int256)
+    total_returns: int256 = convert(self.total_assets_withdrawn + \
+                                    current_holdings + \
+                                    self.total_yield_fees_claimed + \
+                                    self.total_strategy_fees_claimed, int256) - \
+                            convert(self.total_assets_deposited, int256)
     return total_returns    
 
 
@@ -526,14 +530,12 @@ def _claim_fees(_yield : FeeType, _asset_amount: uint256, _current_assets : uint
     else:
         assert False, "Invalid FeeType!"    
 
-
     self.total_yield_fees_claimed += claim_amount
     self.total_strategy_fees_claimed += strat_fee_amount
 
     # Do we have something independent for the strategy proposer?
     if strat_fee_amount > 0 and self.owner != self.current_proposer:
         ERC20(asset).transfer(self.current_proposer, strat_fee_amount)
-        strat_fee_amount = 0
         
     # Is there anything left over to transfer for Yield? (Which might also include strat)
     if claim_amount > 0:
