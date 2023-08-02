@@ -517,9 +517,8 @@ def _claim_fees(_yield : FeeType, _asset_amount: uint256, _current_assets : uint
     if _yield == FeeType.PROPOSER or _yield == FeeType.BOTH: 
         assert msg.sender == self.current_proposer or msg.sender == self.governance, "Only curent proposer or governance may claim strategy fees."
 
-        if _yield == FeeType.BOTH:
-            strat_fee_amount = min(claim_amount, self._claimable_fees_available(FeeType.PROPOSER, _current_assets))
-            claim_amount -= strat_fee_amount
+        strat_fee_amount = min(claim_amount, self._claimable_fees_available(FeeType.PROPOSER, _current_assets))
+        claim_amount -= strat_fee_amount
 
     elif _yield == FeeType.YIELD:
         assert msg.sender == self.owner, "Only owner may claim yield fees."
@@ -534,6 +533,7 @@ def _claim_fees(_yield : FeeType, _asset_amount: uint256, _current_assets : uint
     # Do we have something independent for the strategy proposer?
     if strat_fee_amount > 0 and self.owner != self.current_proposer:
         ERC20(asset).transfer(self.current_proposer, strat_fee_amount)
+        strat_fee_amount = 0
         
     # Is there anything left over to transfer for Yield? (Which might also include strat)
     if claim_amount > 0:

@@ -144,13 +144,17 @@ def test_set_acl_claim_fees(project, deployer, dynamo4626, pool_adapterA, dai, t
 
     print("updated_strat_funds : %s." % updated_strat_funds)
 
-    #assert updated_strat_funds > current_strat_funds, "strategizer didn't get paid!"
+    assert updated_strat_funds > current_strat_funds, "strategizer didn't get paid!"
 
     current_owner_funds = dai.balanceOf(dynamo4626.owner())
+
+    print("current_owner_funds : %s." % current_owner_funds)    
 
     dynamo4626.claim_yield_fees(sender=deployer)
 
     updated_owner_funds = dai.balanceOf(dynamo4626.owner())
+
+    print("updated_owner_funds : %s." % updated_owner_funds)
 
     assert updated_owner_funds > current_owner_funds, "owner didn't get paid!"
 
