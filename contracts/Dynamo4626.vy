@@ -428,16 +428,16 @@ def _claimable_fees_available(_yield : FeeType, _current_assets : uint256 = 0) -
         return 0
 
     total_yield_ever : uint256 = (convert(total_returns,uint256) * YIELD_FEE_PERCENTAGE) / 100
-    total_fees_ever : uint256 = (convert(total_returns,uint256) * PROPOSER_FEE_PERCENTAGE) / 100
+    total_strat_fees_ever : uint256 = (convert(total_returns,uint256) * PROPOSER_FEE_PERCENTAGE) / 100
 
     if _yield == FeeType.PROPOSER and \
-        self.total_strategy_fees_claimed >= total_fees_ever: 
+        self.total_strategy_fees_claimed >= total_strat_fees_ever: 
             return 0
     elif _yield == FeeType.YIELD and \
         self.total_yield_fees_claimed >= total_yield_ever:
             return 0
     elif _yield == FeeType.BOTH and \
-        self.total_strategy_fees_claimed + self.total_yield_fees_claimed >= total_fees_ever + total_yield_ever:
+        self.total_strategy_fees_claimed + self.total_yield_fees_claimed >= total_strat_fees_ever + total_yield_ever:
             return 0
 
     total_fees_available : uint256 = 0
@@ -445,7 +445,7 @@ def _claimable_fees_available(_yield : FeeType, _current_assets : uint256 = 0) -
         total_fees_available += total_yield_ever - self.total_yield_fees_claimed
     
     if _yield == FeeType.PROPOSER or _yield == FeeType.BOTH:
-        total_fees_available += total_fees_ever - self.total_strategy_fees_claimed           
+        total_fees_available += total_strat_fees_ever - self.total_strategy_fees_claimed           
 
     # We want to do the above sanity checks even if total_assets is zero just in case.
     #if total_assets == 0: return 0
@@ -505,7 +505,7 @@ def _claim_fees(_yield : FeeType, _asset_amount: uint256, _current_assets : uint
         claim_amount = total_fees_remaining
 
     # Do we have _asset_amount of fees available to claim?
-    assert claim_amount <= total_fees_remaining, "Requesst exceeds available fees."
+    assert claim_amount <= total_fees_remaining, "Request exceeds available fees."
 
     # Good claim. Do we have the balance locally?
     if ERC20(asset).balanceOf(self) < claim_amount:
@@ -513,25 +513,33 @@ def _claim_fees(_yield : FeeType, _asset_amount: uint256, _current_assets : uint
         # Need to liquidate some shares to fulfill 
         self._balanceAdapters(claim_amount)
 
-    # Account for the claim and move the funds.
-    if _yield == FeeType.YIELD:
-        assert msg.sender == self.owner, "Only owner may claim yield fees."
-        self.total_yield_fees_claimed += claim_amount    
-    elif _yield == FeeType.PROPOSER:
+    strat_fee_amount : uint256 = 0
+    if _yield == FeeType.PROPOSER or _yield == FeeType.BOTH: 
         assert msg.sender == self.current_proposer or msg.sender == self.governance, "Only curent proposer or governance may claim strategy fees."
-        self.total_strategy_fees_claimed += claim_amount        
-    elif _yield == FeeType.BOTH:
+
+        if _yield == FeeType.BOTH:
+            strat_fee_amount = min(claim_amount, self._claimable_fees_available(FeeType.PROPOSER, _current_assets))
+            claim_amount -= strat_fee_amount
+
+    elif _yield == FeeType.YIELD:
         assert msg.sender == self.owner, "Only owner may claim yield fees."
-        assert msg.sender == self.current_proposer, "Only curent proposer may claim strategy fees."        
-        prop_fee : uint256 = self._claimable_fees_available(FeeType.PROPOSER, _current_assets)
-        self.total_yield_fees_claimed += claim_amount - prop_fee
-        self.total_strategy_fees_claimed += prop_fee
+
     else:
-        assert False, "Invalid FeeType!"
+        assert False, "Invalid FeeType!"    
 
-    ERC20(asset).transfer(msg.sender, claim_amount)
 
-    return claim_amount
+    self.total_yield_fees_claimed += claim_amount
+    self.total_strategy_fees_claimed += strat_fee_amount
+
+    # Do we have something independent for the strategy proposer?
+    if strat_fee_amount > 0 and self.owner != self.current_proposer:
+        ERC20(asset).transfer(self.current_proposer, strat_fee_amount)
+        
+    # Is there anything left over to transfer for Yield? (Which might also include strat)
+    if claim_amount > 0:
+        ERC20(asset).transfer(self.owner, claim_amount + strat_fee_amount)        
+
+    return claim_amount + strat_fee_amount
 
 
 @external

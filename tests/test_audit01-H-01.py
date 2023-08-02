@@ -63,7 +63,7 @@ def funds_alloc(project, deployer):
     f = deployer.deploy(project.FundsAllocator)
     return f
 
-def _setup_single_adapter(_project, _dynamo4626, _deployer, _dai, _adapter, stratagizer, ratio=1):
+def _setup_single_adapter(_project, _dynamo4626, _deployer, _dai, _adapter, strategizer, ratio=1):
     # Setup our pool strategy first.
     strategy = [(ZERO_ADDRESS,0)] * MAX_POOLS 
 
@@ -75,7 +75,7 @@ def _setup_single_adapter(_project, _dynamo4626, _deployer, _dai, _adapter, stra
 
     strategy[pos] = (_adapter.address,ratio)
     print("strategy for _setup_single_adapter: %s." % strategy)
-    _dynamo4626.set_strategy(stratagizer, strategy, 0, sender=_deployer)
+    _dynamo4626.set_strategy(strategizer, strategy, 0, sender=_deployer)
 
     # Now add the pool.
     _dynamo4626.add_pool(_adapter, sender=_deployer)    
@@ -116,14 +116,27 @@ def test_set_acl_claim_fees(project, deployer, dynamo4626, pool_adapterA, dai, t
     dai.mint(pool_adapterA, 1000, sender=deployer)
     assert dynamo4626.maxWithdraw(trader) > 1000
 
-    assert dynamo4626.claimable_strategy_fees_available() > 0
+    assert dynamo4626.claimable_strategy_fees_available() > dynamo4626.min_proposer_payout(), "Not enough to pay Strategist!"
 
+    print("dynamo4626.claimable_strategy_fees_available() : %s." % dynamo4626.claimable_strategy_fees_available())
 
     #No issues if new strategy is from the same proposer
     strategy = [(ZERO_ADDRESS,0)] * MAX_POOLS
     strategy[0] = (pool_adapterA.address, 1)
-    dynamo4626.set_strategy(dynamo4626.current_proposer(), strategy, dynamo4626.min_proposer_payout(), sender=deployer)
+
+    strategizer = dynamo4626.current_proposer()
+    assert strategizer != strategizer2, "Same strategizer!"
+    current_strat_funds = dai.balanceOf(strategizer)
+
+    print("current_strat_funds : %s." % current_strat_funds)
+
+    dynamo4626.set_strategy(strategizer, strategy, dynamo4626.min_proposer_payout(), sender=deployer)
 
     #Per the audit report, if proposer fees claimable > min_proposer_payout, then governance cannot change the strategy...
     dynamo4626.set_strategy(strategizer2, strategy, dynamo4626.min_proposer_payout(), sender=deployer)
 
+    updated_strat_funds = dai.balanceOf(strategizer)
+
+    print("updated_strat_funds : %s." % updated_strat_funds)
+
+    assert updated_strat_funds > current_strat_funds, "strategizer didn't get paid!"
