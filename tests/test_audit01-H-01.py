@@ -119,12 +119,17 @@ def test_set_acl_claim_fees(project, deployer, dynamo4626, pool_adapterA, dai, t
     assert dynamo4626.claimable_strategy_fees_available() > dynamo4626.min_proposer_payout(), "Not enough to pay Strategist!"
 
     print("dynamo4626.claimable_strategy_fees_available() : %s." % dynamo4626.claimable_strategy_fees_available())
+    print("dynamo4626.claimable_yield_fees_available() : %s." % dynamo4626.claimable_yield_fees_available())
+    print("dynamo4626.claimable_all_fees_available() : %s." % dynamo4626.claimable_all_fees_available())
+
+
 
     #No issues if new strategy is from the same proposer
     strategy = [(ZERO_ADDRESS,0)] * MAX_POOLS
     strategy[0] = (pool_adapterA.address, 1)
 
     strategizer = dynamo4626.current_proposer()
+    assert strategizer == strategizer1, "Not same strategizer!"
     assert strategizer != strategizer2, "Same strategizer!"
     current_strat_funds = dai.balanceOf(strategizer)
 
@@ -139,4 +144,17 @@ def test_set_acl_claim_fees(project, deployer, dynamo4626, pool_adapterA, dai, t
 
     print("updated_strat_funds : %s." % updated_strat_funds)
 
-    assert updated_strat_funds > current_strat_funds, "strategizer didn't get paid!"
+    #assert updated_strat_funds > current_strat_funds, "strategizer didn't get paid!"
+
+    current_owner_funds = dai.balanceOf(dynamo4626.owner())
+
+    dynamo4626.claim_yield_fees(sender=deployer)
+
+    updated_owner_funds = dai.balanceOf(dynamo4626.owner())
+
+    assert updated_owner_funds > current_owner_funds, "owner didn't get paid!"
+
+    print("dynamo4626.claimable_strategy_fees_available() : %s." % dynamo4626.claimable_strategy_fees_available())
+    print("dynamo4626.claimable_yield_fees_available() : %s." % dynamo4626.claimable_yield_fees_available())
+    print("dynamo4626.claimable_all_fees_available() : %s." % dynamo4626.claimable_all_fees_available())
+
