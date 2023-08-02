@@ -122,8 +122,16 @@ def test_set_acl_claim_fees(project, deployer, dynamo4626, pool_adapterA, dai, t
     #No issues if new strategy is from the same proposer
     strategy = [(ZERO_ADDRESS,0)] * MAX_POOLS
     strategy[0] = (pool_adapterA.address, 1)
-    dynamo4626.set_strategy(dynamo4626.current_proposer(), strategy, dynamo4626.min_proposer_payout(), sender=deployer)
+
+    stratagizer = dynamo4626.current_proposer()
+
+    dynamo4626.set_strategy(stratagizer, strategy, dynamo4626.min_proposer_payout(), sender=deployer)
 
     #Per the audit report, if proposer fees claimable > min_proposer_payout, then governance cannot change the strategy...
     dynamo4626.set_strategy(strategizer2, strategy, dynamo4626.min_proposer_payout(), sender=deployer)
 
+    current_strat_funds = dai.balanceOf(stratagizer)
+    dynamo4626.claim_all_fees(sender=deployer)
+    updated_strat_funds = dai.balanceOf(stratagizer)
+
+    assert updated_strat_funds > current_strat_funds, "strategizer didn't get paid!"

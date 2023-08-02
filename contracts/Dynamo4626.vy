@@ -521,7 +521,7 @@ def _claim_fees(_yield : FeeType, _asset_amount: uint256, _current_assets : uint
         self.total_strategy_fees_claimed += claim_amount        
     elif _yield == FeeType.BOTH:
         assert msg.sender == self.owner, "Only owner may claim yield fees."
-        assert msg.sender == self.current_proposer, "Only curent proposer may claim strategy fees."        
+        # BDM TODO UNDO  assert msg.sender == self.current_proposer, "Only curent proposer may claim strategy fees."        
         prop_fee : uint256 = self._claimable_fees_available(FeeType.PROPOSER, _current_assets)
         self.total_yield_fees_claimed += claim_amount - prop_fee
         self.total_strategy_fees_claimed += prop_fee
