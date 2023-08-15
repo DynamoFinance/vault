@@ -172,3 +172,18 @@ BAL 233863765411278079176
 
 In [9]:   
 ```
+
+
+## Local dev env
+
+This results in local RPC endpoint which is fork of ETH mainnet and has our vault deployed, can be used with metamask to help with frontend development.
+
+1. Activate your python virtual environment.
+2. Install dependencies `make init`
+3. export your alchemy key `export WEB3_ALCHEMY_API_KEY=REPLACE_ME`
+4. Run the deployment script `ape run  hardhat_deploy --network :mainnet-fork:hardhat` (each time you run this it wipes the state)
+
+Note down relavent info once the command runs.
+
+**Important**: Each time you run this script, you must [reset metamask account](https://support.metamask.io/hc/en-us/articles/360015488891-How-to-reset-an-account) or ull use wrong nonce and your tx will remain stuck forever.
+
