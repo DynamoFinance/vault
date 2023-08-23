@@ -47,6 +47,10 @@ event VaultSwap:
     OldVaultAddress: indexed(address)
     NewVaultAddress: indexed(address)
 
+event OwnerChanged:
+    new_owner: indexed(address)
+    old_owner: indexed(address)      
+
 #LPRatios
 
 struct AdapterStrategy:
@@ -570,3 +574,20 @@ def swapVault(OldVaultAddress: address, NewVaultAddress: address):
     # Log Vault Swap
     log VaultSwap(OldVaultAddress, NewVaultAddress)
     
+    
+@external
+def replaceOwner(_new_owner: address) -> bool:
+    """
+    @notice replace the current Governance contract owner with a new one.
+    @param _new_owner address of the new contract owner
+    @return True, if contract owner was replaced, False otherwise
+    """
+    assert msg.sender == self.contractOwner, "Only existing owner can replace the owner."
+    assert _new_owner != empty(address), "Owner cannot be null address."
+
+    log OwnerChanged(_new_owner, self.contractOwner)
+
+    self.contractOwner = _new_owner
+    
+    return True
+
