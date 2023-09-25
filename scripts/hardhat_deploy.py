@@ -4,7 +4,8 @@ import requests, json, os
 import eth_abi
 from ape import accounts
 from ape import project
-
+import pprint
+pp = pprint.PrettyPrinter(indent=4)
 
 DAI = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
 D4626_NAME = "DynamoDAI"
@@ -119,3 +120,10 @@ Currency Symbol     ETH
 WARNING: Test blockchain state has been reset, you need to reset metamask or subsiquent transactions may be stuck forever.
 https://support.metamask.io/hc/en-us/articles/360015488891-How-to-reset-an-account
           """)
+    
+    if input("Do a test deposit from whale to vault? (y to continue) : ") in ["y", "Y"]:
+        #Do allowance
+        dai.approve(dynamo4626, '100 Ether', sender=whale)
+        #Do the deposit
+        dynamo4626.deposit('100 Ether', whale, sender=whale)
+        pp.pprint(dynamo4626.getCurrentBalances())
