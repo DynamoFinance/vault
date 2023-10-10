@@ -1,0 +1,63 @@
+DAI = "0x6b175474e89094c44da98b954eedeac495271d0f"
+D4626_NAME = "Dynamo DAI"
+D4626_SYMBOL = "dyDAI"
+D4626_DECIMALS = 18
+AAVE_LENDING_POOL = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2"
+ADAI = "0x018008bfb33d285247A21d44E50697654f754e63"
+CDAI = "0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643"
+MAX_POOLS = 5 # Must match the value from Dynamo4626.vy
+ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+DYNAMO_MULTISIG = "0xC79dedB37C44949b06f76843937B5Db933713566"
+
+#### Previously deployed #######
+FUNDS_ALLOCATOR = "0x990Cf913d47c2443832Bf198F7d74b1d56898d61"
+GOVERNANCE = "0xcED213540c2f767A9A04181b1E71D9895284D2DA"
+################################
+
+#load deployer wallet
+deployer = accounts.load("dynamo_deployer")
+
+gas_settings = {
+    "max_priority_fee": "0.1 gwei",
+    "max_fee": "6 gwei",
+    "sender": deployer,
+    "gas": 10000000,
+}
+
+dynamo4626 = deployer.deploy(
+    project.Dynamo4626,
+    D4626_NAME,
+    D4626_SYMBOL,
+    D4626_DECIMALS,
+    DAI,
+    [],
+    deployer,
+    FUNDS_ALLOCATOR,
+    **gas_settings
+)    #4,107,373  gas   0x1d9aba973184a488e62fd931ae20eb29dd5b4831
+
+
+aave_adapter = deployer.deploy(project.aaveAdapter, AAVE_LENDING_POOL, DAI, ADAI, **gas_settings) #418,343 gas 0x9acee5aa2eb329b57c47d8579df22779e21b89bc
+
+compound_adapter = deployer.deploy(project.compoundAdapter, DAI, CDAI, **gas_settings) #404,795 gas 0x7472b2398c4d0c39d2719b6788fb795b8cf27c71
+
+#Add adapters
+dynamo4626.add_pool(aave_adapter, **gas_settings)  #102,585 gas
+dynamo4626.add_pool(compound_adapter, **gas_settings) #57,931 gas
+
+
+#set the strategy
+strategy = [(ZERO_ADDRESS,0)] * MAX_POOLS
+
+pos = 0
+for pool in dynamo4626.lending_pools():
+    strategy[pos] = (pool, 1)
+    pos += 1
+
+dynamo4626.set_strategy(deployer, strategy, 0, **gas_settings) #228,325 gas
+
+dynamo4626.replaceGovernanceContract(GOVERNANCE, **gas_settings) #28,280 gas
+
+#Yield ownership to multisig
+
+dynamo4626.replaceOwner(DYNAMO_MULTISIG, **gas_settings) #28,257 gas

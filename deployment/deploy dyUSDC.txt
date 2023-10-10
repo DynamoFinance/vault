@@ -1,0 +1,90 @@
+
+# Constants
+USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+D4626_NAME = "Dynamo USDC"
+D4626_SYMBOL = "dyUSDC"
+D4626_DECIMALS = 6
+AAVE_LENDING_POOL = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2"
+AUSDC = "0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c"
+CUSDC = "0x39AA39c021dfbaE8faC545936693aC917d5E7563"
+MAX_POOLS = 5 # Must match the value from Dynamo4626.vy
+ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+DYNAMO_MULTISIG = "0xC79dedB37C44949b06f76843937B5Db933713566"
+DYNAMO_GUARDS = [
+    "0xAc0aA566EF7B60796e209Bd0763a3731ab01d88B",
+    "0x819DF6C8Df276e7E0691228F4e93c13D40a88d2c",
+    "0x3682827F48F8E023EE40707dEe82620D0B63579f",
+    "0x070165FA21c612FE7f1Be90Bc16D0fd11574C0cA",
+    "0x2bB20eCD281A35C8937dFbAD5B22603FB834A6ee"
+]
+
+#load deployer wallet
+deployer = accounts.load("dynamo_deployer")
+
+gas_settings = {
+    "max_priority_fee": "0.1 gwei",
+    "max_fee": "6 gwei",
+    "sender": deployer,
+    "gas": 10000000,
+}
+
+#Fund deployer wallet (for real deployment dynamo folks will do this)
+accounts.test_accounts[0].transfer(deployer, '10 Ether')
+
+
+deployer.balance / 10**18
+
+funds_alloc = deployer.deploy(project.FundsAllocator, **gas_settings) # 825,800 gas   0x990Cf913d47c2443832Bf198F7d74b1d56898d61
+
+dynamo4626 = deployer.deploy(
+    project.Dynamo4626,
+    D4626_NAME,
+    D4626_SYMBOL,
+    D4626_DECIMALS,
+    USDC,
+    [],
+    deployer,
+    funds_alloc,
+    **gas_settings
+)    # 4,114,610 gas  0x1172563822d638e9fEC457Eb6B16355c3b94D5fd
+
+
+aave_adapter = deployer.deploy(project.aaveAdapter, AAVE_LENDING_POOL, USDC, AUSDC, **gas_settings) #418,343 gas 0xE351b0d7A7232169e8f7c0Ef0914e05d7c656d5d
+
+compound_adapter = deployer.deploy(project.compoundAdapter, USDC, CUSDC, **gas_settings) #404,795 gas 0x9BCb7E35E4241EFE4957a0Fa15d06A4f531787fE
+
+
+#Add adapters
+dynamo4626.add_pool(aave_adapter, **gas_settings)  #102,585 gas
+dynamo4626.add_pool(compound_adapter, **gas_settings) #57,931 gas
+
+
+#set the strategy
+strategy = [(ZERO_ADDRESS,0)] * MAX_POOLS
+
+pos = 0
+for pool in dynamo4626.lending_pools():
+    strategy[pos] = (pool, 1)
+    pos += 1
+
+dynamo4626.set_strategy(deployer, strategy, 0, **gas_settings) #213,804 gas
+
+governance = deployer.deploy(project.Governance, deployer, 0, **gas_settings) #3,311,558 gas 0xcED213540c2f767A9A04181b1E71D9895284D2DA
+
+
+
+#add the multisig as guard
+for guard in DYNAMO_GUARDS:
+    print(guard)
+    governance.addGuard(guard, sender=deployer) #69,542 gas
+
+
+dynamo4626.replaceGovernanceContract(governance, sender=deployer) #28,280 gas
+
+
+#Yield ownership to multisig
+
+dynamo4626.replaceOwner(DYNAMO_MULTISIG, sender=deployer) #28,257 gas
+governance.replaceOwner(DYNAMO_MULTISIG, sender=deployer) #28,602 gas
+
+
