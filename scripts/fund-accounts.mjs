@@ -88,6 +88,11 @@ async function impersonateAndTransfer({ address, source, decimals = 18 }) {
 }
 
 async function main() {
+  // await client.setNonce({
+  //   address: dynamoWhale,
+  //   nonce: 14,
+  // })
+
   for (const token of mainnetAddresses) {
     console.log(`Transferring ${token.name}...`)
     await impersonateAndTransfer(token)
