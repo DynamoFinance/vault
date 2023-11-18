@@ -1,4 +1,11 @@
-import { createTestClient, http, publicActions, walletActions, parseUnits, parseEther } from 'viem'
+import {
+  createTestClient,
+  http,
+  publicActions,
+  walletActions,
+  parseUnits,
+  parseEther,
+} from 'viem'
 import { hardhat } from 'viem/chains'
 
 const client = createTestClient({
@@ -13,7 +20,7 @@ const mainnetAddresses = [
   {
     name: 'USDC',
     address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-    source: '0xA4FfD041A475Cac56cA845e4811c014b619fCE5a',
+    source: '0x099E78BC6850aFd72642F20Cd4660A6ea5C5aFf8',
     decimals: 6,
   },
   {
@@ -101,7 +108,7 @@ async function main() {
 
 main()
   .then(() => process.exit())
-  .catch(error => {
+  .catch((error) => {
     console.error(error)
     process.exit(1)
   })
