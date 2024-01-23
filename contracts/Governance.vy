@@ -338,7 +338,7 @@ def addGuard(GuardAddress: address):
     assert msg.sender == self.contractOwner, "Cannot add guard unless you are contract owner"
 
     #Check to see if there is the max amount of Guards
-    assert len(self.LGov) <= MAX_GUARDS, "Cannot add anymore guards"
+    assert len(self.LGov) < MAX_GUARDS, "Cannot add anymore guards"
 
     #Check to see that the Guard being added is a valid address
     assert GuardAddress != ZERO_ADDRESS, "Cannot add ZERO_ADDRESS"
